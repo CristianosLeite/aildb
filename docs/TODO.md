@@ -31,11 +31,6 @@ reviews and publishes it, and `ail.pin` then moves to that revision.
   `fadd` in order.
 - [ ] Float literals (user's proposal): not needed for version 1.
 
-## 2. Skeleton
-
-- [ ] `aildb` with no command or an unknown one: usage on stderr and the
-  usage status.
-
 ## 3. The documented format
 
 - [ ] `docs/format.md`: header (magic, version, flags, dimension, count,

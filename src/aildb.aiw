@@ -1,7 +1,27 @@
 # aildb -- a local, file-based vector search engine.
 #
-# The entry point of the one executable: it will read the command
-# (build, search or check) and be the only place that prints and exits;
-# the functions of src/lib/ return what they found. No command is
-# written yet, so the program ends with status 0 whatever it is given.
+# The entry point of the one executable: it reads the command and is the
+# only place that prints and exits; the functions of src/lib/ return what
+# they found. The exit statuses, one for each class of error, are the
+# constants below (docs/usage.md).
+#
+# No command is written yet: whatever the first argument is, the program
+# prints the usage and ends with the status of wrong usage.
 use "lib/std/io.aiw"
+
+const stusage 2         # wrong usage
+const stinvalid 3       # an invalid snapshot or invalid input
+const stio 4            # an I/O failure
+const stbusy 5          # another build in progress for the destination
+const stunsure 6        # published, durability not confirmed
+
+# print the usage on stderr and end the program
+fn usage
+	call eprint "usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
+       aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
+       aildb check INDEX
+"
+	sys exit_group stusage
+end
+
+call usage

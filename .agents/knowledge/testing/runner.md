@@ -29,6 +29,13 @@ compiles it, runs it under a deadline and compares. What a test needs beyond tha
   --cached --others --exclude-standard`), so a new source is checked before its first
   commit; ail-bench lists only the committed ones.
 
+- **A test starts the executable through `tests/lib/cmd.aiw`** (2026-11-21): `cmdshow`
+  takes a command line, runs it with `/dev/null` as stdin and prints the line, its stdout,
+  its stderr and its exit status or signal, which is what the `.out` of the test then
+  holds; `cmdrun` gives the two outputs in buffers and takes a descriptor for stdin. An
+  argument of `cmdshow` has no space in it and is not empty; a test that needs such an
+  argument builds the argument addresses itself and calls `cmdrun`.
+
 ## Unchecked
 - The runner itself has no test in the repository. On 2026-11-21 it was tried by hand with
   temporary tests: one that passes, a wrong output, a wrong status, an expected status, an

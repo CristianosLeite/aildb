@@ -1,0 +1,145 @@
+# tests/lib/cmd.aiw -- start a program for a test and show what it did.
+# A test that uses it uses lib/std/io.aiw, lib/std/bytes.aiw,
+# lib/std/file.aiw and lib/std/proc.aiw first, and runs under
+# tests/run.sh, which names a directory for its files in AILDB_TMP.
+#
+# Every name of this file starts with "cmd"; a test has no var of such a
+# name (see lib/std/io.aiw).
+
+buf cmdpo 24            # the paths of the files the outputs go to
+buf cmdpe 24
+buf cmdso 24            # what cmdshow read from them
+buf cmdse 24
+buf cmdline 4096        # the arguments of cmdargs, a NUL after each
+buf cmdargv 520         # their addresses, 64 at most, and a 0
+
+# make the bytes buffer cmdb the path of the file named by the cmdn bytes
+# at cmdp in the directory of this test: 1, or 0 without the directory or
+# without memory
+fn cmdpath cmdb cmdp cmdn
+	call bycut cmdb 0
+	call procvar "AILDB_TMP" as cmdt cmdl
+	ifz cmdt
+		ret 0
+	end
+	call byadd cmdb cmdt cmdl as cmdx
+	call byaddb cmdb 47 as cmdy
+	call byadd cmdb cmdp cmdn as cmdz
+	ret cmdx&cmdy&cmdz
+end
+
+# Run the program whose arguments are at cmdav, as procstart takes them,
+# until it ends: its result as procwait gives it, an exit status or a
+# signal negated, or -2000 if the test could not start it or read what it
+# wrote. cmdin is the descriptor it reads as stdin, -1 for /dev/null. Its
+# stdout and stderr go to files and are, afterwards, the contents of the
+# bytes buffers cmdout and cmderr.
+fn cmdrun cmdav cmdin cmdout cmderr
+	call cmdpath cmdpo "cmd.out" as cmdx
+	call cmdpath cmdpe "cmd.err" as cmdy
+	ifz cmdx&cmdy
+		ret -2000
+	end
+	load cmdpo as cmdp
+	load cmdpo+8 as cmdn
+	call fileopen cmdp cmdn 0x241 420 as cmdo
+	load cmdpe as cmdp
+	load cmdpe+8 as cmdn
+	call fileopen cmdp cmdn 0x241 420 as cmde
+	cmdi=cmdin
+	if cmdin==-1
+		call fileopen "/dev/null" 0 0 as cmdi
+	end
+	# a descriptor that is an error has the sign bit, and so has the or
+	ifslt cmdo|cmde|cmdi 0
+		ret -2000
+	end
+	call procstart cmdav cmdi cmdo cmde as cmdpid
+	sys close cmdo
+	sys close cmde
+	if cmdin==-1
+		sys close cmdi
+	end
+	ifslt cmdpid 0
+		ret -2000
+	end
+	call procwait cmdpid 0 as cmds
+	call bycut cmdout 0
+	call bycut cmderr 0
+	load cmdpo as cmdp
+	load cmdpo+8 as cmdn
+	call fileread cmdp cmdn cmdout as cmdx
+	load cmdpe as cmdp
+	load cmdpe+8 as cmdn
+	call fileread cmdp cmdn cmderr as cmdy
+	ifslt cmdx|cmdy 0
+		ret -2000
+	end
+	ret cmds
+end
+
+# The arguments of a command line, the cmdn bytes at cmdp, as procstart
+# takes them: the address of their addresses. An argument ends at a
+# space, so none has a space in it and none is empty; the line is shorter
+# than 4096 bytes and has 64 arguments at most, or the result is 0. The
+# result is good until the next call.
+fn cmdargs cmdp cmdn
+	if cmdn>4095
+		ret 0
+	end
+	cmdi=0
+	cmdk=0
+	cmdw=0
+	while cmdi<cmdn
+		loadb cmdp+cmdi as cmdc
+		if cmdc==32
+			storeb cmdline+cmdi 0
+			cmdw=0
+		else
+			storeb cmdline+cmdi cmdc
+			ifz cmdw
+				if cmdk>=64
+					ret 0
+				end
+				store cmdargv+cmdk*8 cmdline+cmdi
+				cmdk+=1
+				cmdw=1
+			end
+		end
+		cmdi+=1
+	end
+	storeb cmdline+cmdn 0
+	store cmdargv+cmdk*8 0
+	ret cmdargv
+end
+
+# Run a command line with /dev/null as its stdin and print the line, what
+# the program wrote to stdout and to stderr, and how it ended; the result
+# is that of cmdrun.
+fn cmdshow cmdp cmdn
+	call print "$ "
+	call print cmdp cmdn
+	call print "\n"
+	cmds=-2000
+	call cmdargs cmdp cmdn as cmdav
+	if cmdav
+		call cmdrun cmdav -1 cmdso cmdse as cmds
+	end
+	call print "--- stdout\n"
+	load cmdso as cmdq
+	load cmdso+8 as cmdl
+	call print cmdq cmdl
+	call print "--- stderr\n"
+	load cmdse as cmdq
+	load cmdse+8 as cmdl
+	call print cmdq cmdl
+	ifslt cmds 0
+		call print "--- signal "
+		call putn 0-cmds
+	else
+		call print "--- status "
+		call putn cmds
+	end
+	call print "\n"
+	ret cmds
+end

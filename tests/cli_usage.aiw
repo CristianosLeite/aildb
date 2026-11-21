@@ -1,0 +1,10 @@
+# without a command, and with one that is none, aildb prints its usage on
+# stderr, nothing on stdout, and ends with the status of wrong usage
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "tests/lib/cmd.aiw"
+call cmdshow "build/aildb"
+call cmdshow "build/aildb frob"
+call cmdshow "build/aildb frob a b"

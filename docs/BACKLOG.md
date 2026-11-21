@@ -32,3 +32,5 @@ completed, under the section it had there.
   from `src/aildb.aiw`, compiled into a temporary file and moved.
 - [x] `tests/run.sh` in the manner of AIL (`name.aiw` with `name.out`,
   `name.code` or `name.err`), and the indentation check.
+- [x] `aildb` with no command or an unknown one: usage on stderr and the
+  usage status.
