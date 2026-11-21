@@ -14,8 +14,8 @@ to `BACKLOG.md`, under the same section.
 
 ## 0. Decisions before the first code
 
-- [ ] Git: the remote, the published name and the licence. The repository
-  was initialized on 2026-11-21, with a `.gitignore`.
+- [ ] Git: the remote and the published name. The repository was
+  initialized on 2026-11-21, with a `.gitignore`.
 
 ## 1. binary32 in AIL (work in the AIL repository)
 
@@ -70,3 +70,5 @@ mapped pages contribute to reported peak resident memory.
 - [ ] `README.md`: how to build, the three commands, the example.
 - [ ] `AGENTS.md` and the knowledge base brought up to date for the
   release (the section "State" was rewritten when step 8 was done).
+- [ ] If a release ships executables: the MIT notice of AIL goes with
+  them, since the code of its library is compiled into `build/aildb`.

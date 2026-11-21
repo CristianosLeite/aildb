@@ -88,6 +88,18 @@ documented.
   `a5b4559` as its head, and `ail.pin` names that commit. It is not merged into `main` of
   the AIL repository, so a merge that makes other commits of it moves the pin again.
 
+## Licence (user, 2026-11-21)
+- aildb is distributed under the Apache License 2.0. The file `LICENSE` is
+  its text as the Apache Software Foundation publishes it, unchanged, and
+  `README.md` names it. There is no `NOTICE` file and no notice at the head
+  of a source: the user named no copyright holder, and the licence asks for
+  neither.
+- AIL is under the MIT licence. An executable of aildb has the code of the
+  AIL library that its sources `use` compiled in, which the MIT licence
+  allows under its own condition, that its notice goes with a copy of that
+  code. Nothing of AIL is in this repository, so that is a matter for a
+  release that ships executables (step 11 of `docs/TODO.md`).
+
 ## Limits
 - The limits of the result count, the dimension and the record count are in
   `docs/format.md`; the [format page](format.md) has the reasons.

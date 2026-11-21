@@ -24,3 +24,7 @@ SQL, approximate indexes, incremental writes and a network service are outside v
 - [docs/durability.md](docs/durability.md): what a build leaves when it is interrupted, and what is assumed of the filesystem and the storage when power is lost
 - [AGENTS.md](AGENTS.md): guidance for AI coding agents, with the rules of the repository and what AIL offers the project
 - [.agents/knowledge/INDEX.md](.agents/knowledge/INDEX.md): the knowledge base, decisions and their reasons
+
+## License
+
+[Apache License 2.0](LICENSE).

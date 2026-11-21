@@ -17,6 +17,8 @@ completed, under the section it had there.
   2026-11-21).
 - [x] Tolerances: the same bits for a sum in the order of the engine, 1e-12
   for another order, about 1e-5 against LanceDB (user, 2026-11-21).
+- [x] The licence: aildb is distributed under the Apache License 2.0
+  (user, 2026-11-21); its text is the file `LICENSE`.
 - [x] Overlapping builds: `flock` on `<destination>.lock` (user, 2026-11-21).
 - [x] Semantics: path prefix by bytes, language by equality, the empty
   index valid, a filter that matches nothing gives no line and status 0;
