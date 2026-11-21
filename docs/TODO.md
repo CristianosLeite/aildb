@@ -18,9 +18,9 @@ to `BACKLOG.md`, under the same section.
 
 ## 1. binary32 in AIL (work in the AIL repository)
 
-Steps 2 to 5 do not wait for this one; `build` and `search` do. It is done
-by the agent on a branch of the checkout that is not pushed; the user
-reviews and publishes it, and `ail.pin` then moves to that revision.
+The statements are written, on a branch of the checkout that is not pushed
+(`docs/BACKLOG.md`); the user reviews and publishes it, and `ail.pin` then
+moves to that revision. Everything from `build` on needs them.
 
 - [ ] Move `ail.pin` to the revision that has the three statements, once
   the user has reviewed and published the branch `binary32` of the
@@ -52,5 +52,5 @@ reviews and publishes it, and `ail.pin` then moves to that revision.
 ## 11. Release
 
 - [ ] `README.md`: how to build, the three commands, the example.
-- [ ] `AGENTS.md`: the section "State" rewritten; the knowledge base
-  brought up to date.
+- [ ] `AGENTS.md` and the knowledge base brought up to date for the
+  release (the section "State" was rewritten when step 8 was done).
