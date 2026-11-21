@@ -49,6 +49,16 @@ written, before any reader existed, and are the user's to change until a release
 - **An empty language is allowed** (a file whose language the producer does not know); an
   empty path is not.
 
+## Learned
+- **The size of the strings is the one number of the layout that nothing else fixes**
+  (2026-11-21, from the tests of invalid files): a header that says 54 bytes where 53 are
+  named is a valid snapshot, since the byte is a zero that belongs to the strings now and
+  the vectors still start at the same multiple of 4096. The format allows bytes that
+  nothing names, so this is no fault; "one form" holds for the layout, not for the
+  contents of the strings.
+
 ## Unchecked
-- Nothing reads or writes the format yet; the page was written first, as step 3 of
-  `docs/TODO.md` has it, and the tests of steps 5 to 8 are what will show it holds.
+- Nothing of the engine writes the format yet. The reader is checked against files that
+  `tests/lib/mk.aiw` writes from the page (`tests/snap_open.aiw`,
+  `tests/cli_check.aiw`, `tests/cli_check_invalid.aiw`); `search` on a damaged file is a
+  test of step 8.

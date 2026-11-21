@@ -1,0 +1,270 @@
+# check rejects a file that is no valid snapshot with status 3 and one
+# line that says why. Each case is the valid snapshot of two records
+# with bytes changed, or cut, and with the checksum of header and
+# metadata made right again, so that it is the check named which finds
+# the fault and not the checksum; the cases of the checksums leave it.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "tests/lib/cmd.aiw"
+use "tests/lib/mk.aiw"
+buf good 24             # the valid file
+buf b 24                # the file of the case
+buf so 24
+buf se 24
+buf v 24
+# start a case from the valid file
+fn fresh
+	call bycut b 0
+	load good as p
+	load good+8 as n
+	call byadd b p n
+end
+# change 1, 4 or 8 bytes of the case at the offset o
+fn pokeb o x
+	load b as p
+	storeb p+o x
+end
+fn poke4 o x
+	load b as p
+	store4 p+o x
+end
+fn poke8 o x
+	load b as p
+	store p+o x
+end
+# make the checksum of header and metadata right for the bytes as they
+# are
+fn seal
+	load b as p
+	load b+8 as n
+	call mkseal p n
+end
+# write the first n bytes of the case, all with -1, run check on the
+# file and print the name of the case, the status, the number of bytes
+# on stdout and the line on stderr
+fn try p l n
+	call mksave b n "x.idx"
+	call cmdargs "aildb check x.idx" as av
+	call cmdrun av -1 so se as st
+	call print p l
+	call print ": status "
+	call putn st
+	call print ", stdout "
+	load so+8 as x
+	call putn x
+	call print "\n  "
+	load se as q
+	load se+8 as x
+	call print q x
+end
+# the valid file: strings at 176, 53 bytes of them, vectors at 4096
+call mknew 3 "nomic-embed-text" "7dea612"
+store4 v 0x3f800000
+call mkrec "lib/std/io.aiw" "ail" 1 20 v
+call mkrec "docs/usage.md" "" 7 7 v
+call mkdone good
+call fresh
+call try "valid" -1
+call print "\n"
+
+# the size of the file
+call try "empty file" 0
+call try "127 bytes" 127
+call try "the header alone" 128
+call try "cut in the metadata" 200
+call try "cut at the vectors" 4096
+call try "one byte short" 4119
+call fresh
+call byaddb b 0
+call try "one byte more" -1
+
+# magic, version, flags
+call fresh
+call pokeb 0 97
+call seal
+call try "magic" -1
+call fresh
+call poke4 8 2
+call seal
+call try "version 2" -1
+call fresh
+call poke4 8 0
+call seal
+call try "version 0" -1
+call fresh
+call poke4 12 0
+call seal
+call try "flags 0" -1
+call fresh
+call poke4 12 3
+call seal
+call try "flags 3" -1
+call fresh
+call pokeb 104 1
+call seal
+call try "reserved byte 104" -1
+call fresh
+call pokeb 127 1
+call seal
+call try "reserved byte 127" -1
+
+# the size in the header
+call fresh
+call poke8 16 4121
+call seal
+call try "size field" -1
+
+# the limits
+call fresh
+call poke8 32 0
+call seal
+call try "dimension 0" -1
+call fresh
+call poke8 32 65537
+call seal
+call try "dimension 65537" -1
+call fresh
+call poke8 24 0x100000000
+call seal
+call try "records 2^32" -1
+call fresh
+call poke8 56 0x100000000
+call seal
+call try "strings 2^32" -1
+call fresh
+call poke8 24 0xffffffffffffffff
+call seal
+call try "records 2^64-1" -1
+
+# offsets and sizes that do not fit
+call fresh
+call poke8 40 136
+call seal
+call try "records offset" -1
+call fresh
+call poke8 48 177
+call seal
+call try "strings offset" -1
+call fresh
+call poke8 56 5000
+call seal
+call try "strings size" -1
+call fresh
+call poke8 64 8192
+call seal
+call try "vectors offset" -1
+call fresh
+call poke8 72 28
+call seal
+call try "vectors size" -1
+call fresh
+call poke8 32 4
+call seal
+call try "dimension 4" -1
+call fresh
+call poke8 24 1
+call seal
+call try "records 1" -1
+
+# the checksum of header and metadata
+call fresh
+call pokeb 180 78
+call try "a byte of a string" -1
+call fresh
+call pokeb 130 1
+call try "a byte of a record" -1
+call fresh
+call pokeb 4000 1
+call try "a byte of the zeros" -1
+call fresh
+call pokeb 96 0
+call try "the checksum of the vectors, in the header" -1
+call fresh
+call pokeb 100 0
+call try "the checksum itself" -1
+
+# the model identifier and the source revision
+call fresh
+call poke4 84 0
+call seal
+call try "model of no bytes" -1
+call fresh
+call poke4 84 256
+call seal
+call try "model of 256 bytes" -1
+call fresh
+call poke4 80 40
+call seal
+call try "model beyond the strings" -1
+call fresh
+call pokeb 176 9
+call seal
+call try "model with a tab" -1
+call fresh
+call poke4 92 256
+call seal
+call try "revision of 256 bytes" -1
+call fresh
+call poke4 88 50
+call seal
+call try "revision beyond the strings" -1
+call fresh
+call poke4 92 0
+call seal
+call try "revision of no bytes at an offset" -1
+call fresh
+call pokeb 192 0xc0
+call seal
+call try "revision that is no UTF-8" -1
+
+# the records: record 0 is at 128, record 1 at 152
+call fresh
+call poke4 132 0
+call seal
+call try "path of no bytes" -1
+call fresh
+call poke4 128 53
+call seal
+call try "path beyond the strings" -1
+call fresh
+call poke4 156 4096
+call seal
+call try "path of 4096 bytes, record 1" -1
+call fresh
+call poke4 140 256
+call seal
+call try "language of 256 bytes" -1
+call fresh
+call poke4 160 54
+call seal
+call try "language beyond the strings, record 1" -1
+call fresh
+call poke4 144 0
+call seal
+call try "first line 0" -1
+call fresh
+call poke4 172 6
+call seal
+call try "last line below the first, record 1" -1
+call fresh
+call pokeb 202 9
+call seal
+call try "path with a tab" -1
+call fresh
+call pokeb 216 10
+call seal
+call try "path with a line end, record 1" -1
+call fresh
+call pokeb 213 0xff
+call seal
+call try "language that is no UTF-8" -1
+
+# the vectors: a byte changed, the length kept
+call fresh
+call pokeb 4096 1
+call try "the first byte of the vectors" -1
+call fresh
+call pokeb 4119 0x80
+call try "the last byte of the vectors" -1

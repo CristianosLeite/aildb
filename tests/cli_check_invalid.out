@@ -1,0 +1,106 @@
+valid: status 0, stdout 83
+  
+empty file: status 3, stdout 0
+  aildb: x.idx: not a snapshot: shorter than a header
+127 bytes: status 3, stdout 0
+  aildb: x.idx: not a snapshot: shorter than a header
+the header alone: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: truncated, or not of the size its header says
+cut in the metadata: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: truncated, or not of the size its header says
+cut at the vectors: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: truncated, or not of the size its header says
+one byte short: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: truncated, or not of the size its header says
+one byte more: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: truncated, or not of the size its header says
+magic: status 3, stdout 0
+  aildb: x.idx: not a snapshot
+version 2: status 3, stdout 0
+  aildb: x.idx: a snapshot of another format version
+version 0: status 3, stdout 0
+  aildb: x.idx: a snapshot of another format version
+flags 0: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: unknown flags
+flags 3: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: unknown flags
+reserved byte 104: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: unknown flags
+reserved byte 127: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: unknown flags
+size field: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: truncated, or not of the size its header says
+dimension 0: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: a dimension or count beyond the limits
+dimension 65537: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: a dimension or count beyond the limits
+records 2^32: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: a dimension or count beyond the limits
+strings 2^32: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: a dimension or count beyond the limits
+records 2^64-1: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: a dimension or count beyond the limits
+records offset: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: offsets and sizes that do not fit
+strings offset: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: offsets and sizes that do not fit
+strings size: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: offsets and sizes that do not fit
+vectors offset: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: offsets and sizes that do not fit
+vectors size: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: offsets and sizes that do not fit
+dimension 4: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: offsets and sizes that do not fit
+records 1: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: offsets and sizes that do not fit
+a byte of a string: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: the checksum of header and metadata differs
+a byte of a record: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: the checksum of header and metadata differs
+a byte of the zeros: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: the checksum of header and metadata differs
+the checksum of the vectors, in the header: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: the checksum of header and metadata differs
+the checksum itself: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: the checksum of header and metadata differs
+model of no bytes: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: the model identifier
+model of 256 bytes: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: the model identifier
+model beyond the strings: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: the model identifier
+model with a tab: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: the model identifier
+revision of 256 bytes: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: the source revision
+revision beyond the strings: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: the source revision
+revision of no bytes at an offset: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: the source revision
+revision that is no UTF-8: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: the source revision
+path of no bytes: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: a string out of bounds or a line number in record 0
+path beyond the strings: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: a string out of bounds or a line number in record 0
+path of 4096 bytes, record 1: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: a string out of bounds or a line number in record 1
+language of 256 bytes: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: a string out of bounds or a line number in record 0
+language beyond the strings, record 1: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: a string out of bounds or a line number in record 1
+first line 0: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: a string out of bounds or a line number in record 0
+last line below the first, record 1: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: a string out of bounds or a line number in record 1
+path with a tab: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: a string that is no valid text in record 0
+path with a line end, record 1: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: a string that is no valid text in record 1
+language that is no UTF-8: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: a string that is no valid text in record 0
+the first byte of the vectors: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: the checksum of the vectors differs
+the last byte of the vectors: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: the checksum of the vectors differs

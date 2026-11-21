@@ -28,11 +28,6 @@ reviews and publishes it, and `ail.pin` then moves to that revision.
   `make AIL=<that checkout>` can compile them.
 - [ ] Float literals (user's proposal): not needed for version 1.
 
-## 5. Reading a snapshot, and `check`
-
-- [ ] Tests on files written by hand: unknown version, each field out of
-  range, truncation, one vector byte changed with the length kept.
-
 ## 6. `build`
 
 - [ ] Read the vectors, the TSV, the model identifier and the source

@@ -76,3 +76,5 @@ and `a5b4559`, 2026-11-21), not pushed; `make test` passed there.
   arithmetic before any access; verify the CRC-32 of header and metadata.
 - [x] `check`: also the CRC-32 of the vectors; prints record count,
   dimension and model identifier.
+- [x] Tests on files written by hand: unknown version, each field out of
+  range, truncation, one vector byte changed with the length kept.
