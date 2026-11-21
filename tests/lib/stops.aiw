@@ -1,0 +1,7 @@
+# The source of build/aildb-stops, the executable of the tests of
+# interruption: the commands of src/main.aiw, as build/aildb has them,
+# with the hooks of tests/lib/hook.aiw, which stop and fail where a test
+# asks for it.
+use "lib/std/io.aiw"
+use "tests/lib/hook.aiw"
+use "src/main.aiw"

@@ -1,0 +1,70 @@
+stopped before the rename 1
+$ aildb build -o out.idx -v two.bin -m two.tsv -d 2 -i m
+--- stdout
+--- stderr
+aildb: out.idx: another build is in progress
+--- status 5
+destination 0
+temporary file 1
+$ aildb build -o other.idx -v two.bin -m two.tsv -d 2 -i m
+--- stdout
+{"records":2,"dimension":2,"model":"m","source_revision":null}
+--- stderr
+--- status 0
+killed by signal 9
+destination 0
+temporary file 1
+$ aildb build -o out.idx -v one.bin -m one.tsv -d 2 -i m
+--- stdout
+{"records":1,"dimension":2,"model":"m","source_revision":null}
+--- stderr
+--- status 0
+temporary file 0
+lock file 1
+$ aildb-stops build -o out.idx -v two.bin -m two.tsv -d 2 -i m
+--- stdout
+--- stderr
+aildb: out.idx.tmp: cannot sync: input/output error
+--- status 4
+temporary file 0
+$ aildb check out.idx
+--- stdout
+{"records":1,"dimension":2,"model":"m","source_revision":null}
+--- stderr
+--- status 0
+$ aildb build -o out.idx -v big.bin -m big.tsv -d 1024 -i m
+--- stdout
+--- stderr
+aildb: out.idx.tmp: cannot write: file too large
+--- status 4
+temporary file 0
+$ aildb check out.idx
+--- stdout
+{"records":1,"dimension":2,"model":"m","source_revision":null}
+--- stderr
+--- status 0
+$ aildb-stops build -o out.idx -v two.bin -m two.tsv -d 2 -i m
+--- stdout
+--- stderr
+aildb: out.idx: published, but its directory could not be synced, so it may not survive a loss of power: input/output error
+--- status 6
+temporary file 0
+$ aildb check out.idx
+--- stdout
+{"records":2,"dimension":2,"model":"m","source_revision":null}
+--- stderr
+--- status 0
+$ aildb build -o out.idx -v one.bin -m one.tsv -d 2 -i m
+--- stdout
+{"records":1,"dimension":2,"model":"m","source_revision":null}
+--- stderr
+--- status 0
+$ aildb build -o out.idx -v two.bin -m two.tsv -d 2 -i m
+--- stdout
+{"records":2,"dimension":2,"model":"m","source_revision":null}
+--- stderr
+--- status 0
+aildb.hook in aildb 0
+aildb.stopped in aildb 0
+aildb.hook in aildb-stops 1
+aildb.stopped in aildb-stops 1

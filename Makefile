@@ -46,9 +46,15 @@ AILLIB := $(wildcard lib/std/*.aiw)
 $(B)/aildb: src/aildb.aiw $(SRC) $(AILLIB) $(B)/ailc
 	$(call compile,$(B)/ailc)
 
+# The executable of the tests of interruption: the same commands with
+# hooks that stop and fail where a test asks. It is built for make test
+# and is no part of what is shipped.
+$(B)/aildb-stops: tests/lib/stops.aiw tests/lib/hook.aiw $(SRC) $(AILLIB) $(B)/ailc
+	$(call compile,$(B)/ailc)
+
 # Every test, or with T the tests of tests/run.sh named there:
 # make test T="name name".
-test: all
+test: all $(B)/aildb-stops
 ifeq ($(T),)
 	@f=0; AILC=$(B)/ailc tests/run.sh || f=1; tests/indent.sh || f=1; exit $$f
 else

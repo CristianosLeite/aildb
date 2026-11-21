@@ -1,0 +1,158 @@
+# how build publishes: a second build for a destination that is being
+# built is refused at once and changes nothing, while one for another
+# destination runs; a build that was killed leaves a lock and a
+# temporary file that the next build is not held up by; a sync of the
+# temporary file that fails and a write that fails are reported and keep
+# the old snapshot; a sync of the directory that fails after the rename
+# is reported with a status of its own, and the new snapshot is there.
+# The builds that stop and whose syncs fail are those of
+# build/aildb-stops, which has the hooks of tests/lib/hook.aiw.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "tests/lib/cmd.aiw"
+const getrlimit 97
+const setrlimit 160
+buf v 81920
+buf act 32
+buf lim 16
+fn num p n x
+	call print p n
+	call putn x
+	call print "\n"
+end
+# 1 if there is a file at the path
+fn there p n
+	call fileopen p n 0 0 as fd
+	ifslt fd 0
+		ret 0
+	end
+	sys close fd
+	ret 1
+end
+# one record of two dimensions, two records, and twenty of 1024
+store4 v 0x3f800000
+store4 v+4 0x3f800000
+store4 v+8 0x3f800000
+call filewrite "one.bin" v 8
+call filewrite "one.tsv" "a.aiw\t1\t9\tail\n"
+call filewrite "two.bin" v 16
+call filewrite "two.tsv" "a.aiw\t1\t9\tail\nb.aiw\t1\t9\tail\n"
+i=0
+while i<20480
+	store4 v+i*4 0x3f800000
+	i+=1
+end
+call filewrite "big.bin" v 81920
+call bycopy v "f\t1\t1\t\n"
+i=1
+while i<20
+	call bycopy v+i*7 v 7
+	i+=1
+end
+call filewrite "big.tsv" v 140
+
+# a first build stops before its rename and holds the lock
+call filewrite "aildb.hook" "stop 2"
+call cmdspawn "aildb-stops build -o out.idx -v one.bin -m one.tsv -d 2 -i m" as pid
+call cmdawait "aildb.stopped" 5000 as r
+call num "stopped before the rename " r
+call cmdshow "aildb build -o out.idx -v two.bin -m two.tsv -d 2 -i m"
+call there "out.idx" as r
+call num "destination " r
+call there "out.idx.tmp" as r
+call num "temporary file " r
+call cmdshow "aildb build -o other.idx -v two.bin -m two.tsv -d 2 -i m"
+sys kill pid 9
+call procwait pid 0 as r
+call num "killed by signal " 0-r
+call fileunlink "aildb.hook"
+call fileunlink "aildb.stopped"
+call there "out.idx" as r
+call num "destination " r
+call there "out.idx.tmp" as r
+call num "temporary file " r
+# the lock died with its holder, and the temporary file is written over
+call cmdshow "aildb build -o out.idx -v one.bin -m one.tsv -d 2 -i m"
+call there "out.idx.tmp" as r
+call num "temporary file " r
+call there "out.idx.lock" as r
+call num "lock file " r
+
+# the sync of the temporary file fails: the snapshot of one record stays
+call filewrite "aildb.hook" "fail 1"
+call cmdshow "aildb-stops build -o out.idx -v two.bin -m two.tsv -d 2 -i m"
+call there "out.idx.tmp" as r
+call num "temporary file " r
+call cmdshow "aildb check out.idx"
+
+# a write fails, the file being limited to 64 KiB for this process and
+# those it starts, with the signal of that limit ignored
+call fileunlink "aildb.hook"
+store act 1
+sys rt_sigaction 25 act 0 8
+sys getrlimit 1 lim
+load lim as old
+store lim 65536
+sys setrlimit 1 lim
+call cmdshow "aildb build -o out.idx -v big.bin -m big.tsv -d 1024 -i m"
+store lim old
+sys setrlimit 1 lim
+call there "out.idx.tmp" as r
+call num "temporary file " r
+call cmdshow "aildb check out.idx"
+
+# the sync of the directory fails after the rename: the snapshot of two
+# records is there, and the status says that it may not last
+call filewrite "aildb.hook" "fail 2"
+call cmdshow "aildb-stops build -o out.idx -v two.bin -m two.tsv -d 2 -i m"
+call there "out.idx.tmp" as r
+call num "temporary file " r
+call cmdshow "aildb check out.idx"
+
+# the shipped executable has no stop point and no failing sync: with the
+# same requests in the file it builds, and the words of the hooks are in
+# the executable of the tests only
+buf exe 24
+# how often the n bytes at p occur in the bytes buffer exe
+fn count p n
+	load exe as q
+	load exe+8 as m
+	c=0
+	i=0
+	while i+n<=m
+		j=0
+		while j<n
+			loadb q+i+j as x
+			loadb p+j as y
+			jne x y no
+			j+=1
+		end
+		c+=1
+		label no
+		i+=1
+	end
+	ret c
+end
+call filewrite "aildb.hook" "stop 2"
+call cmdshow "aildb build -o out.idx -v one.bin -m one.tsv -d 2 -i m"
+call filewrite "aildb.hook" "fail 2"
+call cmdshow "aildb build -o out.idx -v two.bin -m two.tsv -d 2 -i m"
+call cmdargs "aildb" as av
+load av as p
+call strlen p as n
+call fileread p n exe
+call count "aildb.hook" as r
+call num "aildb.hook in aildb " r
+call count "aildb.stopped" as r
+call num "aildb.stopped in aildb " r
+call cmdargs "aildb-stops" as av
+load av as p
+call strlen p as n
+call bycut exe 0
+call fileread p n exe
+call count "aildb.hook" as r
+call num "aildb.hook in aildb-stops " r
+call count "aildb.stopped" as r
+call num "aildb.stopped in aildb-stops " r

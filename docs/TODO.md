@@ -30,11 +30,6 @@ reviews and publishes it, and `ail.pin` then moves to that revision.
 
 ## 6. `build`
 
-- [ ] Publication: lock, temporary file in the destination directory,
-  `fsync`, validation with the reader of step 5, `rename`, `fsync` of the
-  directory; write and sync
-  failures reported, and the case of a rename that succeeded with a
-  directory sync that failed.
 - [ ] `docs/durability.md`: the filesystem and storage assumptions for a
   loss of power.
 

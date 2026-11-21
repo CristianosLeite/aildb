@@ -1,0 +1,24 @@
+# src/hook.aiw -- the places of build that the tests of interruption
+# and of failed syncs need to reach, as the shipped executable has them:
+# a stop point is nothing, and a sync is the sync. The executable of the
+# tests is compiled with tests/lib/hook.aiw in the place of this file,
+# and nothing of that one is in build/aildb.
+#
+# Every name of this file starts with "hook"; a program has no var of
+# such a name.
+
+const hookfsync 74
+
+# the stop point hookn of build: 1 with the temporary file begun, 2 with
+# it complete, synced and validated, before the rename, 3 after the
+# rename, before the directory is synced
+fn hookstop hookn
+end
+
+# flush the file hookfd to its device: 0, or the error of the kernel.
+# hookn says which sync of build it is: 1 that of the temporary file, 2
+# that of the directory.
+fn hooksync hookfd hookn
+	sys hookfsync hookfd as hookr
+	ret hookr
+end

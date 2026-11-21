@@ -90,3 +90,8 @@ and `a5b4559`, 2026-11-21), not pushed; `make test` passed there.
   finite, a zero vector, a path with a tab; normalize in binary64 and round
   with `f8to4`; write the file as `docs/format.md` says, through a
   temporary file and a rename.
+- [x] Publication: lock, temporary file in the destination directory,
+  `fsync`, validation with the reader of step 5, `rename`, `fsync` of the
+  directory; write and sync
+  failures reported, and the case of a rename that succeeded with a
+  directory sync that failed.

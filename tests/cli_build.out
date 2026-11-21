@@ -68,7 +68,7 @@ aildb: absent.bin: cannot read: no such file or directory
 $ aildb build -o absent/out.idx -v v1.bin -m m1.tsv -d 1 -i m
 --- stdout
 --- stderr
-aildb: absent/out.idx.tmp: cannot create: no such file or directory
+aildb: absent/out.idx.lock: cannot create: no such file or directory
 --- status 4
 temporary file 0
 $ aildb check out.idx

@@ -1,0 +1,66 @@
+# tests/lib/hook.aiw -- the hooks of build for the executable of the
+# tests, build/aildb-stops, in the place of src/hook.aiw: a stop point
+# that a test chose halts the program there, and a sync that a test
+# chose fails. The shipped executable has none of this.
+#
+# The test says what it wants in the file aildb.hook of the directory
+# the program runs in: "stop " or "fail " and one digit. At the stop
+# point of that number the program makes the file aildb.stopped and
+# waits to be killed; the sync of that number is not done and returns
+# the error EIO. Without the file every hook does what the shipped one
+# does.
+#
+# Every name of this file starts with "hook".
+
+const hookfsync 74
+const hookpause 34
+# the two paths as the kernel takes them; a string after sys would be
+# two values, its address and its length
+data hookfile "aildb.hook" 0
+data hookmark "aildb.stopped" 0
+
+# 1 if aildb.hook asks for the hookn bytes at hookp followed by the
+# digit hookd
+fn hookasks hookp hookn hookd
+	local hookb 16
+	sys open hookfile 0 0 as hookfd
+	ifslt hookfd 0
+		ret 0
+	end
+	sys read hookfd hookb 16 as hookr
+	sys close hookfd
+	ifslt hookr hookn+1
+		ret 0
+	end
+	hooki=0
+	while hooki<hookn
+		loadb hookb+hooki as hookx
+		loadb hookp+hooki as hooky
+		if hookx!=hooky
+			ret 0
+		end
+		hooki+=1
+	end
+	loadb hookb+hookn as hookx
+	ret hookx==hookd+48
+end
+
+fn hookstop hookn
+	call hookasks "stop " hookn as hooka
+	if hooka
+		sys open hookmark 0x41 420 as hookfd
+		sys close hookfd
+		while 1
+			sys hookpause
+		end
+	end
+end
+
+fn hooksync hookfd hookn
+	call hookasks "fail " hookn as hooka
+	if hooka
+		ret -5
+	end
+	sys hookfsync hookfd as hookr
+	ret hookr
+end

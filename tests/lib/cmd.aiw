@@ -161,3 +161,44 @@ fn cmdshow cmdp cmdn
 	call print "\n"
 	ret cmds
 end
+
+# Start a command line and do not wait for it: the number of the child,
+# for procwait, or a negative number. Its stdin is /dev/null, and its
+# stdout and stderr go to the files bg.out and bg.err.
+fn cmdspawn cmdp cmdn
+	call cmdargs cmdp cmdn as cmdav
+	ifz cmdav
+		ret -2000
+	end
+	call fileopen "bg.out" 0x241 420 as cmdo
+	call fileopen "bg.err" 0x241 420 as cmde
+	call fileopen "/dev/null" 0 0 as cmdi
+	ifslt cmdo|cmde|cmdi 0
+		ret -2000
+	end
+	call procstart cmdav cmdi cmdo cmde as cmdpid
+	sys close cmdo
+	sys close cmde
+	sys close cmdi
+	ret cmdpid
+end
+
+# wait until there is a file at the path of the cmdn bytes at cmdp, for
+# cmdms milliseconds at most: 1 if there is one, 0 if the time ran out
+fn cmdawait cmdp cmdn cmdms
+	local cmdts 16
+	label look
+	call fileopen cmdp cmdn 0 0 as cmdfd
+	ifsge cmdfd 0
+		sys close cmdfd
+		ret 1
+	end
+	ifz cmdms
+		ret 0
+	end
+	store cmdts 0
+	store cmdts+8 1000000
+	sys nanosleep cmdts 0
+	cmdms-=1
+	jmp look
+end

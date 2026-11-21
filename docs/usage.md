@@ -6,10 +6,8 @@ elsewhere; `search` ranks the records of a snapshot against a query vector;
 `check` validates a snapshot. [format.md](format.md) is the format of the
 file.
 
-This page was written on 2026-11-21, before the commands. `check` exists,
-and `build` without the lock and the syncs described below: it writes the
-temporary file, validates it and renames it. `search` does not exist yet,
-and `aildb` answers it with the usage.
+This page was written on 2026-11-21, before the commands. `build` and
+`check` exist; `search` does not yet, and `aildb` answers it with the usage.
 
 ```
 aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
@@ -79,8 +77,8 @@ snapshot that is there.
 
 The model identifier and the revision follow the rule of the fields.
 
-`build` writes a temporary file beside `INDEX`, syncs it, validates it as
-`check` would, renames it to `INDEX` and syncs the directory. Then, and only
+`build` writes a temporary file beside `INDEX`, named `INDEX.tmp`, syncs it,
+validates it as `check` would, renames it to `INDEX` and syncs the directory. Then, and only
 then, it prints one line on standard output, the report of a durable
 snapshot, in the form of [`check`](#check), and ends with status 0. A failure
 before the rename leaves what was at `INDEX` as it was, a snapshot or
@@ -90,8 +88,10 @@ power: `build` prints no line on standard output, says so on standard error
 and ends with status 6. `docs/durability.md` is to say what is assumed of
 the filesystem.
 
-Only one `build` runs for a destination at a time. A second one ends with
-status 5 at once and changes nothing. Readers are not held up: a `search`
+Only one `build` runs for a destination at a time: it holds a lock on the
+file `INDEX.lock`, which it makes and never removes. A second one ends with
+status 5 at once and changes nothing. A build that was killed holds no lock,
+and the temporary file it left is written over by the next. Readers are not held up: a `search`
 that opened the snapshot before the rename finishes on the old one.
 
 ## `search`
