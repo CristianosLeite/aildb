@@ -17,5 +17,6 @@ The decisions still to be taken. The work, step by step, is in `docs/TODO.md`
 - [ ] 2026-11-21 — The end-to-end example: the AIL repository and a local model of 768 dimensions are decided; still open are the tool that runs the model and how chunks are cut (the chunker is AIL) ([page](../architecture/requirements-decisions.md))
 - [x] 2026-11-21 — The independent cosine implementation of acceptance check 2: decided (user, 2026-11-21), an AIL program apart from the engine with its own loop ([page](../architecture/feasibility.md))
 - [x] 2026-11-21 — The LanceDB comparison of check 4: the Python binding is decided ([page](../architecture/requirements-decisions.md)); the harness is work, now step 10 of `docs/TODO.md`
-- [ ] 2026-11-21 — `REQUIREMENTS.md`: an amendment of eleven passages was drafted on 2026-11-21 and shown to the user, who has not yet accepted or changed it; the link of acceptance check 4 still names the JS documentation of LanceDB
+- [x] 2026-11-21 — `REQUIREMENTS.md`: the amendment of eleven passages was accepted and applied (user, 2026-11-21); it says what the pinned AIL revision is to have, which holds once the binary32 statements are in AIL
+- [ ] 2026-11-21 — `REQUIREMENTS.md`: the link of acceptance check 4 still names the JS documentation of LanceDB, while the text names the Python binding
 - [ ] 2026-11-21 — Git: initialized on 2026-11-21 (user), branch `main`, with a `.gitignore` for `build/` and the links `ail` and `lib`; still open are the remote, the published name and the licence

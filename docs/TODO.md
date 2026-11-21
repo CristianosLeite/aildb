@@ -11,9 +11,8 @@ to `BACKLOG.md`, under the same section.
 
 ## 0. Decisions before the first code
 
-- [ ] `REQUIREMENTS.md`: accept or change the amendment drafted on
-  2026-11-21 (eleven passages), and the link of acceptance check 4, which
-  names the JS documentation of LanceDB while the Python binding is used.
+- [ ] `REQUIREMENTS.md`: the link of acceptance check 4 names the JS
+  documentation of LanceDB while the Python binding is used.
 - [ ] Stop points of the interruption tests: confirm that a second
   executable, built by the tests from the same sources, is what was meant.
 - [ ] Tolerances: the same bits for a sum in the order of the engine, 1e-12
