@@ -6,8 +6,10 @@ elsewhere; `search` ranks the records of a snapshot against a query vector;
 `check` validates a snapshot. [format.md](format.md) is the format of the
 file.
 
-This page was written on 2026-11-21, before the commands. `check` exists;
-`build` and `search` do not yet, and `aildb` answers them with the usage.
+This page was written on 2026-11-21, before the commands. `check` exists,
+and `build` without the lock and the syncs described below: it writes the
+temporary file, validates it and renames it. `search` does not exist yet,
+and `aildb` answers it with the usage.
 
 ```
 aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
@@ -28,7 +30,7 @@ prints the usage above on standard error and ends with status 2.
 | 0 | success |
 | 2 | wrong usage |
 | 3 | an invalid snapshot or invalid input: a file that is no snapshot, of another version, truncated or damaged; a wrong length or dimension; a value that is not finite; a zero vector; a malformed line of metadata; a model identifier that differs |
-| 4 | an I/O failure: a file that cannot be opened, read, written, synced, mapped or renamed, and output that cannot be written |
+| 4 | an I/O failure: a file that cannot be opened, read, written, synced, mapped or renamed, output that cannot be written, and no memory |
 | 5 | another build is in progress for the same destination |
 | 6 | the snapshot was published, but its durability is not confirmed |
 

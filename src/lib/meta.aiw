@@ -1,0 +1,154 @@
+# src/lib/meta.aiw -- the metadata that build is given, read into the
+# records and the strings of a snapshot. The text is one line a record,
+# each ended by a line feed, with four fields and a tab between them: the
+# path, the first line, the last line and the language (docs/usage.md).
+# A program that uses it uses lib/std/bytes.aiw and src/lib/text.aiw
+# first.
+#
+# Every name of this file starts with "meta"; a program has no var of
+# such a name.
+
+const metanoend 1       # the text ends without a line feed
+const metafields 2      # a line that has not four fields
+const metapath 3        # no path, one over 4095 bytes or no valid text
+const metafirst 4       # the first line is no number from 1 to 2^32-1
+const metalast 5        # the last line is none, or below the first
+const metalang 6        # a language over 255 bytes or no valid text
+const metamany 7        # more records or bytes of strings than 2^32-1
+const metamem 8         # no memory
+
+# the string of the metan bytes at metap in the strings metastrs: the
+# offset of the bytes at metao with the length metal if they are the
+# same, and else that of the bytes added now; -1 without memory
+fn metastr metastrs metap metan metao metal
+	load metastrs as metab
+	if metao!=-1
+		call texteq metap metan metab+metao metal as metae
+		if metae
+			ret metao
+		end
+	end
+	load metastrs+8 as metao
+	call byadd metastrs metap metan as metae
+	ifz metae
+		ret -1
+	end
+	ret metao
+end
+
+# Read the metan bytes of metadata at metap: for each line a record of
+# 24 bytes added to the bytes buffer metarecs, and its path and language
+# to the strings metastrs, which may hold strings already. A path or a
+# language that is that of the record before is not written again. The
+# results are the number of records and 0; or the number of the line at
+# fault, from 1, and the reason, a constant above, after which the two
+# buffers hold what was read until then.
+fn metaparse metap metan metarecs metastrs
+	local metar 24
+	metaline=0
+	metapo=-1
+	metapl=0
+	metalo=-1
+	metall=0
+	while metan
+		metaline+=1
+		if metaline>0xffffffff
+			ret metaline metamany
+		end
+		call textline metap metan as metae metaok
+		ifz metaok
+			ret metaline metanoend
+		end
+		# the three tabs, and none after them
+		call textfield metap metae as metaa metaok
+		ifz metaok
+			ret metaline metafields
+		end
+		metaq=metap+metaa+1
+		call textfield metaq metap+metae-metaq as metab metaok
+		ifz metaok
+			ret metaline metafields
+		end
+		metas=metaq+metab+1
+		call textfield metas metap+metae-metas as metac metaok
+		ifz metaok
+			ret metaline metafields
+		end
+		metat=metas+metac+1
+		metad=metap+metae-metat
+		call textfield metat metad as metax metaok
+		if metaok
+			ret metaline metafields
+		end
+		call textvalid metap metaa as metaok
+		if (metaa-1>4094)|(metaok==0)
+			ret metaline metapath
+		end
+		call textnum metaq metab as metaf metaok
+		if (metaok==0)|(metaf-1>0xfffffffe)
+			ret metaline metafirst
+		end
+		call textnum metas metac as metal metaok
+		if (metaok==0)|(metal>0xffffffff)|(metal<metaf)
+			ret metaline metalast
+		end
+		call textvalid metat metad as metaok
+		if (metad>255)|(metaok==0)
+			ret metaline metalang
+		end
+		call metastr metastrs metap metaa metapo metapl as metapo
+		metapl=metaa
+		if metapo==-1
+			ret metaline metamem
+		end
+		call metastr metastrs metat metad metalo metall as metalo
+		metall=metad
+		if metalo==-1
+			ret metaline metamem
+		end
+		load metastrs+8 as metax
+		if metax>0xffffffff
+			ret metaline metamany
+		end
+		store4 metar metapo
+		store4 metar+4 metapl
+		store4 metar+8 metalo
+		store4 metar+12 metall
+		store4 metar+16 metaf
+		store4 metar+20 metal
+		call byadd metarecs metar 24 as metaok
+		ifz metaok
+			ret metaline metamem
+		end
+		metap+=metae+1
+		metan-=metae+1
+	end
+	ret metaline 0
+end
+
+# add to the bytes buffer metab the words for the reason metar of
+# metaparse: 1, or 0 without memory
+fn metawhy metab metar
+	if metar==metanoend
+		tail byadd metab "no line feed at the end of the line"
+	end
+	if metar==metafields
+		tail byadd metab "not four fields with a tab between them"
+	end
+	if metar==metapath
+		tail byadd metab "the path is empty, longer than 4095 bytes or not valid text"
+	end
+	if metar==metafirst
+		tail byadd metab "the first line is not a number from 1 to 4294967295"
+	end
+	if metar==metalast
+		tail byadd metab "the last line is not a number up to 4294967295, or is below the first"
+	end
+	if metar==metalang
+		tail byadd metab "the language is longer than 255 bytes or not valid text"
+	end
+	if metar==metamany
+		tail byadd metab "more records or more bytes of paths and languages than 4294967295"
+	end
+	tail byadd metab "out of memory"
+end

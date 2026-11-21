@@ -85,3 +85,8 @@ and `a5b4559`, 2026-11-21), not pushed; `make test` passed there.
   `docs/format.md` says (`src/lib/pack.aiw`): split from the item that
   wrote the file, whose rest went to the items of the inputs and of the
   publication.
+- [x] Read the vectors, the TSV, the model identifier and the source
+  revision when there is one; reject a wrong length, a value that is not
+  finite, a zero vector, a path with a tab; normalize in binary64 and round
+  with `f8to4`; write the file as `docs/format.md` says, through a
+  temporary file and a rename.

@@ -1,0 +1,121 @@
+# metaparse reads lines of path, first line, last line and language into
+# records and strings, writes a path or language once when the record
+# before has it, and names the line and the reason for text it refuses
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "src/lib/text.aiw"
+use "src/lib/meta.aiw"
+buf recs 24
+buf strs 24
+buf why 24
+buf long 8192
+# print a string in brackets, or its length if it is a long one
+fn str p n
+	call print " ["
+	if n>99
+		call putn n
+		call print " bytes"
+	else
+		call print p n
+	end
+	call print "] "
+end
+# read the text and print what came of it: the records with their
+# strings, or the line and the reason
+fn show p n
+	call bycut recs 0
+	call bycut strs 0
+	call byadd strs "model"
+	call metaparse p n recs strs as c r
+	if r
+		call print "line "
+		call putn c
+		call print ": "
+		call bycut why 0
+		call metawhy why r
+		load why as q
+		load why+8 as m
+		call print q m
+		call print "\n"
+		ret 0
+	end
+	call putn c
+	call print " records, "
+	load strs+8 as m
+	call putn m
+	call print " bytes of strings\n"
+	load recs as q
+	load strs as s
+	i=0
+	while i<c
+		load4 q+i*24 as o
+		load4 q+i*24+4 as l
+		call putn o
+		call str s+o l
+		load4 q+i*24+8 as o
+		load4 q+i*24+12 as l
+		call putn o
+		call str s+o l
+		load4 q+i*24+16 as o
+		call putn o
+		call print " "
+		load4 q+i*24+20 as o
+		call putn o
+		call print "\n"
+		i+=1
+	end
+end
+# a line whose path is n bytes "a", in long
+fn longpath n
+	i=0
+	while i<n
+		storeb long+i 97
+		i+=1
+	end
+	call bycopy long+n "\t1\t1\t\n"
+	call show long n+6
+end
+# a line whose language is n bytes "a", in long
+fn longlang n
+	call bycopy long "p\t1\t1\t"
+	i=0
+	while i<n
+		storeb long+6+i 97
+		i+=1
+	end
+	storeb long+6+n 10
+	call show long n+7
+end
+call show ""
+call show "lib/std/io.aiw\t1\t20\tail\n"
+# three chunks of one file, another file without a language, a path
+# again after another
+call show "a.aiw\t1\t9\tail\na.aiw\t10\t30\tail\na.aiw\t31\t31\tail\nb\t1\t4294967295\t\na.aiw\t4294967295\t4294967295\tail\n"
+call show "caf\xc3\xa9 \xe6\x97\xa5.md\t007\t7\tmark down\n"
+call longpath 4095
+call longlang 255
+# what is refused
+call show "a\t1\t2\tail"
+call show "a\t1\t2\tail\nb\t1\t2\tail"
+call show "\n"
+call show "a\t1\t2\n"
+call show "a 1 2 ail\n"
+call show "a\t1\t2\tail\textra\n"
+call show "a\t1\t2\tail\n\nb\t1\t2\tail\n"
+call show "\t1\t2\tail\n"
+call longpath 4096
+call show "a\xffb\t1\t2\tail\n"
+call show "a\x01b\t1\t2\tail\n"
+call show "a\t0\t2\tail\n"
+call show "a\t\t2\tail\n"
+call show "a\t-1\t2\tail\n"
+call show "a\t1.5\t2\tail\n"
+call show "a\t4294967296\t4294967297\tail\n"
+call show "a\t3\t2\tail\n"
+call show "a\t3\t\tail\n"
+call show "a\t3\t4294967296\tail\n"
+call show "a\t3\t9x\tail\n"
+call longlang 256
+call show "a\t1\t2\tail\x0d\n"
+call show "a\t1\t2\ta\xc3\n"
+call show "ok\t1\t2\tail\nok\t3\t4\tail\nbad\t5\t4\tail\n"

@@ -1,0 +1,56 @@
+# src/lib/norm.aiw -- a vector of binary32 made a vector of binary64 of
+# the norm 1, and rounded to binary32 again, as docs/format.md defines
+# normalization. build does both to every vector; search does the first
+# to the query. It needs no other file, and the statements f4to8 and
+# f8to4 of the compiler.
+#
+# Every name of this file starts with "norm"; a program has no var of
+# such a name.
+
+const normnan 1         # an element that is not finite
+const normzero 2        # a vector of zeros
+
+# Make the normn doubles at normq the normn binary32 at normp, each made
+# a double and divided by the norm of the vector: the square root of the
+# sum of the squares, added from +0 in the order of the elements, each
+# square rounded and then added. 0, or a reason above, after which the
+# doubles are not to be used. The two runs do not overlap.
+fn normwide normp normq normn
+	normi=0
+	while normi<normn
+		load4 normp+normi*4 as normx
+		# an exponent of all ones is an infinity or no number
+		if normx&0x7f800000==0x7f800000
+			ret normnan
+		end
+		f4to8 normx as normx
+		store normq+normi*8 normx
+		normi+=1
+	end
+	fdot 0 normq normq normn as norms
+	# a sum of squares is +0 only if every element is a zero
+	ifz norms
+		ret normzero
+	end
+	fsqrt norms as norms
+	normi=0
+	while normi<normn
+		load normq+normi*8 as normx
+		fdiv normx norms as normx
+		store normq+normi*8 normx
+		normi+=1
+	end
+	ret 0
+end
+
+# make the normn binary32 at normp the normn doubles at normq, each
+# rounded to the nearest binary32, a tie to the even one
+fn normround normq normp normn
+	normi=0
+	while normi<normn
+		load normq+normi*8 as normx
+		f8to4 normx as normx
+		store4 normp+normi*4 normx
+		normi+=1
+	end
+end

@@ -1,0 +1,39 @@
+0 records, 5 bytes of strings
+1 records, 22 bytes of strings
+5 [lib/std/io.aiw] 19 [ail] 1 20
+5 records, 22 bytes of strings
+5 [a.aiw] 10 [ail] 1 9
+5 [a.aiw] 10 [ail] 10 30
+5 [a.aiw] 10 [ail] 31 31
+13 [b] 14 [] 1 4294967295
+14 [a.aiw] 19 [ail] 4294967295 4294967295
+1 records, 26 bytes of strings
+5 [café 日.md] 17 [mark down] 7 7
+1 records, 4100 bytes of strings
+5 [4095 bytes] 4100 [] 1 1
+1 records, 261 bytes of strings
+5 [p] 6 [255 bytes] 1 1
+line 1: no line feed at the end of the line
+line 2: no line feed at the end of the line
+line 1: not four fields with a tab between them
+line 1: not four fields with a tab between them
+line 1: not four fields with a tab between them
+line 1: not four fields with a tab between them
+line 2: not four fields with a tab between them
+line 1: the path is empty, longer than 4095 bytes or not valid text
+line 1: the path is empty, longer than 4095 bytes or not valid text
+line 1: the path is empty, longer than 4095 bytes or not valid text
+line 1: the path is empty, longer than 4095 bytes or not valid text
+line 1: the first line is not a number from 1 to 4294967295
+line 1: the first line is not a number from 1 to 4294967295
+line 1: the first line is not a number from 1 to 4294967295
+line 1: the first line is not a number from 1 to 4294967295
+line 1: the first line is not a number from 1 to 4294967295
+line 1: the last line is not a number up to 4294967295, or is below the first
+line 1: the last line is not a number up to 4294967295, or is below the first
+line 1: the last line is not a number up to 4294967295, or is below the first
+line 1: the last line is not a number up to 4294967295, or is below the first
+line 1: the language is longer than 255 bytes or not valid text
+line 1: the language is longer than 255 bytes or not valid text
+line 1: the language is longer than 255 bytes or not valid text
+line 3: the last line is not a number up to 4294967295, or is below the first

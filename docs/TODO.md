@@ -30,11 +30,6 @@ reviews and publishes it, and `ail.pin` then moves to that revision.
 
 ## 6. `build`
 
-- [ ] Read the vectors, the TSV, the model identifier and the source
-  revision when there is one; reject a wrong length, a value that is not
-  finite, a zero vector, a path with a tab; normalize in binary64 and round
-  with `f8to4`; write the file as `docs/format.md` says, through a
-  temporary file and a rename.
 - [ ] Publication: lock, temporary file in the destination directory,
   `fsync`, validation with the reader of step 5, `rename`, `fsync` of the
   directory; write and sync

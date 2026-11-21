@@ -1,0 +1,96 @@
+# normwide makes a vector of binary32 doubles of the norm 1 and
+# normround rounds them to binary32 again: the bits that Python 3
+# computes for the same vectors with a sum of squares in the order of
+# the elements, math.sqrt, a division and struct's rounding. A vector
+# with an element that is not finite, and one of zeros, is refused.
+use "lib/std/io.aiw"
+use "src/lib/norm.aiw"
+buf v 64
+buf q 64
+buf w 64
+fn show n
+	call normwide v q n as r
+	call putn r
+	if r
+		call print "\n"
+		ret 0
+	end
+	call normround q w n
+	i=0
+	while i<n
+		call print " "
+		load q+i*8 as x
+		call putn x
+		call print " "
+		load4 w+i*4 as x
+		call putn x
+		i+=1
+	end
+	call print "\n"
+end
+# 3 4 0
+store4 v+0 0x40400000
+store4 v+4 0x40800000
+store4 v+8 0x00000000
+call show 3
+# 1 1 1
+store4 v+0 0x3f800000
+store4 v+4 0x3f800000
+store4 v+8 0x3f800000
+call show 3
+# -1 2 -3 4
+store4 v+0 0xbf800000
+store4 v+4 0x40000000
+store4 v+8 0xc0400000
+store4 v+12 0x40800000
+call show 4
+# the smallest number and two zeros
+store4 v+0 0x00000001
+store4 v+4 0x00000000
+store4 v+8 0x80000000
+call show 3
+# the largest number three times
+store4 v+0 0x7f7fffff
+store4 v+4 0x7f7fffff
+store4 v+8 0xff7fffff
+call show 3
+# 0.1 to 0.5
+store4 v+0 0x3dcccccd
+store4 v+4 0x3e4ccccd
+store4 v+8 0x3e99999a
+store4 v+12 0x3ecccccd
+store4 v+16 0x3f000000
+call show 5
+# two zeros and -42
+store4 v+0 0x80000000
+store4 v+4 0x00000000
+store4 v+8 0xc2280000
+call show 3
+# -5 alone
+store4 v+0 0xc0a00000
+call show 1
+# an infinity
+store4 v+0 0x3f800000
+store4 v+4 0x7f800000
+call show 2
+# an infinity below zero
+store4 v+0 0xff800000
+store4 v+4 0x3f800000
+call show 2
+# what is no number
+store4 v+0 0x3f800000
+store4 v+4 0x7fc00000
+store4 v+8 0x3f800000
+call show 3
+# a signalling one
+store4 v+0 0x7f800001
+call show 1
+# zeros
+store4 v+0 0x00000000
+store4 v+4 0x00000000
+store4 v+8 0x00000000
+call show 3
+# zeros of both signs
+store4 v+0 0x80000000
+store4 v+4 0x00000000
+call show 2

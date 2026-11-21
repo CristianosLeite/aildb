@@ -1,0 +1,138 @@
+# build makes a snapshot of vectors and metadata: the file is byte for
+# byte the one that docs/format.md gives for the normalized vectors,
+# whose bits Python 3 computed; a path that repeats is written once; no
+# records are a snapshot; a second build replaces the first; a build
+# that fails leaves the snapshot that was there and no temporary file
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "tests/lib/cmd.aiw"
+use "tests/lib/mk.aiw"
+buf want 24
+buf got 24
+buf v 64
+fn num p n x
+	call print p n
+	call putn x
+	call print "\n"
+end
+# 1 if the file at the path is the bytes of want
+fn same p n
+	call bycut got 0
+	call fileread p n got as r
+	load want as a
+	load want+8 as m
+	load got as c
+	if r!=m
+		ret 0
+	end
+	i=0
+	while i<m
+		loadb a+i as x
+		loadb c+i as y
+		if x!=y
+			ret 0
+		end
+		i+=1
+	end
+	ret 1
+end
+# 1 if there is a file at the path
+fn there p n
+	call fileopen p n 0 0 as fd
+	ifslt fd 0
+		ret 0
+	end
+	sys close fd
+	ret 1
+end
+# the vectors 3 4 0 and 1 1 1, and two records that share no string
+store4 v 0x40400000
+store4 v+4 0x40800000
+store4 v+8 0
+store4 v+12 0x3f800000
+store4 v+16 0x3f800000
+store4 v+20 0x3f800000
+call filewrite "v.bin" v 24
+call filewrite "m.tsv" "lib/a.aiw\t1\t9\tail\ndocs/b.md\t10\t20\tmd\n"
+call cmdshow "aildb build -o out.idx -v v.bin -m m.tsv -d 3 -i nomic-embed-text -r 7dea612"
+call mknew 3 "nomic-embed-text" "7dea612"
+store4 v 0x3f19999a
+store4 v+4 0x3f4ccccd
+store4 v+8 0
+call mkrec "lib/a.aiw" "ail" 1 9 v
+store4 v 0x3f13cd3a
+store4 v+4 0x3f13cd3a
+store4 v+8 0x3f13cd3a
+call mkrec "docs/b.md" "md" 10 20 v
+call mkdone want
+call same "out.idx" as r
+call num "the file of the format " r
+call there "out.idx.tmp" as r
+call num "temporary file " r
+call cmdshow "aildb check out.idx"
+
+# one dimension, the options in another order, no revision; the path of
+# the three first records and the language of all are written once
+store4 v 0x40a00000
+store4 v+4 0xc0a00000
+store4 v+8 0x3f000000
+store4 v+12 0x41200000
+call filewrite "v1.bin" v 16
+call filewrite "m1.tsv" "a.aiw\t1\t9\tail\na.aiw\t10\t30\tail\na.aiw\t31\t31\tail\nb.aiw\t1\t2\tail\n"
+call cmdshow "aildb build -i m -d 1 -m m1.tsv -v v1.bin -o out.idx"
+call bycut got 0
+call fileread "out.idx" got
+load got as p
+i=0
+while i<4
+	load4 p+128+i*24 as x
+	call putn x
+	call print " "
+	load4 p+132+i*24 as x
+	call putn x
+	call print " "
+	load4 p+136+i*24 as x
+	call putn x
+	call print " "
+	load4 p+140+i*24 as x
+	call putn x
+	call print " "
+	load4 p+4096+i*4 as x
+	call putn x
+	call print "\n"
+	i+=1
+end
+load p+56 as x
+call num "strings " x
+
+# no records
+call filewrite "none.bin" v 0
+call filewrite "none.tsv" v 0
+call cmdshow "aildb build -o none.idx -v none.bin -m none.tsv -d 768 -i m"
+call cmdshow "aildb check none.idx"
+
+# builds that fail: out.idx stays the snapshot of four records
+call cmdshow "aildb build -o out.idx -v v.bin -m m1.tsv -d 1 -i m"
+store4 v 0x3f800000
+store4 v+4 0x7f800000
+store4 v+8 0x3f800000
+store4 v+12 0x7fc00000
+call filewrite "nan.bin" v 16
+call cmdshow "aildb build -o out.idx -v nan.bin -m m1.tsv -d 2 -i m"
+call filewrite "m2.tsv" "a.aiw\t1\t9\tail\nb.aiw\t10\t30\tail\n"
+call cmdshow "aildb build -o out.idx -v nan.bin -m m2.tsv -d 2 -i m"
+store4 v+4 0
+store4 v+8 0x80000000
+store4 v+12 0
+call filewrite "zero.bin" v 16
+call cmdshow "aildb build -o out.idx -v zero.bin -m m2.tsv -d 2 -i m"
+call filewrite "tab.tsv" "a\tb.aiw\t1\t9\tail\n"
+call cmdshow "aildb build -o out.idx -v v1.bin -m tab.tsv -d 4 -i m"
+call cmdshow "aildb build -o out.idx -v v1.bin -m absent.tsv -d 1 -i m"
+call cmdshow "aildb build -o out.idx -v absent.bin -m m1.tsv -d 1 -i m"
+call cmdshow "aildb build -o absent/out.idx -v v1.bin -m m1.tsv -d 1 -i m"
+call there "out.idx.tmp" as r
+call num "temporary file " r
+call cmdshow "aildb check out.idx"
