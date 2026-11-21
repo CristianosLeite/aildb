@@ -66,3 +66,6 @@ and `a5b4559`, 2026-11-21), not pushed; `make test` passed there.
 - [x] An unsigned number from text, lines and tab-separated fields, a
   prefix test.
 - [x] Top-k of (score, ordinal) in a bounded workspace, ties by ordinal.
+- [x] binary32 to binary64 with integer statements, kept for the oracle:
+  `tests/lib/wide.aiw`, with the tests and not in `src/lib/`, since the
+  oracle shares nothing with the engine.

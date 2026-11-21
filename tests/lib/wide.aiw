@@ -1,0 +1,36 @@
+# tests/lib/wide.aiw -- a binary32 made a binary64 with integer statements
+# only. It is for the independent implementation of the tests, which is
+# to share no conversion with the engine: the engine reads binary32 with
+# the statements f4to8 and fdot4. It needs no other file.
+#
+# Every name of this file starts with "wide".
+
+# The double of the IEEE 754 binary32 in the low 32 bits of wideb, as the
+# statement f4to8 gives it: exact for a number, a subnormal made a normal
+# double, zeros and infinities with their sign, and what is no number
+# with its bits kept and made quiet.
+fn wide4to8 wideb
+	wides=wideb>>31&1
+	widee=wideb>>23&255
+	widem=wideb&0x7fffff
+	if widee==255
+		if widem
+			widem=widem|0x400000
+		end
+		ret wides<<63|0x7ff0000000000000|widem<<29
+	end
+	if widee
+		ret wides<<63|widee+896<<52|widem<<29
+	end
+	ifz widem
+		ret wides<<63
+	end
+	# a subnormal is widem times 2^-149: with its highest bit at widep it
+	# is 1 and a fraction times 2^(widep-149)
+	widep=22
+	while widem>>widep==0
+		widep-=1
+	end
+	widem=widem^(1<<widep)
+	ret wides<<63|widep+874<<52|widem<<(52-widep)
+end

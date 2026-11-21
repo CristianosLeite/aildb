@@ -1,0 +1,70 @@
+# wide4to8, the conversion with integer statements that the independent
+# implementation uses, gives the bits of the statement f4to8: for known
+# values, for every exponent with both signs and 69 significands, and
+# for two million random patterns
+use "lib/std/io.aiw"
+use "tests/lib/wide.aiw"
+var seed
+buf sig 40
+fn rnd
+	seed=seed*6364136223846793005+1442695040888963407
+	ret seed>>32
+end
+fn show a
+	call putn a
+	call print "\n"
+end
+# 1 if the two conversions of the pattern b differ
+fn differ b
+	call wide4to8 b as x
+	f4to8 b as y
+	ret x!=y
+end
+# 1, -2.5, the smallest and the largest number, an infinity
+call wide4to8 0x3f800000 as x
+call show x==0x3ff0000000000000
+call wide4to8 0xc0200000 as x
+call show x==0xc004000000000000
+call wide4to8 1 as x
+call show x==0x36a0000000000000
+call wide4to8 0x7f7fffff as x
+call show x==0x47efffffe0000000
+call wide4to8 0xff800000 as x
+call show x==0xfff0000000000000
+# every exponent and sign with the significands 0, 1, 2, half, all ones
+# and 64 random ones
+store sig 0
+store sig+8 1
+store sig+16 2
+store sig+24 0x400000
+store sig+32 0x7fffff
+bad=0
+n=0
+e=0
+while e<512
+	i=0
+	while i<69
+		if i<5
+			load sig+i*8 as m
+		else
+			call rnd as m
+			m=m&0x7fffff
+		end
+		call differ e<<23|m as d
+		bad+=d
+		n+=1
+		i+=1
+	end
+	e+=1
+end
+call show n
+call show bad
+bad=0
+i=0
+while i<2000000
+	call rnd as b
+	call differ b&0xffffffff as d
+	bad+=d
+	i+=1
+end
+call show bad

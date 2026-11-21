@@ -28,10 +28,6 @@ reviews and publishes it, and `ail.pin` then moves to that revision.
   `make AIL=<that checkout>` can compile them.
 - [ ] Float literals (user's proposal): not needed for version 1.
 
-## 4. Libraries (`src/lib/`, each with tests)
-
-- [ ] binary32 to binary64 with integer statements, kept for the oracle.
-
 ## 5. Reading a snapshot, and `check`
 
 - [ ] Open, `fstat`, map read-only; validate lengths, offsets, counts and
