@@ -158,7 +158,10 @@ above 0x7F are the UTF-8 they are in the snapshot.
 
 `search` verifies the structure of the snapshot and the checksum of its
 header and metadata, not the checksum of the vectors, which is the work of
-`check`.
+`check`. A vector that was damaged may so be scored as if it were right.
+The one damage `search` finds is an element that is not finite, in a
+vector it scores: the snapshot is then invalid, status 3, and no line of
+results is printed.
 
 ## `check`
 
@@ -166,8 +169,9 @@ header and metadata, not the checksum of the vectors, which is the work of
 aildb check INDEX
 ```
 
-Validates the snapshot `INDEX` in full, the checksum of the vectors
-included ([format.md](format.md#validation)), and prints one line about it:
+Validates the snapshot `INDEX` in full, the checksum of the vectors and
+that every element of them is finite included
+([format.md](format.md#validation)), and prints one line about it:
 
 ```
 {"records":1234,"dimension":768,"model":"nomic-embed-text","source_revision":"7dea612a7f6e"}

@@ -104,3 +104,9 @@ the first byte of the vectors: status 3, stdout 0
   aildb: x.idx: invalid snapshot: the checksum of the vectors differs
 the last byte of the vectors: status 3, stdout 0
   aildb: x.idx: invalid snapshot: the checksum of the vectors differs
+an infinity in vector 1: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: an element that is not finite in the vector of record 1
+no number in vector 0: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: an element that is not finite in the vector of record 0
+the largest finite element is valid: status 0, stdout 83
+  

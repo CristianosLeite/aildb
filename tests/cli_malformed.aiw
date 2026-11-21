@@ -183,3 +183,30 @@ storeb p+4099 0xbf
 call mksave b -1 "h.idx"
 call try "aildb check h.idx"
 call try "aildb search h.idx -k 1 -q q.bin"
+call print "\n# an element of a vector made an infinity: search has no score to print\n"
+call bycut b 0
+call fileread "g.idx" b
+load b as p
+load b+8 as n
+store4 p+4104 0x7f800000
+call mksave b -1 "h.idx"
+call try "aildb check h.idx"
+call try "aildb search h.idx -k 2 -q q.bin"
+# with both checksums made right for it
+call mkcrc 0 p+4096 16 as c
+store4 p+96 c
+call mkseal p n
+call mksave b -1 "h.idx"
+call try "aildb check h.idx"
+call try "aildb search h.idx -k 2 -q q.bin"
+# a filter that leaves the record out leaves its vector unread
+call try "aildb search h.idx -k 2 -q q.bin -p a"
+# what is no number, in the other record
+store4 p+4104 0x3f800000
+store4 p+4100 0xffc00000
+call mkcrc 0 p+4096 16 as c
+store4 p+96 c
+call mkseal p n
+call mksave b -1 "h.idx"
+call try "aildb check h.idx"
+call try "aildb search h.idx -k 2 -q q.bin"

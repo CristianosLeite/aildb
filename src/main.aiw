@@ -687,8 +687,10 @@ end
 # a path must start with, if pp is not 0, and lp ln the language a
 # record must have, if lp is not 0. Nothing is allocated for a record:
 # sel has its pairs, as many as the limit or the records, from the
-# start.
-fn scan k pp pn lp ln
+# start. A score that is not finite ends the program before a result is
+# printed: the query is finite, so the vector has an element that is
+# not, which check would have found; ip in is the path for that line.
+fn scan k pp pn lp ln ip in
 	load snap+16 as count
 	load snap+24 as dim
 	load snap+32 as r
@@ -737,6 +739,10 @@ fn scan k pp pn lp ln
 		end
 		if ok
 			fdot4 0 v q dim as s
+			if ((s>>52)&2047)==2047
+				store snap+96 i
+				call badsnap ip in snapvalue
+			end
 			call topkadd sel s i
 		end
 		r+=24
@@ -825,7 +831,7 @@ fn search
 	call query ip in qp qn mp mn
 	call opt 112 as pp pn
 	call opt 108 as lp ln
-	call scan k pp pn lp ln
+	call scan k pp pn lp ln ip in
 	call results
 	sys exit_group 0
 end

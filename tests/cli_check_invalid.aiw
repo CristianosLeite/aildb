@@ -268,3 +268,25 @@ call try "the first byte of the vectors" -1
 call fresh
 call pokeb 4119 0x80
 call try "the last byte of the vectors" -1
+
+# an element that is not finite, under a checksum of the vectors that
+# is right for it
+fn sealvec
+	load b as p
+	call mkcrc 0 p+4096 24 as c
+	store4 p+96 c
+	call seal
+end
+call fresh
+call poke4 4112 0x7f800000
+call sealvec
+call try "an infinity in vector 1" -1
+call fresh
+call poke4 4100 0xff800001
+call sealvec
+call try "no number in vector 0" -1
+call fresh
+call poke4 4100 0x7f7fffff
+call sealvec
+call try "the largest finite element is valid" -1
+call print "\n"

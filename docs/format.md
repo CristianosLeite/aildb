@@ -102,6 +102,10 @@ version 1 writes and accepts no snapshot without it. A stored vector
 therefore has the norm 1 within about 1e-7, not exactly: its elements were
 rounded after the division. The norm is not stored and not checked again.
 
+Every stored element is finite: no infinity and nothing that is no number,
+which is an element whose eight bits of exponent are all 1. `build` writes
+no other, and a file that has one is no valid snapshot.
+
 ## Integrity checks
 
 Both checks are the CRC-32 of zlib, PNG and Ethernet: the polynomial
@@ -150,6 +154,11 @@ and none of them can wrap 64 bits within the limits below.
 10. Every string named by the header or a record is as
     [Strings](#strings) says.
 11. Only `check`: the CRC-32 of the vectors is the one in the header.
+12. Only `check`: every element of every vector is finite. `search` does
+    not read the vectors of records that a filter leaves out; of those it
+    scores it rejects the snapshot, before it prints a result, when a
+    score is not finite, which is the case exactly when an element of that
+    vector is not.
 
 A snapshot without records is valid: the vectors start at 4096 and have no
 bytes.
@@ -202,7 +211,11 @@ snapshot against one query:
 The figures are the same on every machine, since the data come from a fixed
 seed and every operation is determined.
 
-A score is finite. It may lie outside -1 to 1 by the roundings above.
+A score is finite: the elements of a valid snapshot are, the normalized
+query has no element above 1, and 65536 products of that size add up to
+far less than the largest binary64. A sum that is not finite therefore
+shows a damaged vector, and `search` ends with status 3 and prints no
+result. A score may lie outside -1 to 1 by the roundings above.
 
 ## Limits
 

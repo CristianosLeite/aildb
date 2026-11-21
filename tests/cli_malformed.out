@@ -159,3 +159,26 @@ aildb check h.idx
 aildb search h.idx -k 1 -q q.bin
   status 0, stdout 140
   
+
+# an element of a vector made an infinity: search has no score to print
+aildb check h.idx
+  status 3, stdout 0
+  aildb: h.idx: invalid snapshot: the checksum of the vectors differs
+aildb search h.idx -k 2 -q q.bin
+  status 3, stdout 0
+  aildb: h.idx: invalid snapshot: an element that is not finite in the vector of record 1
+aildb check h.idx
+  status 3, stdout 0
+  aildb: h.idx: invalid snapshot: an element that is not finite in the vector of record 1
+aildb search h.idx -k 2 -q q.bin
+  status 3, stdout 0
+  aildb: h.idx: invalid snapshot: an element that is not finite in the vector of record 1
+aildb search h.idx -k 2 -q q.bin -p a
+  status 0, stdout 140
+  
+aildb check h.idx
+  status 3, stdout 0
+  aildb: h.idx: invalid snapshot: an element that is not finite in the vector of record 0
+aildb search h.idx -k 2 -q q.bin
+  status 3, stdout 0
+  aildb: h.idx: invalid snapshot: an element that is not finite in the vector of record 0

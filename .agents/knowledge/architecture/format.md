@@ -49,6 +49,20 @@ written, before any reader existed, and are the user's to change until a release
 - **An empty language is allowed** (a file whose language the producer does not know); an
   empty path is not.
 
+- **A stored element that is not finite makes a snapshot invalid** (review of `76104ec`,
+  2026-11-21). The review showed `search` printing `"score":,` for a vector with an
+  infinity, since the checksum of the vectors is not read by `search` and the decimal
+  formatter writes nothing for such a value; the heap of the best records also assumes
+  scores that compare. `search` now rejects the snapshot before a result is printed when
+  a score is not finite, which costs one test for each scored record and keeps the single
+  scan. A finite query and finite elements cannot give such a score (65536 products of at
+  most 3.4e38 are far below the largest binary64), so the test is exactly "an element of
+  this vector is not finite". `check` looks at every element after the checksum, as step
+  12 of the validation, so that a snapshot `check` accepts is never rejected by `search`:
+  a file someone wrote with right checksums and an infinity would otherwise pass one and
+  fail the other. Not done: a test of the norm, or of zero vectors, which only give
+  scores that mean little.
+
 ## Learned
 - **The size of the strings is the one number of the layout that nothing else fixes**
   (2026-11-21, from the tests of invalid files): a header that says 54 bytes where 53 are
