@@ -5,4 +5,4 @@
 #   url revision
 #
 # tools/ail.sh clones it into ail/, which git ignores, at that revision.
-https://github.com/CristianosLeite/ail.git 7dea612a7f6e2d48e1fa54baa6c6236a4b37b97b
+https://github.com/CristianosLeite/ail.git a5b4559c2cffbef49538a668579a3820d5e16da5

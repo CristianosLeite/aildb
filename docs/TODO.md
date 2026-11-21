@@ -18,14 +18,9 @@ to `BACKLOG.md`, under the same section.
 
 ## 1. binary32 in AIL (work in the AIL repository)
 
-The statements are written, on a branch of the checkout that is not pushed
-(`docs/BACKLOG.md`); the user reviews and publishes it, and `ail.pin` then
-moves to that revision. Everything from `build` on needs them.
+The statements are written and `ail.pin` names the revision that has them
+(`docs/BACKLOG.md`).
 
-- [ ] Move `ail.pin` to the revision that has the three statements, once
-  the user has reviewed and published the branch `binary32` of the
-  checkout (`a5b4559` there on 2026-11-21); until then only a build with
-  `make AIL=<that checkout>` can compile them.
 - [ ] Float literals (user's proposal): not needed for version 1.
 
 ## 9. The example, and acceptance check 1

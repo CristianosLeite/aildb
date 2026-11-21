@@ -35,7 +35,7 @@ the figures of acceptance check 4 when the engine exists.
 
 - **The three statements were written on 2026-11-21** under the proposed names, as the
   commits `d5f236b` (`f4to8`, `f8to4`) and `a5b4559` (`fdot4`) of the branch `binary32` of
-  the AIL checkout, which is not pushed: rows of `optab`, with tests against bits computed
+  the AIL checkout (on the remote since 2026-11-21, and pinned): rows of `optab`, with tests against bits computed
   outside the compiler and against the loop of `load4`, `f4to8`, `fmul` and `fadd`.
   `f8to4` rounds to nearest, ties to even, and gives an infinity for a double beyond the
   binary32 range, so `build` must check the rounded value where it matters. The text under

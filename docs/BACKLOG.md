@@ -35,7 +35,13 @@ completed, under the section it had there.
   `fadd` in order.
 
 Both are commits of the branch `binary32` of the AIL checkout (`d5f236b`
-and `a5b4559`, 2026-11-21), not pushed; `make test` passed there.
+and `a5b4559`, 2026-11-21); `make test` passed there.
+- [x] Move `ail.pin` to the revision that has the three statements:
+  `a5b4559`, the head of the branch `binary32`, which was on the remote of
+  the AIL repository on 2026-11-21. A clone of this repository on that day
+  fetched it, built the compiler from the seed and passed `make test`.
+  The branch is not merged into `main` there; if it is merged as other
+  commits, the pin moves to one of them.
 
 ## 2. Skeleton
 

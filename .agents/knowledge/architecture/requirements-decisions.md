@@ -84,7 +84,9 @@ documented.
   shipped `build/aildb` has none.
 - **The binary32 statements are added to the AIL repository by the agent, on a branch that
   is not pushed**; the user reviews and publishes it, and `ail.pin` moves to the published
-  revision afterwards.
+  revision afterwards. Done on 2026-11-21: the branch `binary32` was on the remote with
+  `a5b4559` as its head, and `ail.pin` names that commit. It is not merged into `main` of
+  the AIL repository, so a merge that makes other commits of it moves the pin again.
 
 ## Limits
 - The limits of the result count, the dimension and the record count are in
