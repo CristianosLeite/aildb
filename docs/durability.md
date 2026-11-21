@@ -25,8 +25,11 @@ assumptions.
 A failure in steps 1 to 5 ends the build with a line on standard error and
 status 4 or 5 (3 if an input was at fault); the temporary file, if this
 build created one, is removed, no other file is, and `INDEX` is what it
-was. A failure in step 6 ends it with status 6: `INDEX`
-is the new snapshot, and nothing was printed on standard output.
+was. A failure in step 6 ends it with status 6: `INDEX` is the new
+snapshot, and nothing was printed on standard output. A failure in step 7,
+the output closed or full, ends it with status 4 and a line on standard
+error that says the snapshot was published and synced: `INDEX` is the new
+snapshot, as durable as after a status 0.
 
 A published snapshot is never written again. A reader maps the file it
 opened and keeps that file when the name is given to another one.

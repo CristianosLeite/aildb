@@ -1,0 +1,38 @@
+$ aildb build -o one.idx -v v.bin -m m.tsv -d 2 -i m
+--- stdout
+{"records":2,"dimension":2,"model":"m","source_revision":null}
+--- stderr
+--- status 0
+
+# a pipe that nobody reads
+aildb check one.idx
+  status 4
+  aildb: cannot write the output
+aildb search one.idx -k 2 -q q.bin
+  status 4
+  aildb: cannot write the output
+aildb build -o two.idx -v v.bin -m m.tsv -d 2 -i m
+  status 4
+  aildb: two.idx: published and synced, but the line about it could not be written to the output
+$ aildb check two.idx
+--- stdout
+{"records":2,"dimension":2,"model":"m","source_revision":null}
+--- stderr
+--- status 0
+
+# a device without room
+aildb check one.idx
+  status 4
+  aildb: cannot write the output
+aildb search one.idx -k 2 -q q.bin
+  status 4
+  aildb: cannot write the output
+aildb build -o three.idx -v v.bin -m m.tsv -d 2 -i m
+  status 4
+  aildb: three.idx: published and synced, but the line about it could not be written to the output
+$ aildb check three.idx
+--- stdout
+{"records":2,"dimension":2,"model":"m","source_revision":null}
+--- stderr
+--- status 0
+temporary files 0

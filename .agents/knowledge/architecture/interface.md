@@ -39,4 +39,12 @@ when the page was written, and is the user's to change until a release.
   input read to its end made a wrong length cost memory without a bound and, when the
   memory failed, status 4 in the place of 3. The line for an input that is too long says
   "more than" the length, not its size.
+- **`SIGPIPE` is ignored, and an output that cannot be written is status 4** (review of
+  `76104ec`, 2026-11-21). `check` into a pipe without a reader ended by the signal, with
+  no line and no status, against the table of statuses. The signal is set to be ignored
+  before a command starts, so the write returns `EPIPE` and takes the path of every
+  other output error. Rejected: documenting the death by signal, which leaves a caller
+  of `build` unable to tell whether the snapshot was published. `build` whose report
+  cannot be written says "published and synced" with status 4; a status of its own was
+  not added, since the line and `check` tell the caller what is there.
 - **An empty `-l` takes the records without a language; an empty `-p` takes all.**

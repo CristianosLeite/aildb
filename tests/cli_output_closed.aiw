@@ -1,0 +1,76 @@
+# what the commands do when their output cannot be written: a pipe that
+# nobody reads, which would end a program with the signal SIGPIPE if it
+# did not ignore it, and a device without room. Each ends with the
+# status of an I/O failure and one line on stderr; build has published
+# its snapshot by then, says so, and the snapshot is valid.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "tests/lib/cmd.aiw"
+buf fds 8
+buf v 16
+buf se 24
+# run the command line with the descriptor out as its stdout and print
+# how it ended and what it wrote to stderr
+fn ends p n out
+	call print p n
+	call print "\n  "
+	call cmdargs p n as av
+	call fileopen "/dev/null" 0 0 as in
+	call fileopen "cmd.err" 0x241 420 as err
+	call procstart av in out err as pid
+	sys close in
+	sys close err
+	call procwait pid 0 as st
+	ifslt st 0
+		call print "signal "
+		call putn 0-st
+	else
+		call print "status "
+		call putn st
+	end
+	call print "\n  "
+	call bycut se 0
+	call fileread "cmd.err" se
+	load se as q
+	load se+8 as m
+	call print q m
+end
+# the same into a pipe whose reading end is closed
+fn closed p n
+	sys pipe fds
+	load4 fds as r
+	load4 fds+4 as w
+	sys close r
+	call ends p n w
+	sys close w
+end
+# and into /dev/full, where every write fails for want of room
+fn full p n
+	call fileopen "/dev/full" 1 0 as w
+	call ends p n w
+	sys close w
+end
+store4 v 0x3f800000
+store4 v+4 0
+store4 v+8 0
+store4 v+12 0x3f800000
+call filewrite "v.bin" v 16
+call filewrite "q.bin" v 8
+call filewrite "m.tsv" "a.aiw\t1\t9\tail\nb.aiw\t1\t9\tail\n"
+call cmdshow "aildb build -o one.idx -v v.bin -m m.tsv -d 2 -i m"
+call print "\n# a pipe that nobody reads\n"
+call closed "aildb check one.idx"
+call closed "aildb search one.idx -k 2 -q q.bin"
+call closed "aildb build -o two.idx -v v.bin -m m.tsv -d 2 -i m"
+call cmdshow "aildb check two.idx"
+call print "\n# a device without room\n"
+call full "aildb check one.idx"
+call full "aildb search one.idx -k 2 -q q.bin"
+call full "aildb build -o three.idx -v v.bin -m m.tsv -d 2 -i m"
+call cmdshow "aildb check three.idx"
+call cmdstaged as r
+call print "temporary files "
+call putn r
+call print "\n"

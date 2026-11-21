@@ -34,6 +34,13 @@ error, `aildb: ` and what was wrong, with the file and, for metadata, the
 line. Nothing that is a result is printed on standard output then, except
 by `search` when its output fails while it is being written.
 
+Output that cannot be written is status 4 whatever the reason, a pipe
+whose reader is gone included: `aildb` ignores the signal `SIGPIPE`, which
+would end it without a line and without a status, so `aildb search ... |
+head -1` may end with status 4 and the line `aildb: cannot write the
+output`. For `build` this is the one status 4 that comes after the
+snapshot was published: see below.
+
 ## `build`
 
 ```
@@ -89,7 +96,10 @@ removes the temporary file and leaves what was at `INDEX` as it was, a
 snapshot or nothing. If the rename succeeded and the sync of the directory failed, the
 new snapshot is at `INDEX` and complete, but may not survive a loss of
 power: `build` prints no line on standard output, says so on standard error
-and ends with status 6. [durability.md](durability.md) says what is assumed
+and ends with status 6. If all of that succeeded and the line on standard
+output cannot be written, the snapshot is published and durable and stays:
+the status is 4, and the line on standard error starts with `published and
+synced`. Every other status 4 of `build` leaves `INDEX` as it was. [durability.md](durability.md) says what is assumed
 of the filesystem.
 
 Only one `build` runs for a destination at a time: it holds a lock on the

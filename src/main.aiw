@@ -40,6 +40,7 @@ buf sel 24              # the best records so far
 const pwrite 18
 const flock 73
 const getrandom 318
+buf sigact 32           # how a signal is to be taken: ignored
 
 # print the usage on stderr and end the program
 fn usage
@@ -610,8 +611,17 @@ fn build
 		call fail stio
 	end
 	call publish vec count dim vp vn
+	# the report of a durable snapshot; if it cannot be written the
+	# snapshot is published all the same, and the line says so
 	call summary
-	call say
+	load msg as p
+	load msg+8 as n
+	call print p n as ok
+	ifz ok
+		call about op on
+		call byadd msg "published and synced, but the line about it could not be written to the output"
+		call fail stio
+	end
 	sys exit_group 0
 end
 
@@ -886,6 +896,11 @@ fn check
 	sys exit_group 0
 end
 
+# A pipe that nobody reads is to be an error of the write, which has a
+# line and the status of an I/O failure, and not the signal SIGPIPE,
+# which would end the program without either.
+store sigact 1
+sys rt_sigaction 13 sigact 0 8
 call argv 1 as cp cn
 call texteq cp cn "build" as is
 if is
