@@ -103,3 +103,5 @@ and `a5b4559`, 2026-11-21), not pushed; `make test` passed there.
 - [x] Read the query (file or stdin), reject a wrong dimension, a value
   that is not finite, a zero vector, a limit that is not positive, a model
   identifier that differs; normalize.
+- [x] Filters before scoring, the scan with `fdot4` over buffers allocated
+  once, top-k, JSON Lines with the first line of source revision and model.

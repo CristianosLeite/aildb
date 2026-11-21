@@ -6,9 +6,7 @@
 # It is compiled into an executable by a file that uses lib/std/io.aiw
 # and a file of hooks first: src/aildb.aiw for the one that is shipped.
 #
-# build and check are written. search reads and checks its query and
-# prints the line about the snapshot; the scan is the next item of
-# docs/TODO.md.
+# The three commands are build, search and check.
 use "lib/std/bytes.aiw"
 use "lib/std/file.aiw"
 use "src/lib/crc.aiw"
@@ -18,6 +16,7 @@ use "src/lib/snap.aiw"
 use "src/lib/meta.aiw"
 use "src/lib/norm.aiw"
 use "src/lib/pack.aiw"
+use "src/lib/topk.aiw"
 
 const stusage 2         # wrong usage
 const stinvalid 3       # an invalid snapshot or invalid input
@@ -37,6 +36,7 @@ buf dst 24              # the path of the destination, with a NUL byte
 buf lck 24              # the path of the lock file, with a NUL byte
 buf qraw 24             # search: the bytes of the query
 var qvec                # its doubles, normalized
+buf sel 24              # the best records so far
 const pwrite 18
 const flock 73
 
@@ -624,6 +624,128 @@ fn query ip in qp qn mp mn
 	qvec=q
 end
 
+# search: score every record of the snapshot that passes the filters
+# against qvec and keep the best k in sel, in order. pp pn is the prefix
+# a path must start with, if pp is not 0, and lp ln the language a
+# record must have, if lp is not 0. Nothing is allocated for a record:
+# sel has its pairs, as many as the limit or the records, from the
+# start.
+fn scan k pp pn lp ln
+	load snap+16 as count
+	load snap+24 as dim
+	load snap+32 as r
+	load snap+40 as st
+	load snap+56 as v
+	if k>count
+		k=count
+	end
+	call topkinit sel k as ok
+	ifz ok
+		call bycut msg 0
+		call byadd msg "aildb: out of memory"
+		call fail stio
+	end
+	q=qvec
+	step=dim*4
+	# a string that the record before named was compared there
+	po=-1
+	pl=0
+	pr=0
+	lo=-1
+	ll=0
+	lr=0
+	i=0
+	while i<count
+		ok=1
+		if pp
+			load4 r as o
+			load4 r+4 as l
+			if (o!=po)|(l!=pl)
+				call textprefix st+o l pp pn as pr
+				po=o
+				pl=l
+			end
+			ok=pr
+		end
+		if ok&(lp!=0)
+			load4 r+8 as o
+			load4 r+12 as l
+			if (o!=lo)|(l!=ll)
+				call texteq st+o l lp ln as lr
+				lo=o
+				ll=l
+			end
+			ok=lr
+		end
+		if ok
+			fdot4 0 v q dim as s
+			call topkadd sel s i
+		end
+		r+=24
+		v+=step
+		i+=1
+	end
+	call topksort sel
+end
+
+# search: print the line about the snapshot and a line for each record
+# of sel, 60000 bytes or so at a time
+fn results
+	call bycut msg 0
+	# the longest line is below 9000 bytes, so nothing is added to a
+	# buffer that cannot take it
+	call byneed msg 72000 as ok
+	ifz ok
+		call byadd msg "aildb: out of memory"
+		call fail stio
+	end
+	call byadd msg "{\"source_revision\":"
+	load snap+80 as p
+	load snap+88 as n
+	if n
+		call fmtjson msg p n
+	else
+		call byadd msg "null"
+	end
+	call byadd msg ",\"model\":"
+	load snap+64 as p
+	load snap+72 as n
+	call fmtjson msg p n
+	call byadd msg "}\n"
+	load snap+32 as recs
+	load snap+40 as st
+	load sel+16 as count
+	i=0
+	while i<count
+		call topkget sel i as s o ok
+		r=recs+o*24
+		call byadd msg "{\"rank\":"
+		call byaddn msg i+1
+		call byadd msg ",\"score\":"
+		call fmtfix msg s 6
+		call byadd msg ",\"score_bits\":\""
+		call fmthex msg s
+		call byadd msg "\",\"path\":"
+		load4 r as p
+		load4 r+4 as n
+		call fmtjson msg st+p n
+		call byadd msg ",\"start_line\":"
+		load4 r+16 as n
+		call byaddn msg n
+		call byadd msg ",\"end_line\":"
+		load4 r+20 as n
+		call byaddn msg n
+		call byadd msg "}\n"
+		load msg+8 as n
+		if n>60000
+			call say
+			call bycut msg 0
+		end
+		i+=1
+	end
+	call say
+end
+
 # aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
 fn search
 	call argc as n
@@ -643,22 +765,10 @@ fn search
 	call opt 113 as qp qn
 	call opt 105 as mp mn
 	call query ip in qp qn mp mn
-	# the line about the snapshot
-	call bycut msg 0
-	call byadd msg "{\"source_revision\":"
-	load snap+80 as p
-	load snap+88 as n
-	if n
-		call fmtjson msg p n
-	else
-		call byadd msg "null"
-	end
-	call byadd msg ",\"model\":"
-	load snap+64 as p
-	load snap+72 as n
-	call fmtjson msg p n
-	call byadd msg "}\n"
-	call say
+	call opt 112 as pp pn
+	call opt 108 as lp ln
+	call scan k pp pn lp ln
+	call results
 	sys exit_group 0
 end
 

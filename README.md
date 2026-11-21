@@ -6,7 +6,7 @@ The first application is semantic search over a source repository: given the emb
 
 ## Status
 
-Being written. The interface and the file format are documented and the build and the tests are in place, `build` makes a snapshot and `check` validates one, but `search` does not rank yet: [REQUIREMENTS.md](REQUIREMENTS.md) states what version 1 must do, [docs/TODO.md](docs/TODO.md) has the steps that are left, and the questions still open are listed in [.agents/knowledge/status/open-items.md](.agents/knowledge/status/open-items.md).
+Being written. The three commands work and are tested on small snapshots; the comparison with an independent implementation, the interruption tests, the end-to-end example and the measurements are still to come: [REQUIREMENTS.md](REQUIREMENTS.md) states what version 1 must do, [docs/TODO.md](docs/TODO.md) has the steps that are left, and the questions still open are listed in [.agents/knowledge/status/open-items.md](.agents/knowledge/status/open-items.md).
 
 ## Version 1 in short
 

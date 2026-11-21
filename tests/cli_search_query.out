@@ -1,11 +1,13 @@
 $ aildb search one.idx -k 10 -q q.bin
 --- stdout
 {"source_revision":"7dea612","model":"nomic-embed-text"}
+{"rank":1,"score":0.600000,"score_bits":"3fe3333333333333","path":"lib/std/io.aiw","start_line":1,"end_line":20}
 --- stderr
 --- status 0
 $ aildb search one.idx -k 10 < q.bin
 --- stdout
 {"source_revision":"7dea612","model":"nomic-embed-text"}
+{"rank":1,"score":0.600000,"score_bits":"3fe3333333333333","path":"lib/std/io.aiw","start_line":1,"end_line":20}
 --- stderr
 --- status 0
 $ aildb search none.idx -q q.bin -k 1
@@ -16,6 +18,7 @@ $ aildb search none.idx -q q.bin -k 1
 $ aildb search one.idx -k 4294967295 -q q.bin -i nomic-embed-text
 --- stdout
 {"source_revision":"7dea612","model":"nomic-embed-text"}
+{"rank":1,"score":0.600000,"score_bits":"3fe3333333333333","path":"lib/std/io.aiw","start_line":1,"end_line":20}
 --- stderr
 --- status 0
 $ aildb search one.idx -k 10 -q q.bin -i nomic

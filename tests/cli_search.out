@@ -1,0 +1,126 @@
+$ aildb search six.idx -k 9 -q x.bin
+--- stdout
+{"source_revision":"r1","model":"m"}
+{"rank":1,"score":1.000000,"score_bits":"3ff0000000000000","path":"lib/std/io.aiw","start_line":1,"end_line":20}
+{"rank":2,"score":1.000000,"score_bits":"3ff0000000000000","path":"lib/stdx.aiw","start_line":1,"end_line":1}
+{"rank":3,"score":0.600000,"score_bits":"3fe3333340000000","path":"lib/std/file.aiw","start_line":1,"end_line":9}
+{"rank":4,"score":0.000000,"score_bits":"0000000000000000","path":"lib/std/io.aiw","start_line":21,"end_line":40}
+{"rank":5,"score":0.000000,"score_bits":"0000000000000000","path":"docs/usage.md","start_line":5,"end_line":7}
+{"rank":6,"score":-1.000000,"score_bits":"bff0000000000000","path":"docs/a\"b\\c.md","start_line":2,"end_line":3}
+--- stderr
+--- status 0
+$ aildb search six.idx -k 6 -q x.bin
+--- stdout
+{"source_revision":"r1","model":"m"}
+{"rank":1,"score":1.000000,"score_bits":"3ff0000000000000","path":"lib/std/io.aiw","start_line":1,"end_line":20}
+{"rank":2,"score":1.000000,"score_bits":"3ff0000000000000","path":"lib/stdx.aiw","start_line":1,"end_line":1}
+{"rank":3,"score":0.600000,"score_bits":"3fe3333340000000","path":"lib/std/file.aiw","start_line":1,"end_line":9}
+{"rank":4,"score":0.000000,"score_bits":"0000000000000000","path":"lib/std/io.aiw","start_line":21,"end_line":40}
+{"rank":5,"score":0.000000,"score_bits":"0000000000000000","path":"docs/usage.md","start_line":5,"end_line":7}
+{"rank":6,"score":-1.000000,"score_bits":"bff0000000000000","path":"docs/a\"b\\c.md","start_line":2,"end_line":3}
+--- stderr
+--- status 0
+$ aildb search six.idx -k 3 -q x.bin
+--- stdout
+{"source_revision":"r1","model":"m"}
+{"rank":1,"score":1.000000,"score_bits":"3ff0000000000000","path":"lib/std/io.aiw","start_line":1,"end_line":20}
+{"rank":2,"score":1.000000,"score_bits":"3ff0000000000000","path":"lib/stdx.aiw","start_line":1,"end_line":1}
+{"rank":3,"score":0.600000,"score_bits":"3fe3333340000000","path":"lib/std/file.aiw","start_line":1,"end_line":9}
+--- stderr
+--- status 0
+$ aildb search six.idx -k 1 -q x.bin
+--- stdout
+{"source_revision":"r1","model":"m"}
+{"rank":1,"score":1.000000,"score_bits":"3ff0000000000000","path":"lib/std/io.aiw","start_line":1,"end_line":20}
+--- stderr
+--- status 0
+$ aildb search six.idx -k 2 < xy.bin
+--- stdout
+{"source_revision":"r1","model":"m"}
+{"rank":1,"score":1.000000,"score_bits":"3ff0000006666666","path":"lib/std/file.aiw","start_line":1,"end_line":9}
+{"rank":2,"score":0.800000,"score_bits":"3fe999999999999a","path":"lib/std/io.aiw","start_line":21,"end_line":40}
+--- stderr
+--- status 0
+$ aildb search six.idx -k 9 -q xy.bin -i m
+--- stdout
+{"source_revision":"r1","model":"m"}
+{"rank":1,"score":1.000000,"score_bits":"3ff0000006666666","path":"lib/std/file.aiw","start_line":1,"end_line":9}
+{"rank":2,"score":0.800000,"score_bits":"3fe999999999999a","path":"lib/std/io.aiw","start_line":21,"end_line":40}
+{"rank":3,"score":0.600000,"score_bits":"3fe3333333333333","path":"lib/std/io.aiw","start_line":1,"end_line":20}
+{"rank":4,"score":0.600000,"score_bits":"3fe3333333333333","path":"lib/stdx.aiw","start_line":1,"end_line":1}
+{"rank":5,"score":0.000000,"score_bits":"0000000000000000","path":"docs/usage.md","start_line":5,"end_line":7}
+{"rank":6,"score":-0.600000,"score_bits":"bfe3333333333333","path":"docs/a\"b\\c.md","start_line":2,"end_line":3}
+--- stderr
+--- status 0
+$ aildb search six.idx -k 9 -q x.bin -p lib/std
+--- stdout
+{"source_revision":"r1","model":"m"}
+{"rank":1,"score":1.000000,"score_bits":"3ff0000000000000","path":"lib/std/io.aiw","start_line":1,"end_line":20}
+{"rank":2,"score":1.000000,"score_bits":"3ff0000000000000","path":"lib/stdx.aiw","start_line":1,"end_line":1}
+{"rank":3,"score":0.600000,"score_bits":"3fe3333340000000","path":"lib/std/file.aiw","start_line":1,"end_line":9}
+{"rank":4,"score":0.000000,"score_bits":"0000000000000000","path":"lib/std/io.aiw","start_line":21,"end_line":40}
+--- stderr
+--- status 0
+$ aildb search six.idx -k 9 -q x.bin -p lib/std/
+--- stdout
+{"source_revision":"r1","model":"m"}
+{"rank":1,"score":1.000000,"score_bits":"3ff0000000000000","path":"lib/std/io.aiw","start_line":1,"end_line":20}
+{"rank":2,"score":0.600000,"score_bits":"3fe3333340000000","path":"lib/std/file.aiw","start_line":1,"end_line":9}
+{"rank":3,"score":0.000000,"score_bits":"0000000000000000","path":"lib/std/io.aiw","start_line":21,"end_line":40}
+--- stderr
+--- status 0
+$ aildb search six.idx -k 9 -q x.bin -p lib/std/io.aiw
+--- stdout
+{"source_revision":"r1","model":"m"}
+{"rank":1,"score":1.000000,"score_bits":"3ff0000000000000","path":"lib/std/io.aiw","start_line":1,"end_line":20}
+{"rank":2,"score":0.000000,"score_bits":"0000000000000000","path":"lib/std/io.aiw","start_line":21,"end_line":40}
+--- stderr
+--- status 0
+$ aildb search six.idx -k 9 -q x.bin -l md
+--- stdout
+{"source_revision":"r1","model":"m"}
+{"rank":1,"score":0.000000,"score_bits":"0000000000000000","path":"docs/usage.md","start_line":5,"end_line":7}
+{"rank":2,"score":-1.000000,"score_bits":"bff0000000000000","path":"docs/a\"b\\c.md","start_line":2,"end_line":3}
+--- stderr
+--- status 0
+$ aildb search six.idx -k 1 -q x.bin -l md
+--- stdout
+{"source_revision":"r1","model":"m"}
+{"rank":1,"score":0.000000,"score_bits":"0000000000000000","path":"docs/usage.md","start_line":5,"end_line":7}
+--- stderr
+--- status 0
+$ aildb search six.idx -k 9 -q x.bin -l ail -p lib/std/f
+--- stdout
+{"source_revision":"r1","model":"m"}
+{"rank":1,"score":0.600000,"score_bits":"3fe3333340000000","path":"lib/std/file.aiw","start_line":1,"end_line":9}
+--- stderr
+--- status 0
+$ aildb search six.idx -k 9 -q x.bin -p docs -l ail
+--- stdout
+{"source_revision":"r1","model":"m"}
+--- stderr
+--- status 0
+$ aildb search six.idx -k 9 -q x.bin -p Lib
+--- stdout
+{"source_revision":"r1","model":"m"}
+--- stderr
+--- status 0
+$ aildb search six.idx -k 9 -q x.bin -l AIL
+--- stdout
+{"source_revision":"r1","model":"m"}
+--- stderr
+--- status 0
+$ aildb search six.idx -k 9 -q x.bin -p lib/std/io.aiwx
+--- stdout
+{"source_revision":"r1","model":"m"}
+--- stderr
+--- status 0
+$ aildb search six.idx -k 9 -q x.bin -l ''
+{"source_revision":"r1","model":"m"}
+{"rank":1,"score":1.000000,"score_bits":"3ff0000000000000","path":"lib/stdx.aiw","start_line":1,"end_line":1}
+--- status 0
+$ aildb search none.idx -k 9 -q x.bin
+--- stdout
+{"source_revision":null,"model":"m"}
+--- stderr
+--- status 0

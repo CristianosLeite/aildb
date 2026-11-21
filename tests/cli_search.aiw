@@ -1,0 +1,95 @@
+# search ranks the records of a snapshot by the dot product of its
+# normalized query with their vectors: the best first, equal scores in
+# the order of the records, at most as many as the limit; a path prefix
+# and a language take records out before they are scored; no eligible
+# record is no result line and status 0. The snapshot is written by the
+# test, with vectors whose scores are known.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "tests/lib/cmd.aiw"
+use "tests/lib/mk.aiw"
+buf b 24
+buf v 24
+buf so 24
+buf se 24
+buf av 80
+data exe "aildb" 0
+data a1 "search" 0
+data a2 "six.idx" 0
+data a3 "-k" 0
+data a4 "9" 0
+data a5 "-q" 0
+data a6 "x.bin" 0
+data a7 "-l" 0
+data a8 0
+# a record whose vector is the three binary32 given
+fn rec p n q m f l x y z
+	store4 v x
+	store4 v+4 y
+	store4 v+8 z
+	call mkrec p n q m f l v
+end
+call mknew 3 "m" "r1"
+call rec "lib/std/io.aiw" "ail" 1 20 0x3f800000 0 0
+call rec "lib/std/io.aiw" "ail" 21 40 0 0x3f800000 0
+call rec "lib/std/file.aiw" "ail" 1 9 0x3f19999a 0x3f4ccccd 0
+call rec "docs/usage.md" "md" 5 7 0 0 0x3f800000
+call rec "lib/stdx.aiw" "" 1 1 0x3f800000 0 0
+call rec "docs/a\"b\\c.md" "md" 2 3 0xbf800000 0 0
+call mkdone b
+call mksave b -1 "six.idx"
+# the queries 2 0 0, which is the first axis, and 3 4 0
+store4 v 0x40000000
+store4 v+4 0
+store4 v+8 0
+call filewrite "x.bin" v 12
+store4 v 0x40400000
+store4 v+4 0x40800000
+call filewrite "xy.bin" v 12
+call cmdshow "aildb search six.idx -k 9 -q x.bin"
+call cmdshow "aildb search six.idx -k 6 -q x.bin"
+call cmdshow "aildb search six.idx -k 3 -q x.bin"
+call cmdshow "aildb search six.idx -k 1 -q x.bin"
+call cmdshowin "aildb search six.idx -k 2" "xy.bin"
+call cmdshow "aildb search six.idx -k 9 -q xy.bin -i m"
+# the filters
+call cmdshow "aildb search six.idx -k 9 -q x.bin -p lib/std"
+call cmdshow "aildb search six.idx -k 9 -q x.bin -p lib/std/"
+call cmdshow "aildb search six.idx -k 9 -q x.bin -p lib/std/io.aiw"
+call cmdshow "aildb search six.idx -k 9 -q x.bin -l md"
+call cmdshow "aildb search six.idx -k 1 -q x.bin -l md"
+call cmdshow "aildb search six.idx -k 9 -q x.bin -l ail -p lib/std/f"
+call cmdshow "aildb search six.idx -k 9 -q x.bin -p docs -l ail"
+call cmdshow "aildb search six.idx -k 9 -q x.bin -p Lib"
+call cmdshow "aildb search six.idx -k 9 -q x.bin -l AIL"
+call cmdshow "aildb search six.idx -k 9 -q x.bin -p lib/std/io.aiwx"
+# an empty language takes the record without one; the argument of no
+# bytes is given by hand
+store av exe
+store av+8 a1
+store av+16 a2
+store av+24 a3
+store av+32 a4
+store av+40 a5
+store av+48 a6
+store av+56 a7
+store av+64 a8
+store av+72 0
+call cmdargs "aildb" as x
+load x as x
+store av x
+call cmdrun av -1 so se as st
+call print "$ aildb search six.idx -k 9 -q x.bin -l ''\n"
+load so as p
+load so+8 as n
+call print p n
+call print "--- status "
+call putn st
+call print "\n"
+# a snapshot without records
+call mknew 3 "m" ""
+call mkdone b
+call mksave b -1 "none.idx"
+call cmdshow "aildb search none.idx -k 9 -q x.bin"

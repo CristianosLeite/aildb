@@ -6,10 +6,6 @@ elsewhere; `search` ranks the records of a snapshot against a query vector;
 `check` validates a snapshot. [format.md](format.md) is the format of the
 file.
 
-This page was written on 2026-11-21, before the commands. `build` and
-`check` exist; `search` checks its query and prints the first line of its
-output, and does not rank yet.
-
 ```
 aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
 aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]

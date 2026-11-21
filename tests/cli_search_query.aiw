@@ -1,6 +1,6 @@
 # search opens the snapshot, compares the model identifier if one is
 # given, and reads the query from a file or from stdin: with a good one
-# it prints the line about the snapshot; a query of another length, with
+# it prints the line about the snapshot and its results; a query of another length, with
 # an element that is not finite or of all zeros, another model, a limit
 # that is no number above zero and a snapshot that is none are refused
 use "lib/std/io.aiw"
