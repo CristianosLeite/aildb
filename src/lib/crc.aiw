@@ -1,0 +1,82 @@
+# src/lib/crc.aiw -- the CRC-32 of zlib, PNG and Ethernet: the polynomial
+# 0xEDB88320 with the bits reflected, started from 0xFFFFFFFF and inverted
+# at the end. It needs no other file.
+#
+# Eight bytes are taken at a time through eight tables of 256 entries
+# (slicing by eight), which the first call fills. Every name of this file
+# starts with "crc"; a program has no var of such a name.
+
+buf crctab 16384        # table k, entry i: the 8 bytes at k*2048+i*8
+var crcready
+
+# fill the tables: entry i of table 0 is the CRC of the byte i, and entry
+# i of table k that of the byte i with k zero bytes after it
+fn crcinit
+	crci=0
+	while crci<256
+		crcc=crci
+		crck=0
+		while crck<8
+			if crcc&1
+				crcc=crcc>>1^0xedb88320
+			else
+				crcc>>=1
+			end
+			crck+=1
+		end
+		store crctab+crci*8 crcc
+		crci+=1
+	end
+	crck=1
+	while crck<8
+		crci=0
+		while crci<256
+			load crctab+(crck-1)*2048+crci*8 as crcc
+			load crctab+(crcc&255)*8 as crct
+			store crctab+crck*2048+crci*8 crcc>>8^crct
+			crci+=1
+		end
+		crck+=1
+	end
+	crcready=1
+end
+
+# The CRC-32 of the bytes that crcc is the CRC-32 of, followed by the crcn
+# bytes at crcp. crcc is 0 for no bytes before them, so crc32 0 p n is the
+# CRC-32 of the n bytes at p, and a run may be given in pieces. The result
+# has 32 bits.
+fn crc32 crcc crcp crcn
+	ifz crcready
+		call crcinit
+	end
+	crcc=crcc^0xffffffff
+	while crcn>=8
+		load crcp as crcw
+		crcw=crcw^crcc
+		load crctab+14336+(crcw&255)*8 as crcc
+		load crctab+12288+(crcw>>8&255)*8 as crct
+		crcc=crcc^crct
+		load crctab+10240+(crcw>>16&255)*8 as crct
+		crcc=crcc^crct
+		load crctab+8192+(crcw>>24&255)*8 as crct
+		crcc=crcc^crct
+		load crctab+6144+(crcw>>32&255)*8 as crct
+		crcc=crcc^crct
+		load crctab+4096+(crcw>>40&255)*8 as crct
+		crcc=crcc^crct
+		load crctab+2048+(crcw>>48&255)*8 as crct
+		crcc=crcc^crct
+		load crctab+(crcw>>56)*8 as crct
+		crcc=crcc^crct
+		crcp+=8
+		crcn-=8
+	end
+	while crcn
+		loadb crcp as crcw
+		load crctab+((crcc^crcw)&255)*8 as crct
+		crcc=crcc>>8^crct
+		crcp+=1
+		crcn-=1
+	end
+	ret crcc^0xffffffff
+end

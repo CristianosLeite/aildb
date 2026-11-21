@@ -1,0 +1,77 @@
+# crc32 gives the values of zlib.crc32 of Python 3 for known bytes, the
+# same for a run given in pieces, and for every length up to 70 at every
+# offset up to 7 what a loop of one bit at a time gives
+use "lib/std/io.aiw"
+use "src/lib/crc.aiw"
+buf pat 100000
+fn show c
+	call putn c
+	call print "\n"
+end
+# the CRC-32 of the n bytes at p, a bit at a time
+fn slow p n
+	c=0xffffffff
+	while n
+		loadb p as b
+		c=c^b
+		k=0
+		while k<8
+			if c&1
+				c=c>>1^0xedb88320
+			else
+				c>>=1
+			end
+			k+=1
+		end
+		p+=1
+		n-=1
+	end
+	ret c^0xffffffff
+end
+buf zeros 32
+buf ones 32
+i=0
+while i<32
+	storeb ones+i 255
+	i+=1
+end
+i=0
+while i<100000
+	storeb pat+i i*7+3
+	i+=1
+end
+call crc32 0 "" as c
+call show c
+call crc32 0 "a" as c
+call show c
+call crc32 0 "123456789" as c
+call show c
+call crc32 0 "The quick brown fox jumps over the lazy dog" as c
+call show c
+call crc32 0 zeros 32 as c
+call show c
+call crc32 0 ones 32 as c
+call show c
+call crc32 0 pat 1000 as c
+call show c
+call crc32 0 pat 100000 as c
+call show c
+# in pieces of 1, 12 and the rest
+call crc32 0 pat 1 as c
+call crc32 c pat+1 12 as c
+call crc32 c pat+13 99987 as c
+call show c
+# against the slow loop: 71 lengths at 8 offsets
+ok=0
+o=0
+while o<8
+	n=0
+	while n<=70
+		call crc32 0 pat+o n as c
+		call slow pat+o n as d
+		ok+=c==d
+		n+=1
+	end
+	o+=1
+end
+call show ok

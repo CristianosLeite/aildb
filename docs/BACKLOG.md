@@ -58,3 +58,7 @@ and `a5b4559`, 2026-11-21), not pushed; `make test` passed there.
 - [x] `docs/usage.md`: the three commands, their options and statuses; the
   inputs (raw binary32, TSV columns) and the JSON Lines of the results,
   with the order of the fields.
+
+## 4. Libraries (`src/lib/`, each with tests)
+
+- [x] CRC-32 with eight tables, tested against known values of zlib.
