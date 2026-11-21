@@ -6,7 +6,7 @@ The first application is semantic search over a source repository: given the emb
 
 ## Status
 
-Being written. The three commands work and are tested, against an independent implementation and under interruption among others; the end-to-end example and the measurements are still to come: [REQUIREMENTS.md](REQUIREMENTS.md) states what version 1 must do, [docs/TODO.md](docs/TODO.md) has the steps that are left, and the questions still open are listed in [.agents/knowledge/status/open-items.md](.agents/knowledge/status/open-items.md).
+Being written. The three commands work and are tested, against an independent implementation and under interruption among others; the end-to-end example and the measurements are still to come: [docs/TODO.md](docs/TODO.md) has the steps that are left, with what each must show, and the questions still open are listed in [.agents/knowledge/status/open-items.md](.agents/knowledge/status/open-items.md).
 
 ## Version 1 in short
 
@@ -19,7 +19,6 @@ SQL, approximate indexes, incremental writes and a network service are outside v
 
 ## Documents
 
-- [REQUIREMENTS.md](REQUIREMENTS.md): the goal, the first usable release, the file format, snapshot publication and the acceptance checks
 - [docs/usage.md](docs/usage.md): the three commands, their inputs, their output and their exit statuses
 - [docs/format.md](docs/format.md): the format of the snapshot file, its checks and the precision of a score
 - [docs/durability.md](docs/durability.md): what a build leaves when it is interrupted, and what is assumed of the filesystem and the storage when power is lost

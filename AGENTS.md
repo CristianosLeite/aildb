@@ -6,7 +6,7 @@ This file provides guidance to AI coding agents when working with code in this r
 
 aildb is a local, file-based vector search engine written in AIL (https://github.com/CristianosLeite/ail), a programming language designed to cost few tokens when an AI writes it. The first application is semantic search over a source repository: given a query embedding, return ranked source locations that an agent can open. An index is one portable file, rebuilt from the sources, and a query runs locally without a server. The model is the convenience of SQLite, with LanceDB as the reference for vector search.
 
-`REQUIREMENTS.md` is the statement of version 1: the commands `build`, `search` and `check`, the file format, how a snapshot is published, and the four acceptance checks. Read it before proposing or writing anything. It is the user's text; change it only when asked to.
+Version 1 is the commands `build`, `search` and `check`, the snapshot file, the way a snapshot is published, and four acceptance checks. It was stated in a file `REQUIREMENTS.md`, the user's text, which the user took out of the repository on 2026-11-21; its last form is in the history, at the commit `ddc2b4d` (`git show ddc2b4d:REQUIREMENTS.md`), and the knowledge base cites it under that name. What it asked for is now in the documents below and in the tests, and what is still to be done, with the words of the acceptance checks 1 and 4, in `docs/TODO.md`. Read those before proposing or writing anything.
 
 ## State
 
@@ -42,7 +42,7 @@ The rules for commits, pull requests and written text are those of the AIL repos
 - A commit message is `type: subject` (`feat`, `fix`, `test` or `docs`, no scope, lower case, no full stop) and a prose body wrapped at about 70 columns: the problem, what changed and why, how it was verified. One backlog item or fix is one commit, with its tests and documentation.
 - Commit messages and pull request descriptions carry no trailers or attribution lines: no `Co-Authored-By`, no `Signed-off-by`, no "Generated with" footer. This holds even when the tool in use suggests one.
 - A figure in a document is one that a command of this repository printed; say with which command, on which day, on which hardware and against which revision of AIL. Do not edit a figure by hand or carry one over from a run that was not made.
-- A requirement is met when a test shows it. What `REQUIREMENTS.md` asks to be documented (precision, tolerance, the integrity check, storage assumptions) is written where the format is documented, not left in the code.
+- A requirement is met when a test shows it. What is to be documented (precision, tolerance, the integrity check, storage assumptions) is written where the format is documented, not left in the code.
 
 ## AIL
 
@@ -54,7 +54,7 @@ What AIL gives this project, as of its revision `a5b4559` (2026-11-21):
 - Raw system calls (`sys`), so `mmap`, `fsync`, `rename`, `flock` and the like need no library; a call the compiler has no name for is a `const` with its number.
 - `lib/std/io.aiw` (output, arguments), `lib/std/bytes.aiw` (a buffer of bytes that grows), `lib/std/file.aiw` (whole files, directories), `lib/std/proc.aiw` (child processes, the monotonic clock), `lib/std/vec.aiw`, `queue.aiw`, `heap.aiw` and `map.aiw` (collections of 64-bit values), `lib/std/task.aiw` (tasks on a pool of threads) and `lib/nd/` (arrays of doubles).
 - Floating point is computed in IEEE binary64: `fadd`, `fmul` and the others on one double, the statements on two doubles at an address (`padd`, `pmul`, `pmadd`), and `fsum` and `fdot`, whose loops keep the sum in a register.
-- binary32, which the file format of `REQUIREMENTS.md` stores, has three statements, written for this project on 2026-11-21: `f4to8 a as x` (the binary32 in the low 32 bits as a double, exact), `f8to4 a as x` (a double rounded to the nearest binary32, ties to even) and `fdot4 a p q n as x` (the start `a` plus the products of `n` binary32 at `p` with `n` doubles at `q`, each product rounded and then added, in order). They are the commits `d5f236b` and `a5b4559` of the branch `binary32` of the AIL repository, and `ail.pin` names the second since 2026-11-21; the branch is not merged into `main` there.
+- binary32, which the snapshot file stores, has three statements, written for this project on 2026-11-21: `f4to8 a as x` (the binary32 in the low 32 bits as a double, exact), `f8to4 a as x` (a double rounded to the nearest binary32, ties to even) and `fdot4 a p q n as x` (the start `a` plus the products of `n` binary32 at `p` with `n` doubles at `q`, each product rounded and then added, in order). They are the commits `d5f236b` and `a5b4559` of the branch `binary32` of the AIL repository, and `ail.pin` names the second since 2026-11-21; the branch is not merged into `main` there.
 - There are no float literals and no formatted output of a double in the library.
 
 A library function here follows the rules of the AIL libraries: every name starts with the prefix of its file, a descriptor is bytes owned by the caller, and an error is returned, not a reason to end the program. Only the entry point of a command prints and exits.

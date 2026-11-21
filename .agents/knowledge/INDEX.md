@@ -2,6 +2,8 @@
 
 The decisions about the language AIL, its compiler and its libraries are in the knowledge base of the AIL repository (https://github.com/CristianosLeite/ail, `.agents/knowledge/`), and what was learned about measuring time in that of ail-bench (https://github.com/CristianosLeite/ail-bench). The pages here are about aildb.
 
+`REQUIREMENTS.md`, which many pages name as a source, was the user's statement of version 1. It left the repository on 2026-11-21 (user); read it with `git show ddc2b4d:REQUIREMENTS.md`.
+
 ## architecture
 - [Starting point](architecture/starting-point.md) — what `REQUIREMENTS.md` already decides for version 1, what AIL at `7dea612` offers and lacks for it (no binary32), and what is left to decide
 

@@ -1,8 +1,11 @@
 # TODO
 
 The steps to version 1, in the order in which one unblocks the next.
-`REQUIREMENTS.md` says what version 1 is; the decisions behind these steps
-are in `.agents/knowledge/architecture/`, and the questions still to be
+Version 1 was stated in a file `REQUIREMENTS.md`, which left the repository
+on 2026-11-21 (its last form is at the commit `ddc2b4d`); the two
+acceptance checks that are still open are quoted from it under their
+steps. The decisions behind these steps are in
+`.agents/knowledge/architecture/`, and the questions still to be
 decided in `.agents/knowledge/status/open-items.md`.
 
 An item is a checkbox under the section of its step. One item is one
@@ -11,8 +14,6 @@ to `BACKLOG.md`, under the same section.
 
 ## 0. Decisions before the first code
 
-- [ ] `REQUIREMENTS.md`: the link of acceptance check 4 names the JS
-  documentation of LanceDB while the Python binding is used.
 - [ ] Git: the remote, the published name and the licence. The repository
   was initialized on 2026-11-21, with a `.gitignore`.
 
@@ -25,6 +26,13 @@ The statements are written and `ail.pin` names the revision that has them
 
 ## 9. The example, and acceptance check 1
 
+Acceptance check 1: build a snapshot for a real repository, query it end
+to end, and verify that results identify the expected source lines; copy
+the file to another path and verify the same query results. The example
+chunks the AIL repository at the pinned revision, generates document and
+query embeddings with the same open model running locally, builds the
+file and queries it; embedding generation stays outside the engine.
+
 - [ ] The chunker in AIL: files of the AIL repository at the pinned
   revision to the TSV and the text of each chunk.
 - [ ] The embedding step outside the engine: choose the tool that runs the
@@ -33,6 +41,19 @@ The statements are written and `ail.pin` names the revision that has them
   expected lines are known, and the same results from a copy of the file.
 
 ## 10. Measurement, and acceptance check 4
+
+Acceptance check 4: measure top-10 at 10,000 and 100,000 vectors of 768
+dimensions. Report median and p95 end-to-end latency for cold and warm
+file-cache conditions, search time apart from startup, peak resident
+memory, and file size. Compare exact search with the Python binding of
+LanceDB on the same inputs and report the hardware, revisions, commands,
+cache procedure, and rounds. Use the results to decide whether approximate
+indexing or parallel scans are warranted, and measure again the choice of
+a read-only mapping. Give both engines the same stored vector values,
+query and result limit; define the timing boundaries for process startup,
+snapshot or table opening, search and result materialization; document
+how cold-cache conditions are verified for each engine's files and how
+mapped pages contribute to reported peak resident memory.
 
 - [ ] The harness in AIL: rounds, cold cache by `fadvise64` verified with
   `mincore`, wall time, search time apart from startup, peak resident
