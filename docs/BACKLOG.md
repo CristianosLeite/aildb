@@ -135,3 +135,6 @@ and `a5b4559`, 2026-11-21); `make test` passed there.
   the `.aiw` and `.md` files of a list into chunks of whole lines, a
   function or a section each, 40 lines and 1500 bytes at most, and writes
   the TSV and the text of each chunk; `docs/example.md` has the rules.
+- [x] The embedding step outside the engine: nomic-embed-text (user,
+  2026-11-21) run by Ollama, asked by `example/embed.py`, a Python
+  program of the standard library that writes the raw binary32.

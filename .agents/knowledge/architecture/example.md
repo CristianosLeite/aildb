@@ -1,7 +1,7 @@
 ---
 title: The example
 last-verified: 2026-11-21
-sources: [conversation 2026-11-21, docs/example.md, example/chunk.aiw, tests/example_chunk.aiw]
+sources: [conversation 2026-11-21, docs/example.md, example/chunk.aiw, example/embed.py, tests/example_chunk.aiw]
 status: current
 ---
 # The example
@@ -41,6 +41,19 @@ without overlap.
   and a person can. The bytes are those of the file, so one file of AIL that is not
   UTF-8 (`tests/infix/edge.aiw`) gives a line that is not; the reader of the text
   decides what to do with it.
+- **Ollama runs the model, and a Python program of the standard library asks it**
+  (agent, 2026-11-21, after the user named the model; the user started Ollama 0.40.17
+  and pulled the model). nomic-embed-text is the name the model has there, one command
+  fetches it, and its HTTP interface needs no package. Rejected: llama.cpp, a smaller
+  download but a model file to fetch and name by hand; sentence-transformers or
+  fastembed, which bring PyTorch or ONNX Runtime as packages and had no build for the
+  Python 3.14 of the machine checked; and writing the client in AIL, which would need
+  a parser of decimal fractions that rounds correctly and an HTTP client for one use.
+- **The task prefixes are part of the example** (agent, 2026-11-21): `search_document: `
+  for a chunk and `search_query: ` for a query, as the model card of nomic-embed-text
+  asks. Ollama does not add them.
+- **The path is not part of the embedded text** (agent, 2026-11-21): a chunk is embedded
+  as its lines alone. Putting the path in front is a common aid and was not tried.
 
 ## How it was checked
 

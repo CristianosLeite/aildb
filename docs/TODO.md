@@ -33,8 +33,6 @@ chunks the AIL repository at the pinned revision, generates document and
 query embeddings with the same open model running locally, builds the
 file and queries it; embedding generation stays outside the engine.
 
-- [ ] The embedding step outside the engine: choose the tool that runs the
-  local model of 768 dimensions (nomic-embed-text is the candidate).
 - [ ] `make example`: chunk, embed, build, query; a test with queries whose
   expected lines are known, and the same results from a copy of the file.
 

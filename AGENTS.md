@@ -17,7 +17,7 @@ The documents the code follows, each changed in the commit that changes what it 
 - `docs/usage.md`: the three commands, their options, inputs, JSON Lines and exit statuses (0, 2 usage, 3 invalid snapshot or input, 4 I/O, 5 build in progress, 6 published without confirmed durability).
 - `docs/format.md`: the snapshot file, version 1, the validation a reader does, the definition of a score, the tolerances and the limits.
 - `docs/durability.md`: what a build leaves when it is interrupted and what it assumes for a loss of power.
-- `docs/example.md`: the example of step 9, as far as it is written: how the chunker cuts the files of a repository.
+- `docs/example.md`: the example of step 9, as far as it is written: how the chunker cuts the files of a repository, and how `example/embed.py` gets the embeddings from nomic-embed-text run by Ollama.
 
 The layout and the limits of the format, the option letters and the form of the output lines were chosen by the agent and wait for the user's review (open items).
 
