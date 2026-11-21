@@ -113,3 +113,5 @@ and `a5b4559`, 2026-11-21), not pushed; `make test` passed there.
   Empty collection, a filter with no match, equal scores in record order,
   k above the eligible count. The difference to a cosine that divides by
   the norm of the stored vector is reported apart.
+- [x] Malformed inputs of `build` and `search`, each with its diagnostic
+  and status.

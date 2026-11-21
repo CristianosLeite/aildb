@@ -1,0 +1,185 @@
+# acceptance check 3, malformed input: what build and search say, and
+# with which status, for arguments, a model identifier, a revision,
+# metadata, vectors, a query and a snapshot that are not as
+# docs/usage.md asks. Each case is its command line, the status, the
+# number of bytes on stdout and the line on stderr; wrong usage prints
+# the usage, of which the first line is shown. tests/cli_build.aiw and
+# tests/cli_search_query.aiw have further cases in full.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "tests/lib/cmd.aiw"
+use "tests/lib/mk.aiw"
+buf so 24
+buf se 24
+buf b 24
+buf v 64
+buf long 600
+buf line 24
+# run the arguments at av and print the case under the name p n
+fn report p n av
+	call cmdrun av -1 so se as st
+	call print p n
+	call print "\n  status "
+	call putn st
+	call print ", stdout "
+	load so+8 as x
+	call putn x
+	call print "\n  "
+	load se as q
+	load se+8 as m
+	# the first line of what is on stderr
+	i=0
+	while i<m
+		loadb q+i as x
+		i+=1
+		jeq x 10 cut
+	end
+	label cut
+	call print q i
+	ifz m
+		call print "\n"
+	end
+end
+fn try p n
+	call cmdargs p n as av
+	call report p n av
+end
+# the same under a name that is not the command line, for a line with a
+# byte that is not to be in the expected output
+fn tryas p n q m
+	call cmdargs q m as av
+	call report p n av
+end
+# a command line that ends with n bytes "x", too long to be shown
+fn trylong p n k
+	call bycut line 0
+	call byadd line p n
+	i=0
+	while i<k
+		call byaddb line 120
+		i+=1
+	end
+	load line as q
+	load line+8 as m
+	call cmdargs q m as av
+	call bycut line 0
+	call byadd line p n
+	call byaddn line k
+	call byadd line " bytes"
+	load line as q
+	load line+8 as m
+	call report q m av
+end
+# good inputs: two records of two dimensions
+store4 v 0x3f800000
+store4 v+4 0x40000000
+store4 v+8 0x40400000
+store4 v+12 0x40800000
+call filewrite "v.bin" v 16
+call filewrite "m.tsv" "a.aiw\t1\t9\tail\nb.aiw\t1\t9\tail\n"
+call filewrite "q.bin" v 8
+call try "aildb build -o g.idx -v v.bin -m m.tsv -d 2 -i m"
+
+call print "\n# build: arguments\n"
+call try "aildb build"
+call try "aildb build -v v.bin -m m.tsv -d 2 -i m"
+call try "aildb build -o x.idx -m m.tsv -d 2 -i m"
+call try "aildb build -o x.idx -v v.bin -d 2 -i m"
+call try "aildb build -o x.idx -v v.bin -m m.tsv -i m"
+call try "aildb build -o x.idx -v v.bin -m m.tsv -d 2"
+call try "aildb build -o x.idx -v v.bin -m m.tsv -d 2 -i"
+call try "aildb build -o x.idx -v v.bin -m m.tsv -d 2 -i m -i n"
+call try "aildb build -o x.idx -v v.bin -m m.tsv -d 2 -i m -k 3"
+call try "aildb build -o x.idx -v v.bin -m m.tsv -d 2 -i m extra"
+call try "aildb build x.idx -v v.bin -m m.tsv -d 2 -i m"
+call try "aildb build -o x.idx -v v.bin -m m.tsv -d 0 -i m"
+call try "aildb build -o x.idx -v v.bin -m m.tsv -d 65537 -i m"
+call try "aildb build -o x.idx -v v.bin -m m.tsv -d two -i m"
+call try "aildb build -o x.idx -v v.bin -m m.tsv -d -2 -i m"
+call try "aildb build -o x.idx -v v.bin -m m.tsv -d 2.0 -i m"
+call try "aildb build --out x.idx -v v.bin -m m.tsv -d 2 -i m"
+
+call print "\n# build: the model identifier and the revision\n"
+call trylong "aildb build -o y.idx -v v.bin -m m.tsv -d 2 -i " 255
+call trylong "aildb build -o y.idx -v v.bin -m m.tsv -d 2 -i " 256
+call tryas "aildb build ... -i a<tab>b" "aildb build -o x.idx -v v.bin -m m.tsv -d 2 -i a\tb"
+call tryas "aildb build ... -i a<ff>b" "aildb build -o x.idx -v v.bin -m m.tsv -d 2 -i a\xffb"
+call trylong "aildb build -o y.idx -v v.bin -m m.tsv -d 2 -i m -r " 255
+call trylong "aildb build -o y.idx -v v.bin -m m.tsv -d 2 -i m -r " 256
+call tryas "aildb build ... -r a<line feed>b" "aildb build -o x.idx -v v.bin -m m.tsv -d 2 -i m -r a\nb"
+
+call print "\n# build: the metadata\n"
+call filewrite "f.tsv" "a.aiw\t1\t9\tail\nb.aiw\t1\t9\n"
+call try "aildb build -o x.idx -v v.bin -m f.tsv -d 2 -i m"
+call filewrite "f.tsv" "a.aiw\t1\t9\tail\nb.aiw\t1\t9\tail"
+call try "aildb build -o x.idx -v v.bin -m f.tsv -d 2 -i m"
+call filewrite "f.tsv" "\t1\t9\tail\nb.aiw\t1\t9\tail\n"
+call try "aildb build -o x.idx -v v.bin -m f.tsv -d 2 -i m"
+call filewrite "f.tsv" "a.aiw\t0\t9\tail\nb.aiw\t1\t9\tail\n"
+call try "aildb build -o x.idx -v v.bin -m f.tsv -d 2 -i m"
+call filewrite "f.tsv" "a.aiw\t1\t9\tail\nb.aiw\t9\t1\tail\n"
+call try "aildb build -o x.idx -v v.bin -m f.tsv -d 2 -i m"
+call filewrite "f.tsv" "a.aiw\t1\t9\tail\nb.aiw\t1\t9\ta\x01l\n"
+call try "aildb build -o x.idx -v v.bin -m f.tsv -d 2 -i m"
+call filewrite "f.tsv" "a.aiw\t1\t9\tail\x0d\nb.aiw\t1\t9\tail\x0d\n"
+call try "aildb build -o x.idx -v v.bin -m f.tsv -d 2 -i m"
+call try "aildb build -o x.idx -v v.bin -m . -d 2 -i m"
+
+call print "\n# build: the vectors\n"
+call try "aildb build -o x.idx -v v.bin -m m.tsv -d 3 -i m"
+call try "aildb build -o x.idx -v v.bin -m m.tsv -d 1 -i m"
+call filewrite "e.bin" v 0
+call try "aildb build -o x.idx -v e.bin -m m.tsv -d 2 -i m"
+call try "aildb build -o x.idx -v . -m m.tsv -d 2 -i m"
+store4 v+12 0x7f800000
+call filewrite "f.bin" v 16
+call try "aildb build -o x.idx -v f.bin -m m.tsv -d 2 -i m"
+store4 v+12 0x7fa00000
+call filewrite "f.bin" v 16
+call try "aildb build -o x.idx -v f.bin -m m.tsv -d 2 -i m"
+store4 v 0
+store4 v+4 0
+call filewrite "f.bin" v 16
+call try "aildb build -o x.idx -v f.bin -m m.tsv -d 2 -i m"
+# none of the builds for x.idx made it, or left its temporary file
+call fileopen "x.idx" 0 0 as fd
+call print "\nx.idx is there: "
+call putn fd!=-2
+call fileopen "x.idx.tmp" 0 0 as fd
+call print ", x.idx.tmp: "
+call putn fd!=-2
+call print "\n"
+
+call print "\n# search: a snapshot that is none\n"
+call try "aildb search v.bin -k 3 -q q.bin"
+call try "aildb search m.tsv -k 3 -q q.bin"
+call try "aildb search . -k 3 -q q.bin"
+# the snapshot of build with a byte of a path changed
+call fileread "g.idx" b
+load b as p
+storeb p+180 122
+call mksave b -1 "h.idx"
+call try "aildb search h.idx -k 3 -q q.bin"
+# the same with the checksum made right: a valid snapshot of another path
+load b+8 as n
+call mkseal p n
+call mksave b -1 "h.idx"
+call try "aildb search h.idx -k 1 -q q.bin"
+# cut in the vectors
+call mksave b 4100 "h.idx"
+call try "aildb search h.idx -k 3 -q q.bin"
+# of version 2
+store4 p+8 2
+call mkseal p n
+call mksave b -1 "h.idx"
+call try "aildb search h.idx -k 3 -q q.bin"
+call print "\n# a byte of a vector changed: check finds it, search does not look\n"
+call bycut b 0
+call fileread "g.idx" b
+load b as p
+storeb p+4099 0xbf
+call mksave b -1 "h.idx"
+call try "aildb check h.idx"
+call try "aildb search h.idx -k 1 -q q.bin"

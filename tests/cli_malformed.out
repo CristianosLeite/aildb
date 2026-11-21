@@ -1,0 +1,161 @@
+aildb build -o g.idx -v v.bin -m m.tsv -d 2 -i m
+  status 0, stdout 63
+  
+
+# build: arguments
+aildb build
+  status 2, stdout 0
+  usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
+aildb build -v v.bin -m m.tsv -d 2 -i m
+  status 2, stdout 0
+  usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
+aildb build -o x.idx -m m.tsv -d 2 -i m
+  status 2, stdout 0
+  usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
+aildb build -o x.idx -v v.bin -d 2 -i m
+  status 2, stdout 0
+  usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
+aildb build -o x.idx -v v.bin -m m.tsv -i m
+  status 2, stdout 0
+  usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
+aildb build -o x.idx -v v.bin -m m.tsv -d 2
+  status 2, stdout 0
+  usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
+aildb build -o x.idx -v v.bin -m m.tsv -d 2 -i
+  status 2, stdout 0
+  usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
+aildb build -o x.idx -v v.bin -m m.tsv -d 2 -i m -i n
+  status 2, stdout 0
+  usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
+aildb build -o x.idx -v v.bin -m m.tsv -d 2 -i m -k 3
+  status 2, stdout 0
+  usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
+aildb build -o x.idx -v v.bin -m m.tsv -d 2 -i m extra
+  status 2, stdout 0
+  usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
+aildb build x.idx -v v.bin -m m.tsv -d 2 -i m
+  status 2, stdout 0
+  usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
+aildb build -o x.idx -v v.bin -m m.tsv -d 0 -i m
+  status 2, stdout 0
+  usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
+aildb build -o x.idx -v v.bin -m m.tsv -d 65537 -i m
+  status 2, stdout 0
+  usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
+aildb build -o x.idx -v v.bin -m m.tsv -d two -i m
+  status 2, stdout 0
+  usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
+aildb build -o x.idx -v v.bin -m m.tsv -d -2 -i m
+  status 2, stdout 0
+  usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
+aildb build -o x.idx -v v.bin -m m.tsv -d 2.0 -i m
+  status 2, stdout 0
+  usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
+aildb build --out x.idx -v v.bin -m m.tsv -d 2 -i m
+  status 2, stdout 0
+  usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
+
+# build: the model identifier and the revision
+aildb build -o y.idx -v v.bin -m m.tsv -d 2 -i 255 bytes
+  status 0, stdout 317
+  
+aildb build -o y.idx -v v.bin -m m.tsv -d 2 -i 256 bytes
+  status 3, stdout 0
+  aildb: the model identifier is empty, longer than 255 bytes or not valid text
+aildb build ... -i a<tab>b
+  status 3, stdout 0
+  aildb: the model identifier is empty, longer than 255 bytes or not valid text
+aildb build ... -i a<ff>b
+  status 3, stdout 0
+  aildb: the model identifier is empty, longer than 255 bytes or not valid text
+aildb build -o y.idx -v v.bin -m m.tsv -d 2 -i m -r 255 bytes
+  status 0, stdout 316
+  
+aildb build -o y.idx -v v.bin -m m.tsv -d 2 -i m -r 256 bytes
+  status 3, stdout 0
+  aildb: the source revision is empty, longer than 255 bytes or not valid text
+aildb build ... -r a<line feed>b
+  status 3, stdout 0
+  aildb: the source revision is empty, longer than 255 bytes or not valid text
+
+# build: the metadata
+aildb build -o x.idx -v v.bin -m f.tsv -d 2 -i m
+  status 3, stdout 0
+  aildb: f.tsv: line 2: not four fields with a tab between them
+aildb build -o x.idx -v v.bin -m f.tsv -d 2 -i m
+  status 3, stdout 0
+  aildb: f.tsv: line 2: no line feed at the end of the line
+aildb build -o x.idx -v v.bin -m f.tsv -d 2 -i m
+  status 3, stdout 0
+  aildb: f.tsv: line 1: the path is empty, longer than 4095 bytes or not valid text
+aildb build -o x.idx -v v.bin -m f.tsv -d 2 -i m
+  status 3, stdout 0
+  aildb: f.tsv: line 1: the first line is not a number from 1 to 4294967295
+aildb build -o x.idx -v v.bin -m f.tsv -d 2 -i m
+  status 3, stdout 0
+  aildb: f.tsv: line 2: the last line is not a number up to 4294967295, or is below the first
+aildb build -o x.idx -v v.bin -m f.tsv -d 2 -i m
+  status 3, stdout 0
+  aildb: f.tsv: line 2: the language is longer than 255 bytes or not valid text
+aildb build -o x.idx -v v.bin -m f.tsv -d 2 -i m
+  status 3, stdout 0
+  aildb: f.tsv: line 1: the language is longer than 255 bytes or not valid text
+aildb build -o x.idx -v v.bin -m . -d 2 -i m
+  status 4, stdout 0
+  aildb: .: cannot read: is a directory
+
+# build: the vectors
+aildb build -o x.idx -v v.bin -m m.tsv -d 3 -i m
+  status 3, stdout 0
+  aildb: v.bin: holds 16 bytes, and 2 records of 3 dimensions are 24
+aildb build -o x.idx -v v.bin -m m.tsv -d 1 -i m
+  status 3, stdout 0
+  aildb: v.bin: holds 16 bytes, and 2 records of 1 dimensions are 8
+aildb build -o x.idx -v e.bin -m m.tsv -d 2 -i m
+  status 3, stdout 0
+  aildb: e.bin: holds 0 bytes, and 2 records of 2 dimensions are 16
+aildb build -o x.idx -v . -m m.tsv -d 2 -i m
+  status 4, stdout 0
+  aildb: .: cannot read: not a file that can be mapped
+aildb build -o x.idx -v f.bin -m m.tsv -d 2 -i m
+  status 3, stdout 0
+  aildb: f.bin: the vector of line 2 has an element that is not finite
+aildb build -o x.idx -v f.bin -m m.tsv -d 2 -i m
+  status 3, stdout 0
+  aildb: f.bin: the vector of line 2 has an element that is not finite
+aildb build -o x.idx -v f.bin -m m.tsv -d 2 -i m
+  status 3, stdout 0
+  aildb: f.bin: the vector of line 1 is all zeros
+
+x.idx is there: 0, x.idx.tmp: 0
+
+# search: a snapshot that is none
+aildb search v.bin -k 3 -q q.bin
+  status 3, stdout 0
+  aildb: v.bin: not a snapshot: shorter than a header
+aildb search m.tsv -k 3 -q q.bin
+  status 3, stdout 0
+  aildb: m.tsv: not a snapshot: shorter than a header
+aildb search . -k 3 -q q.bin
+  status 4, stdout 0
+  aildb: .: cannot open: not a file that can be mapped
+aildb search h.idx -k 3 -q q.bin
+  status 3, stdout 0
+  aildb: h.idx: invalid snapshot: the checksum of header and metadata differs
+aildb search h.idx -k 1 -q q.bin
+  status 0, stdout 140
+  
+aildb search h.idx -k 3 -q q.bin
+  status 3, stdout 0
+  aildb: h.idx: invalid snapshot: truncated, or not of the size its header says
+aildb search h.idx -k 3 -q q.bin
+  status 3, stdout 0
+  aildb: h.idx: a snapshot of another format version
+
+# a byte of a vector changed: check finds it, search does not look
+aildb check h.idx
+  status 3, stdout 0
+  aildb: h.idx: invalid snapshot: the checksum of the vectors differs
+aildb search h.idx -k 1 -q q.bin
+  status 0, stdout 140
+  

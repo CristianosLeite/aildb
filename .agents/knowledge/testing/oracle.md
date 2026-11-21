@@ -28,7 +28,7 @@ the same.
   whose two copies are the two best. The oracle keeps the first of equal scores it finds,
   which is the lower ordinal.
 - **Two differences are reported apart**, as the design review notes ask: to a sum in the
-  opposite order (the documented tolerance, 1e-12, held with a margin of four thousand)
+  opposite order (the documented tolerance, 1e-12, held with a margin of more than three thousand)
   and to a cosine that divides by the norm of the stored vector (about 5e-9 at 96
   dimensions). `docs/format.md` has the table.
 - **The test has teeth**: with the comparison of ordinals turned round in
