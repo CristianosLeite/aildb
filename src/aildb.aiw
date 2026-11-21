@@ -1,0 +1,7 @@
+# aildb -- a local, file-based vector search engine.
+#
+# The entry point of the one executable: it will read the command
+# (build, search or check) and be the only place that prints and exits;
+# the functions of src/lib/ return what they found. No command is
+# written yet, so the program ends with status 0 whatever it is given.
+use "lib/std/io.aiw"

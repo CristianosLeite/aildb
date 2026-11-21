@@ -17,3 +17,5 @@ completed, under the section it had there.
 
 - [x] `ail.pin`, `tools/ail.sh` and the link `lib -> ail/lib`, as ail-bench
   has them.
+- [x] `Makefile`: the compiler linked from `ail/`, one executable `aildb`
+  from `src/aildb.aiw`, compiled into a temporary file and moved.
