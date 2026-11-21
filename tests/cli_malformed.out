@@ -122,7 +122,7 @@ aildb build -o x.idx -v e.bin -m m.tsv -d 2 -i m
   aildb: e.bin: holds 0 bytes, and 2 records of 2 dimensions are 16
 aildb build -o x.idx -v . -m m.tsv -d 2 -i m
   status 4, stdout 0
-  aildb: .: cannot read: not a file that can be mapped
+  aildb: .: cannot read: is a directory
 aildb build -o x.idx -v f.bin -m m.tsv -d 2 -i m
   status 3, stdout 0
   aildb: f.bin: the vector of line 2 has an element that is not finite
@@ -144,7 +144,7 @@ aildb search m.tsv -k 3 -q q.bin
   aildb: m.tsv: not a snapshot: shorter than a header
 aildb search . -k 3 -q q.bin
   status 4, stdout 0
-  aildb: .: cannot open: not a file that can be mapped
+  aildb: .: cannot open: is a directory
 aildb search h.idx -k 3 -q q.bin
   status 3, stdout 0
   aildb: h.idx: invalid snapshot: the checksum of header and metadata differs

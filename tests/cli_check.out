@@ -16,7 +16,12 @@ aildb: absent.idx: cannot open: no such file or directory
 $ aildb check .
 --- stdout
 --- stderr
-aildb: .: cannot open: not a file that can be mapped
+aildb: .: cannot open: is a directory
+--- status 4
+$ aildb check /dev/null
+--- stdout
+--- stderr
+aildb: /dev/null: cannot open: not a file that can be mapped
 --- status 4
 $ aildb check
 --- stdout

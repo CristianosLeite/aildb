@@ -134,8 +134,10 @@ someone made to pass the checks passes them.
 
 ## Validation
 
-A reader takes the size of the file from the kernel and rejects the file
-unless all of the following hold. They are checked in this order, so that
+A reader opens a regular file only; a directory or a device is a file that
+cannot be opened, an I/O failure and not an invalid snapshot. It takes the
+size of the file from the kernel and rejects the file unless all of the
+following hold. They are checked in this order, so that
 each number is known to be in range before it is used in a product or a sum,
 and none of them can wrap 64 bits within the limits below.
 

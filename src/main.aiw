@@ -253,6 +253,16 @@ fn mapfile p n
 		sys close fd
 		ret 0 0 r
 	end
+	# a regular file only, as the reader of a snapshot has it
+	load4 st+24 as z
+	z=z&0xf000
+	if z!=0x8000
+		sys close fd
+		if z==0x4000
+			ret 0 0 -21
+		end
+		ret 0 0 -19
+	end
 	load st+48 as z
 	a=0
 	if z

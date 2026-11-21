@@ -1,6 +1,7 @@
 # check prints one line about a valid snapshot, with and without records
 # and a source revision, and ends with status 0; a file that is not
-# there is an I/O failure, and other numbers of arguments wrong usage
+# there, a directory and a device are I/O failures, and other numbers
+# of arguments wrong usage
 use "lib/std/io.aiw"
 use "lib/std/bytes.aiw"
 use "lib/std/file.aiw"
@@ -23,5 +24,6 @@ call mksave b -1 "none.idx"
 call cmdshow "aildb check none.idx"
 call cmdshow "aildb check absent.idx"
 call cmdshow "aildb check ."
+call cmdshow "aildb check /dev/null"
 call cmdshow "aildb check"
 call cmdshow "aildb check two.idx none.idx"

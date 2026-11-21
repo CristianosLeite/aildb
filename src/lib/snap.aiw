@@ -222,6 +222,18 @@ fn snapopen snaps snapp snapn
 		sys close snapfd
 		ret snapr
 	end
+	# A regular file only: the size the kernel gives for a directory or a
+	# device differs from one filesystem to the next, and with it what
+	# would be said of one. The kind is the four highest bits of the mode.
+	load4 snapst+24 as snapz
+	snapz=snapz&0xf000
+	if snapz!=0x8000
+		sys close snapfd
+		if snapz==0x4000
+			ret -21
+		end
+		ret -19
+	end
 	# the size of the file, which the header must repeat
 	load snapst+48 as snapz
 	if snapz<128
