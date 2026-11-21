@@ -2,18 +2,26 @@
 #
 # The entry point of the one executable: it reads the command and is the
 # only place that prints and exits; the functions of src/lib/ return what
-# they found. The exit statuses, one for each class of error, are the
-# constants below (docs/usage.md).
+# they found. docs/usage.md is the interface, and the exit statuses, one
+# for each class of error, are the constants below.
 #
-# No command is written yet: whatever the first argument is, the program
-# prints the usage and ends with the status of wrong usage.
+# check is written; build and search are answered with the usage.
 use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "src/lib/crc.aiw"
+use "src/lib/text.aiw"
+use "src/lib/fmt.aiw"
+use "src/lib/snap.aiw"
 
 const stusage 2         # wrong usage
 const stinvalid 3       # an invalid snapshot or invalid input
 const stio 4            # an I/O failure
 const stbusy 5          # another build in progress for the destination
 const stunsure 6        # published, durability not confirmed
+
+buf msg 24              # the line that is being put together
+buf snap 104            # the snapshot of the command
 
 # print the usage on stderr and end the program
 fn usage
@@ -24,4 +32,131 @@ fn usage
 	sys exit_group stusage
 end
 
+# end the program with the status st after the line of msg on stderr,
+# which is the line itself if there was no memory to put it together
+fn fail st
+	call byaddb msg 10
+	load msg as p
+	load msg+8 as n
+	call eprint p n
+	sys exit_group st
+end
+
+# start the line of an error about the file at the path p n
+fn about p n
+	call bycut msg 0
+	call byadd msg "aildb: "
+	call byadd msg p n
+	call byadd msg ": "
+end
+
+# add to msg the words for the error e of the kernel, a negative number
+fn oserr e
+	e=0-e
+	if e==2
+		tail byadd msg "no such file or directory"
+	end
+	if e==5
+		tail byadd msg "input/output error"
+	end
+	if e==12
+		tail byadd msg "out of memory"
+	end
+	if e==13
+		tail byadd msg "permission denied"
+	end
+	if e==19
+		tail byadd msg "not a file that can be mapped"
+	end
+	if e==20
+		tail byadd msg "not a directory"
+	end
+	if e==21
+		tail byadd msg "is a directory"
+	end
+	if e==28
+		tail byadd msg "no space left on device"
+	end
+	if e==36
+		tail byadd msg "path too long"
+	end
+	call byadd msg "error "
+	tail byaddn msg e
+end
+
+# end the program for the result r of snapopen or snapcheck on the path
+# p n, which is not 0: an error of the kernel or an invalid snapshot
+fn badsnap p n r
+	call about p n
+	ifslt r 0
+		call byadd msg "cannot open: "
+		call oserr r
+		call fail stio
+	end
+	call snapwhy msg snap r
+	call fail stinvalid
+end
+
+# print the line of msg on stdout, or end the program if it cannot be
+# written
+fn say
+	load msg as p
+	load msg+8 as n
+	call print p n as ok
+	ifz ok
+		call bycut msg 0
+		call byadd msg "aildb: cannot write the output"
+		call fail stio
+	end
+end
+
+# make msg the line about the open snapshot: its records, its dimension,
+# its model identifier and its source revision
+fn summary
+	call bycut msg 0
+	call byadd msg "{\"records\":"
+	load snap+16 as x
+	call byaddn msg x
+	call byadd msg ",\"dimension\":"
+	load snap+24 as x
+	call byaddn msg x
+	call byadd msg ",\"model\":"
+	load snap+64 as p
+	load snap+72 as n
+	call fmtjson msg p n
+	call byadd msg ",\"source_revision\":"
+	load snap+80 as p
+	load snap+88 as n
+	if n
+		call fmtjson msg p n
+	else
+		call byadd msg "null"
+	end
+	call byadd msg "}\n"
+end
+
+# aildb check INDEX
+fn check
+	call argc as n
+	if n!=3
+		call usage
+	end
+	call argv 2 as p n
+	call snapopen snap p n as r
+	ifz r
+		call snapcheck snap as r
+	end
+	if r
+		call badsnap p n r
+	end
+	call summary
+	call say
+	sys exit_group 0
+end
+
+call argv 1 as cp cn
+call texteq cp cn "check" as is
+if is
+	call check
+end
 call usage

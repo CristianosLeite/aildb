@@ -1,0 +1,34 @@
+$ aildb check two.idx
+--- stdout
+{"records":2,"dimension":3,"model":"nomic-embed-text","source_revision":"7dea612"}
+--- stderr
+--- status 0
+$ aildb check none.idx
+--- stdout
+{"records":0,"dimension":768,"model":"a\"b\\c","source_revision":null}
+--- stderr
+--- status 0
+$ aildb check absent.idx
+--- stdout
+--- stderr
+aildb: absent.idx: cannot open: no such file or directory
+--- status 4
+$ aildb check .
+--- stdout
+--- stderr
+aildb: .: cannot open: not a file that can be mapped
+--- status 4
+$ aildb check
+--- stdout
+--- stderr
+usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
+       aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
+       aildb check INDEX
+--- status 2
+$ aildb check two.idx none.idx
+--- stdout
+--- stderr
+usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
+       aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
+       aildb check INDEX
+--- status 2

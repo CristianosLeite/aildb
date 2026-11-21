@@ -1,0 +1,27 @@
+# check prints one line about a valid snapshot, with and without records
+# and a source revision, and ends with status 0; a file that is not
+# there is an I/O failure, and other numbers of arguments wrong usage
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "tests/lib/cmd.aiw"
+use "tests/lib/mk.aiw"
+buf b 24
+buf v 24
+call mknew 3 "nomic-embed-text" "7dea612"
+store4 v 0x3f800000
+call mkrec "lib/std/io.aiw" "ail" 1 20 v
+call mkrec "docs/usage.md" "" 7 7 v
+call mkdone b
+call mksave b -1 "two.idx"
+call cmdshow "aildb check two.idx"
+# a model identifier that needs escapes, no revision, no record
+call mknew 768 "a\"b\\c" ""
+call mkdone b
+call mksave b -1 "none.idx"
+call cmdshow "aildb check none.idx"
+call cmdshow "aildb check absent.idx"
+call cmdshow "aildb check ."
+call cmdshow "aildb check"
+call cmdshow "aildb check two.idx none.idx"

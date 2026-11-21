@@ -74,3 +74,5 @@ and `a5b4559`, 2026-11-21), not pushed; `make test` passed there.
 
 - [x] Open, `fstat`, map read-only; validate lengths, offsets, counts and
   arithmetic before any access; verify the CRC-32 of header and metadata.
+- [x] `check`: also the CRC-32 of the vectors; prints record count,
+  dimension and model identifier.

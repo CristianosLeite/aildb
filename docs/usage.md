@@ -6,8 +6,8 @@ elsewhere; `search` ranks the records of a snapshot against a query vector;
 `check` validates a snapshot. [format.md](format.md) is the format of the
 file.
 
-This page was written on 2026-11-21, before the commands; `docs/TODO.md`
-says which of them exist. Until one does, `aildb` answers it with the usage.
+This page was written on 2026-11-21, before the commands. `check` exists;
+`build` and `search` do not yet, and `aildb` answers them with the usage.
 
 ```
 aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
@@ -168,4 +168,9 @@ included ([format.md](format.md#validation)), and prints one line about it:
 ```
 
 `source_revision` is `null` when there is none. An invalid snapshot is one
-line on standard error and status 3; a file that cannot be read, status 4.
+line on standard error and status 3; a file that cannot be read, status 4:
+
+```
+aildb: old.idx: invalid snapshot: the checksum of the vectors differs
+aildb: absent.idx: cannot open: no such file or directory
+```
