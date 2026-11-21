@@ -1,0 +1,81 @@
+# fmtfix writes a double in decimal as "%.<k>f" of Python 3 prints it, the
+# decimal nearest to the exact value with a tie to the even digit; the
+# doubles are given by their bits, and the expected lines were printed by
+# Python from the same bits. fmthex writes the bits, fmtjson a string.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "src/lib/fmt.aiw"
+buf b 24
+fn fix x k
+	call fmtfix b x k as ok
+	ifz ok
+		call byadd b "none"
+	end
+	call byaddb b 10
+end
+fn json p n
+	call fmtjson b p n
+	call byaddb b 10
+end
+call fix 0x3fe0000000000000 6  # 0.5
+call fix 0x3fb999999999999a 6  # 0.1
+call fix 0x3fd5555555555555 6  # 0.3333333333333333
+call fix 0x3fe5555555555555 6  # 0.6666666666666666
+call fix 0x3fe9febc5d7d8471 6  # 0.8123456789
+call fix 0x3ff0000000000000 6  # 1.0
+call fix 0xbff0000000000000 6  # -1.0
+call fix 0x0000000000000000 6  # 0.0
+call fix 0x8000000000000000 6  # -0.0
+call fix 0x3ea0c6f7a0b5ed8d 6  # 5e-07
+call fix 0x3eb92a737110e454 6  # 1.5e-06
+call fix 0x3ec4f8b588e368f1 6  # 2.5e-06
+call fix 0x3ea0c6f79b14c6ac 6  # 4.9999999e-07
+call fix 0x3feffffef39085f5 6  # 0.9999995
+call fix 0x3feffffeee32223c 6  # 0.99999949
+call fix 0x3fefffffca501acb 6  # 0.9999999
+call fix 0xbfd0000000000000 6  # -0.25
+call fix 0x4004000000000000 0  # 2.5
+call fix 0x400c000000000000 0  # 3.5
+call fix 0x3fe0000000000000 0  # 0.5
+call fix 0x3ff8000000000000 0  # 1.5
+call fix 0x3fc0000000000000 2  # 0.125
+call fix 0x3fd8000000000000 2  # 0.375
+call fix 0x4005666666666666 2  # 2.675
+call fix 0x4028b0a3d70a3d71 2  # 12.345
+call fix 0x419d6f3457f35ba8 6  # 123456789.98765433
+call fix 0x4480f0cf064dd592 1  # 1e+22
+call fix 0x7e37e43c8800759c 2  # 1e+300
+call fix 0x7fefffffffffffff 0  # 1.7976931348623157e+308
+call fix 0x0000000000000001 6  # 5e-324
+call fix 0x0000000000000001 30  # 5e-324
+call fix 0x0010000000000000 3  # 2.2250738585072014e-308
+call fix 0x3fb999999999999a 30  # 0.1
+call fix 0x3fd5555555555555 17  # 0.3333333333333333
+call fix 0x3ff0000000000001 16  # 1.0000000000000002
+call fix 0xc05edd2f1a9fbe77 3  # -123.456
+call fix 0x41f0000000080000 0  # 4294967296.5
+call fix 0x41effffffff00000 0  # 4294967295.5
+call fix 0x41cdcd64ffffffff 3  # 999999999.9999999
+call fix 0x7ff0000000000000 6
+call fix 0xfff0000000000000 6
+call fix 0x7ff8000000000000 6
+call fix 0x3ff0000000000000 31
+call fmthex b 0x0000000000000000
+call byaddb b 10
+call fmthex b 0x3fe9febd1a2b3c4d
+call byaddb b 10
+call fmthex b 0xffffffffffffffff
+call byaddb b 10
+call fmthex b 0x8000000000000000
+call byaddb b 10
+call fmthex b 0x0123456789abcdef
+call byaddb b 10
+call json "lib/std/io.aiw"
+call json ""
+call json "a\"b\\c"
+call json "tab\there\n"
+call json "\x01\x1f\x7f"
+call json "caf\xc3\xa9 \xe6\x97\xa5"
+load b as p
+load b+8 as n
+call print p n

@@ -30,7 +30,6 @@ reviews and publishes it, and `ail.pin` then moves to that revision.
 
 ## 4. Libraries (`src/lib/`, each with tests)
 
-- [ ] A double as decimal and as 16 hexadecimal digits; a JSON string.
 - [ ] An unsigned number from text, lines and tab-separated fields, a
   prefix test.
 - [ ] Top-k of (score, ordinal) in a bounded workspace, ties by ordinal.

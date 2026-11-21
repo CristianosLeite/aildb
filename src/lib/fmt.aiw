@@ -1,0 +1,232 @@
+# src/lib/fmt.aiw -- values as the text of a result: a double in decimal
+# and as its bits, and a string of JSON. Each function adds to a buffer of
+# lib/std/bytes.aiw, which a program uses first, and returns 1, or 0 when
+# it added nothing: without memory, or for a value it cannot write.
+#
+# Every name of this file starts with "fmt"; a program has no var of such
+# a name.
+
+# A whole number of up to 1280 bits is fmtlimbs words of 8 bytes, each
+# holding 32 bits, the lowest first.
+const fmtlimbs 40
+
+# multiply the number at fmta by fmtm, which is below 2^32: what did not
+# fit, 0 if all did
+fn fmtmul fmta fmtm
+	fmtc=0
+	fmti=0
+	while fmti<fmtlimbs
+		load fmta+fmti*8 as fmtt
+		fmtt=fmtt*fmtm+fmtc
+		store fmta+fmti*8 fmtt&0xffffffff
+		fmtc=fmtt>>32
+		fmti+=1
+	end
+	ret fmtc
+end
+
+# divide the number at fmta by fmtd, which is below 2^32 and not 0: the
+# remainder
+fn fmtdiv fmta fmtd
+	fmtr=0
+	fmti=fmtlimbs
+	while fmti
+		fmti-=1
+		load fmta+fmti*8 as fmtt
+		fmtt=fmtr<<32|fmtt
+		store fmta+fmti*8 fmtt/fmtd
+		fmtr=fmtt%fmtd
+	end
+	ret fmtr
+end
+
+# word fmtj of the number at fmta, 0 beyond its last
+fn fmtlimb fmta fmtj
+	if fmtj>=fmtlimbs
+		ret 0
+	end
+	load fmta+fmtj*8 as fmtt
+	ret fmtt
+end
+
+# divide the number at fmta by 2^fmts and round the quotient to the
+# nearest whole number, a tie to the even one
+fn fmtshr fmta fmts
+	ifz fmts
+		ret 0
+	end
+	# the bit that is half a unit of the quotient, and whether any bit
+	# below it is set
+	fmth=fmts-1
+	call fmtlimb fmta fmth/32 as fmtt
+	fmthalf=fmtt>>(fmth%32)&1
+	fmtlow=fmtt&((1<<(fmth%32))-1)
+	fmti=0
+	while (fmti<fmth/32)&(fmti<fmtlimbs)
+		load fmta+fmti*8 as fmtt
+		fmtlow=fmtlow|fmtt
+		fmti+=1
+	end
+	fmtw=fmts/32
+	fmtb=fmts%32
+	fmti=0
+	while fmti<fmtlimbs
+		call fmtlimb fmta fmti+fmtw as fmtt
+		call fmtlimb fmta fmti+fmtw+1 as fmtu
+		store fmta+fmti*8 (fmtt>>fmtb|fmtu<<(32-fmtb))&0xffffffff
+		fmti+=1
+	end
+	load fmta as fmtt
+	if fmthalf&((fmtlow!=0)|(fmtt&1))
+		fmti=0
+		while fmti<fmtlimbs
+			load fmta+fmti*8 as fmtt
+			fmtt+=1
+			store fmta+fmti*8 fmtt&0xffffffff
+			if fmtt<=0xffffffff
+				ret 0
+			end
+			fmti+=1
+		end
+	end
+end
+
+# Add the double fmtx in decimal with fmtk digits after the point, at most
+# 30: the decimal of that form nearest to the exact value of the double,
+# a tie to the one whose last digit is even, as "%.6f" of C prints with
+# fmtk 6. A double below zero, the zero with a sign too, has a "-" in
+# front; with fmtk 0 there is no point. An infinity or what is no number
+# is not written: 0.
+fn fmtfix fmtb fmtx fmtk
+	local fmta 320
+	local fmtd 408
+	fmte=fmtx>>52&2047
+	fmtm=fmtx&0xfffffffffffff
+	if (fmte==2047)|(fmtk>30)
+		ret 0
+	end
+	# the value is fmtm times 2^(fmte-1074)
+	if fmte
+		fmtm=fmtm|0x10000000000000
+		fmte-=1
+	end
+	fmti=0
+	while fmti<fmtlimbs
+		store fmta+fmti*8 0
+		fmti+=1
+	end
+	store fmta fmtm&0xffffffff
+	store fmta+8 fmtm>>32
+	# times 10^fmtk, then the power of two: the value as a whole number of
+	# units of the last digit
+	fmti=0
+	while fmti<fmtk
+		call fmtmul fmta 10
+		fmti+=1
+	end
+	if fmte>=1074
+		fmte-=1074
+		while fmte>=31
+			call fmtmul fmta 0x80000000
+			fmte-=31
+		end
+		call fmtmul fmta 1<<fmte
+	else
+		call fmtshr fmta 1074-fmte
+	end
+	# its digits, the last first, nine for each division, and zeros in
+	# front until one digit stands before the point
+	fmtq=fmtd+408
+	label more
+	call fmtdiv fmta 1000000000 as fmtr
+	fmtn=0
+	fmti=0
+	while fmti<fmtlimbs
+		load fmta+fmti*8 as fmtt
+		fmtn=fmtn|fmtt
+		fmti+=1
+	end
+	fmti=0
+	while (fmti<9)&((fmtn!=0)|(fmtr!=0)|(fmti==0))
+		fmtq-=1
+		storeb fmtq fmtr%10+48
+		fmtr/=10
+		fmti+=1
+	end
+	jnz fmtn more
+	while fmtd+408-fmtq<=fmtk
+		fmtq-=1
+		storeb fmtq 48
+	end
+	fmtn=fmtd+408-fmtq
+	call byneed fmtb fmtn+2 as fmtok
+	ifz fmtok
+		ret 0
+	end
+	if fmtx>>63
+		call byaddb fmtb 45
+	end
+	call byadd fmtb fmtq fmtn-fmtk
+	if fmtk
+		call byaddb fmtb 46
+		call byadd fmtb fmtq+fmtn-fmtk fmtk
+	end
+	ret 1
+end
+
+# add the 64 bits of fmtx as sixteen hexadecimal digits, the highest
+# first, a to f in lower case
+fn fmthex fmtb fmtx
+	local fmtd 16
+	fmti=16
+	while fmti
+		fmti-=1
+		fmtc=fmtx&15
+		if fmtc>9
+			fmtc+=39
+		end
+		storeb fmtd+fmti fmtc+48
+		fmtx>>=4
+	end
+	call byadd fmtb fmtd 16 as fmtok
+	ret fmtok
+end
+
+# add the fmtn bytes at fmtp as a string of JSON, in double quotes: a
+# double quote and a backslash with a backslash before them, a byte below
+# 0x20 as \u00 and two hexadecimal digits, every other byte as it is, so
+# the string is valid JSON if the bytes are well-formed UTF-8
+fn fmtjson fmtb fmtp fmtn
+	local fmtd 8
+	# room for the longest form, so that nothing is added if memory fails
+	call byneed fmtb fmtn*6+2 as fmtok
+	ifz fmtok
+		ret 0
+	end
+	call byaddb fmtb 34
+	fmti=0
+	while fmti<fmtn
+		loadb fmtp+fmti as fmtc
+		if (fmtc==34)|(fmtc==92)
+			call byaddb fmtb 92
+			call byaddb fmtb fmtc
+		else
+			if fmtc<32
+				call byadd fmtb "\\u00"
+				fmth=fmtc>>4
+				storeb fmtd fmth+48
+				fmth=fmtc&15
+				if fmth>9
+					fmth+=39
+				end
+				storeb fmtd+1 fmth+48
+				call byadd fmtb fmtd 2
+			else
+				call byaddb fmtb fmtc
+			end
+		end
+		fmti+=1
+	end
+	call byaddb fmtb 34
+	ret 1
+end
