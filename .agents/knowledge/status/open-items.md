@@ -7,10 +7,11 @@ The decisions still to be taken. The work, step by step, is in `docs/TODO.md`
 - [x] 2026-11-21 — Add the statements `fdot4`, `f4to8` and `f8to4` to the AIL repository and pin the revision: work, now step 1 of `docs/TODO.md`
 - [x] 2026-11-21 — Float literals in the AIL compiler (user's proposal, 2026-11-21): work for the AIL repository, now in step 1 of `docs/TODO.md`
 - [x] 2026-11-21 — Tolerances, the semantics of filters, the empty index and the exit statuses: decided as proposed (user, 2026-11-21), with the statuses 0, 2, 3, 4, 5 and 6 ([page](../architecture/requirements-decisions.md))
-- [ ] 2026-11-21 — The limits of the result count, the dimension and the record count; fixed in step 3 of `docs/TODO.md`
+- [x] 2026-11-21 — The limits of the result count, the dimension and the record count: in `docs/format.md`, chosen by the agent ([page](../architecture/format.md))
 - [x] 2026-11-21 — How the repository gets AIL at a pinned revision: decided (user, 2026-11-21), `ail.pin`, `tools/ail.sh` and the link `lib` as in ail-bench ([page](../architecture/requirements-decisions.md))
 - [x] 2026-11-21 — The Makefile, the test runner and the layout of the sources: work, now step 2 of `docs/TODO.md`
-- [ ] 2026-11-21 — The file format in detail: header fields, offsets, where metadata (paths, lines, language, source revision) lives, how normalization is recorded. Decided so far: CRC-32, one over header and metadata and one over the vectors ([page](../architecture/requirements-decisions.md)); written in step 3 of `docs/TODO.md`
+- [x] 2026-11-21 — The file format in detail: written as `docs/format.md` ([page](../architecture/format.md))
+- [ ] 2026-11-21 — The user is to review the layout and the limits of `docs/format.md`, which the agent chose ([page](../architecture/format.md))
 - [x] 2026-11-21 — The interchange format: decided (user, 2026-11-21), raw binary32 and TSV in, JSON Lines out with the score in decimal and as bits ([page](../architecture/requirements-decisions.md))
 - [ ] 2026-11-21 — The exact columns, options and JSON field order of the interchange format; written in step 3 of `docs/TODO.md`
 - [x] 2026-11-21 — Buffered reads or a read-only mapping: decided (user, 2026-11-21), a mapping; acceptance check 4 measures it again with the engine ([page](../architecture/requirements-decisions.md))

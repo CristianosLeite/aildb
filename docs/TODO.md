@@ -13,8 +13,6 @@ to `BACKLOG.md`, under the same section.
 
 - [ ] `REQUIREMENTS.md`: the link of acceptance check 4 names the JS
   documentation of LanceDB while the Python binding is used.
-- [ ] The limits of k, dimension and count, fixed with the format of
-  step 3.
 - [ ] Git: the remote, the published name and the licence. The repository
   was initialized on 2026-11-21, with a `.gitignore`.
 
@@ -32,11 +30,6 @@ reviews and publishes it, and `ail.pin` then moves to that revision.
 
 ## 3. The documented format
 
-- [ ] `docs/format.md`: header (magic, version, flags, dimension, count,
-  offsets and sizes of the sections), the model identifier and the source
-  revision, records of fixed size, strings, the vectors aligned to 4096;
-  the two CRC-32 and what each covers; how normalization is recorded;
-  precision and tolerance of a score; limits.
 - [ ] `docs/usage.md`: the three commands, their options and statuses; the
   inputs (raw binary32, TSV columns) and the JSON Lines of the results,
   with the order of the fields.

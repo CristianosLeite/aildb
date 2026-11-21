@@ -85,6 +85,6 @@ documented.
   is not pushed**; the user reviews and publishes it, and `ail.pin` moves to the published
   revision afterwards.
 
-## Still open
-- The limits of the result count, the dimension and the record count; they are fixed where
-  the format is documented (step 3 of `docs/TODO.md`).
+## Limits
+- The limits of the result count, the dimension and the record count are in
+  `docs/format.md`; the [format page](format.md) has the reasons.

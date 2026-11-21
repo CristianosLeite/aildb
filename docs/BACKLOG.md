@@ -23,6 +23,8 @@ completed, under the section it had there.
   the statuses 0 success, 2 usage, 3 invalid file or input, 4 I/O, 5 build
   in progress, 6 published without confirmed durability (user,
   2026-11-21).
+- [x] The limits of k, dimension and count: in `docs/format.md`, chosen by
+  the agent when the format was written.
 
 ## 1. binary32 in AIL (work in the AIL repository)
 
@@ -45,3 +47,11 @@ and `a5b4559`, 2026-11-21), not pushed; `make test` passed there.
   `name.code` or `name.err`), and the indentation check.
 - [x] `aildb` with no command or an unknown one: usage on stderr and the
   usage status.
+
+## 3. The documented format
+
+- [x] `docs/format.md`: header (magic, version, flags, dimension, count,
+  offsets and sizes of the sections), the model identifier and the source
+  revision, records of fixed size, strings, the vectors aligned to 4096;
+  the two CRC-32 and what each covers; how normalization is recorded;
+  precision and tolerance of a score; limits.
