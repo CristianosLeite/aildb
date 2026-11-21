@@ -65,3 +65,4 @@ and `a5b4559`, 2026-11-21), not pushed; `make test` passed there.
 - [x] A double as decimal and as 16 hexadecimal digits; a JSON string.
 - [x] An unsigned number from text, lines and tab-separated fields, a
   prefix test.
+- [x] Top-k of (score, ordinal) in a bounded workspace, ties by ordinal.

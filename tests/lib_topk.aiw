@@ -1,0 +1,157 @@
+# a selection of src/lib/topk.aiw keeps the best pairs, in order after
+# topksort, with equal scores in the order of their ordinals, whatever
+# the order they were offered in
+use "lib/std/io.aiw"
+use "src/lib/topk.aiw"
+const n 500
+buf sc 4000             # the scores of 500 candidates
+buf taken 500           # those the slow selection has given
+buf t 24
+var seed
+fn rnd
+	seed=seed*6364136223846793005+1442695040888963407
+	ret seed>>33
+end
+fn show a
+	call putn a
+	call print "\n"
+end
+# the best candidate not taken yet, by a scan of all: its index, or n
+fn best
+	b=n
+	i=0
+	while i<n
+		loadb taken+i as x
+		ifz x
+			if b==n
+				b=i
+			else
+				load sc+i*8 as s
+				load sc+b*8 as u
+				flt u s as c
+				if c
+					b=i
+				end
+			end
+		end
+		i+=1
+	end
+	if b<n
+		storeb taken+b 1
+	end
+	ret b
+end
+# select k of the candidates, offered from the first if up is 1 and from
+# the last if not, and count the places where the selection differs from
+# the slow one; add n if it holds another number of pairs
+fn run k up
+	call topkinit t k as ok
+	ifz ok
+		ret n
+	end
+	i=0
+	while i<n
+		j=i
+		ifz up
+			j=n-1-i
+		end
+		load sc+j*8 as s
+		call topkadd t s j
+		i+=1
+	end
+	call topksort t
+	i=0
+	while i<n
+		storeb taken+i 0
+		i+=1
+	end
+	want=k
+	if want>n
+		want=n
+	end
+	bad=0
+	load t+16 as have
+	if have!=want
+		bad=n
+	end
+	i=0
+	while i<want
+		call best as b
+		call topkget t i as s o ok
+		load sc+b*8 as u
+		bad+=(o!=b)|(s!=u)|(ok!=1)
+		i+=1
+	end
+	call topkget t want as s o ok
+	bad+=ok
+	call topkfree t
+	ret bad
+end
+# 500 scores of only 41 values, -2 to 2 in steps of 0.1, so that most
+# are equal to others
+itof 10 as ten
+i=0
+while i<n
+	call rnd as r
+	itof r%41 as x
+	itof 20 as y
+	fsub x y as x
+	fdiv x ten as x
+	store sc+i*8 x
+	i+=1
+end
+call run 1 1 as bad
+call show bad
+call run 2 1 as bad
+call show bad
+call run 3 0 as bad
+call show bad
+call run 10 1 as bad
+call show bad
+call run 10 0 as bad
+call show bad
+call run 77 0 as bad
+call show bad
+call run 499 1 as bad
+call show bad
+call run 500 0 as bad
+call show bad
+call run 600 1 as bad
+call show bad
+call run 600 0 as bad
+call show bad
+# a selection that keeps nothing takes nothing
+call topkinit t 0
+itof 1 as x
+call topkadd t x 0 as r
+call show r
+load t+16 as r
+call show r
+call topkfree t
+# three pairs by hand: 0.5 at 7, 0.5 at 3 and -1 at 0 into two places;
+# cleared, the selection is empty and takes pairs again
+call topkinit t 2
+itof 1 as x
+itof 2 as y
+fdiv x y as h
+itof -1 as m
+call topkadd t h 7 as r
+call show r
+call topkadd t m 0 as r
+call show r
+call topkadd t h 3 as r
+call show r
+call topkadd t m 1 as r
+call show r
+call topksort t
+call topkget t 0 as s o ok
+call show o
+call topkget t 1 as s o ok
+call show o
+call topkclear t
+call topkget t 0 as s o ok
+call show ok
+call topkadd t m 9 as r
+call topkget t 0 as s o ok
+call show o
+call topkfree t

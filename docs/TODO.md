@@ -30,7 +30,6 @@ reviews and publishes it, and `ail.pin` then moves to that revision.
 
 ## 4. Libraries (`src/lib/`, each with tests)
 
-- [ ] Top-k of (score, ordinal) in a bounded workspace, ties by ordinal.
 - [ ] binary32 to binary64 with integer statements, kept for the oracle.
 
 ## 5. Reading a snapshot, and `check`

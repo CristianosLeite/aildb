@@ -1,0 +1,169 @@
+# src/lib/topk.aiw -- the best of many pairs of a score and an ordinal,
+# kept in a workspace of a fixed size. It needs no other file.
+#
+# A selection is 24 bytes that the caller owns, in a buf or a local: the
+# address of the pairs, the number it keeps at most, and the number it
+# holds. A pair is 16 bytes, the score, a double, and the ordinal, an
+# unsigned number. A pair is better than another if its score is higher,
+# or the scores are equal and its ordinal is lower; scores are finite, and
+# the two zeros are equal. topkinit takes the one piece of memory there
+# ever is, so offering a pair allocates nothing.
+#
+# The pairs are a heap with the worst at index 0, which is the one a new
+# pair must beat once the selection is full. topksort puts them in order,
+# the best first; after it the selection is read, cleared or freed, and
+# not offered to again before topkclear.
+#
+# Every name of this file starts with "topk"; a program has no var of
+# such a name.
+
+# 1 if the pair at topkp is worse than the pair at topkq
+fn topkworse topkp topkq
+	load topkp as topka
+	load topkq as topkb
+	flt topka topkb as topkc
+	if topkc
+		ret 1
+	end
+	feq topka topkb as topkc
+	ifz topkc
+		ret 0
+	end
+	load topkp+8 as topka
+	load topkq+8 as topkb
+	ret topka>topkb
+end
+
+# exchange the pairs at topkp and topkq
+fn topkswap topkp topkq
+	load topkp as topka
+	load topkq as topkb
+	store topkp topkb
+	store topkq topka
+	load topkp+8 as topka
+	load topkq+8 as topkb
+	store topkp+8 topkb
+	store topkq+8 topka
+end
+
+# the pair at index topki of the topkn pairs at topkb may be better than
+# those below it in the heap: move it down until it is not
+fn topkdown topkb topkn topki
+	label next
+	topkc=topki*2+1
+	if topkc>=topkn
+		ret 0
+	end
+	if topkc+1<topkn
+		call topkworse topkb+topkc*16+16 topkb+topkc*16 as topkw
+		topkc+=topkw
+	end
+	call topkworse topkb+topkc*16 topkb+topki*16 as topkw
+	ifz topkw
+		ret 0
+	end
+	call topkswap topkb+topkc*16 topkb+topki*16
+	topki=topkc
+	jmp next
+end
+
+# make the 24 bytes at topkt a selection of at most topkk pairs, which
+# holds none: 1, or 0 when the kernel has no memory for them
+fn topkinit topkt topkk
+	if topkk>0x7ffffffffffffff
+		ret 0
+	end
+	alloc topkk*16 as topkb
+	ifz topkb
+		ret 0
+	end
+	store topkt topkb
+	store topkt+8 topkk
+	store topkt+16 0
+	ret 1
+end
+
+# offer the pair of the score topks and the ordinal topko: 1 if the
+# selection keeps it, for now, and 0 if it is full of better ones
+fn topkadd topkt topks topko
+	load topkt as topkb
+	load topkt+8 as topkk
+	load topkt+16 as topkn
+	if topkn<topkk
+		store topkb+topkn*16 topks
+		store topkb+topkn*16+8 topko
+		store topkt+16 topkn+1
+		# up, while it is worse than the pair above it
+		while topkn
+			topkp=(topkn-1)/2
+			call topkworse topkb+topkn*16 topkb+topkp*16 as topkw
+			ifz topkw
+				ret 1
+			end
+			call topkswap topkb+topkn*16 topkb+topkp*16
+			topkn=topkp
+		end
+		ret 1
+	end
+	ifz topkk
+		ret 0
+	end
+	# full: it goes in the place of the worst if that is worse than it
+	load topkb as topkx
+	flt topkx topks as topkw
+	ifz topkw
+		feq topkx topks as topkw
+		ifz topkw
+			ret 0
+		end
+		load topkb+8 as topkx
+		if topkx<=topko
+			ret 0
+		end
+	end
+	store topkb topks
+	store topkb+8 topko
+	call topkdown topkb topkn 0
+	ret 1
+end
+
+# put the pairs in order, the best at index 0
+fn topksort topkt
+	load topkt as topkb
+	load topkt+16 as topkn
+	while topkn>1
+		topkn-=1
+		call topkswap topkb topkb+topkn*16
+		call topkdown topkb topkn 0
+	end
+end
+
+# the pair at index topki: its score, its ordinal and 1, or 0, 0 and 0 if
+# the selection holds no such pair
+fn topkget topkt topki
+	load topkt+16 as topkn
+	if topki>=topkn
+		ret 0 0 0
+	end
+	load topkt as topkb
+	load topkb+topki*16 as topks
+	load topkb+topki*16+8 as topko
+	ret topks topko 1
+end
+
+# hold no pair, and be offered to again
+fn topkclear topkt
+	store topkt+16 0
+end
+
+# give the pairs back to the kernel; the 24 bytes are all zero, a
+# selection that keeps nothing
+fn topkfree topkt
+	load topkt as topkb
+	if topkb
+		free topkb
+	end
+	store topkt 0
+	store topkt+8 0
+	store topkt+16 0
+end
