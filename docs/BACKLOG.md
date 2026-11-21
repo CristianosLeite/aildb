@@ -55,3 +55,6 @@ and `a5b4559`, 2026-11-21), not pushed; `make test` passed there.
   revision, records of fixed size, strings, the vectors aligned to 4096;
   the two CRC-32 and what each covers; how normalization is recorded;
   precision and tolerance of a score; limits.
+- [x] `docs/usage.md`: the three commands, their options and statuses; the
+  inputs (raw binary32, TSV columns) and the JSON Lines of the results,
+  with the order of the fields.

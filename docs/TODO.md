@@ -28,12 +28,6 @@ reviews and publishes it, and `ail.pin` then moves to that revision.
   `make AIL=<that checkout>` can compile them.
 - [ ] Float literals (user's proposal): not needed for version 1.
 
-## 3. The documented format
-
-- [ ] `docs/usage.md`: the three commands, their options and statuses; the
-  inputs (raw binary32, TSV columns) and the JSON Lines of the results,
-  with the order of the fields.
-
 ## 4. Libraries (`src/lib/`, each with tests)
 
 - [ ] CRC-32 with eight tables, tested against known values of zlib.

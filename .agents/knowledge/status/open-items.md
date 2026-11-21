@@ -11,9 +11,9 @@ The decisions still to be taken. The work, step by step, is in `docs/TODO.md`
 - [x] 2026-11-21 — How the repository gets AIL at a pinned revision: decided (user, 2026-11-21), `ail.pin`, `tools/ail.sh` and the link `lib` as in ail-bench ([page](../architecture/requirements-decisions.md))
 - [x] 2026-11-21 — The Makefile, the test runner and the layout of the sources: work, now step 2 of `docs/TODO.md`
 - [x] 2026-11-21 — The file format in detail: written as `docs/format.md` ([page](../architecture/format.md))
-- [ ] 2026-11-21 — The user is to review the layout and the limits of `docs/format.md`, which the agent chose ([page](../architecture/format.md))
+- [ ] 2026-11-21 — The user is to review what the agent chose in `docs/format.md` (layout, limits) and `docs/usage.md` (option letters, the strict metadata, the object of `check`, six decimals) ([format](../architecture/format.md), [interface](../architecture/interface.md))
 - [x] 2026-11-21 — The interchange format: decided (user, 2026-11-21), raw binary32 and TSV in, JSON Lines out with the score in decimal and as bits ([page](../architecture/requirements-decisions.md))
-- [ ] 2026-11-21 — The exact columns, options and JSON field order of the interchange format; written in step 3 of `docs/TODO.md`
+- [x] 2026-11-21 — The exact columns, options and JSON field order of the interchange format: written as `docs/usage.md` ([page](../architecture/interface.md))
 - [x] 2026-11-21 — Buffered reads or a read-only mapping: decided (user, 2026-11-21), a mapping; acceptance check 4 measures it again with the engine ([page](../architecture/requirements-decisions.md))
 - [x] 2026-11-21 — How an overlapping build is rejected: decided (user, 2026-11-21), `flock` on `<destination>.lock`. Stop points for the interruption tests: a second test executable is what was meant (user, 2026-11-21) ([page](../architecture/requirements-decisions.md))
 - [ ] 2026-11-21 — The end-to-end example: the AIL repository and a local model of 768 dimensions are decided; still open are the tool that runs the model and how chunks are cut (the chunker is AIL) ([page](../architecture/requirements-decisions.md))
