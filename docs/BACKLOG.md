@@ -24,6 +24,17 @@ completed, under the section it had there.
   in progress, 6 published without confirmed durability (user,
   2026-11-21).
 
+## 1. binary32 in AIL (work in the AIL repository)
+
+- [x] `f4to8 a as x` and `f8to4 a as x`: rows of `optab`, cases in
+  `tests/insn.cases`, tests, `docs/language.md`.
+- [x] `fdot4 a p q n as x`, with the loop `movss` / `cvtss2sd reg,reg` /
+  `mulsd` / `addsd`; a test that its bits are those of `f4to8`, `fmul` and
+  `fadd` in order.
+
+Both are commits of the branch `binary32` of the AIL checkout (`d5f236b`
+and `a5b4559`, 2026-11-21), not pushed; `make test` passed there.
+
 ## 2. Skeleton
 
 - [x] `ail.pin`, `tools/ail.sh` and the link `lib -> ail/lib`, as ail-bench

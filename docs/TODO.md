@@ -24,11 +24,10 @@ Steps 2 to 5 do not wait for this one; `build` and `search` do. It is done
 by the agent on a branch of the checkout that is not pushed; the user
 reviews and publishes it, and `ail.pin` then moves to that revision.
 
-- [ ] `f4to8 a as x` and `f8to4 a as x`: rows of `optab`, cases in
-  `tests/insn.cases`, tests, `docs/language.md`.
-- [ ] `fdot4 a p q n as x`, with the loop `movss` / `cvtss2sd reg,reg` /
-  `mulsd` / `addsd`; a test that its bits are those of `f4to8`, `fmul` and
-  `fadd` in order.
+- [ ] Move `ail.pin` to the revision that has the three statements, once
+  the user has reviewed and published the branch `binary32` of the
+  checkout (`a5b4559` there on 2026-11-21); until then only a build with
+  `make AIL=<that checkout>` can compile them.
 - [ ] Float literals (user's proposal): not needed for version 1.
 
 ## 3. The documented format

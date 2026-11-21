@@ -21,3 +21,4 @@ The decisions still to be taken. The work, step by step, is in `docs/TODO.md`
 - [x] 2026-11-21 — `REQUIREMENTS.md`: the amendment of eleven passages was accepted and applied (user, 2026-11-21); it says what the pinned AIL revision is to have, which holds once the binary32 statements are in AIL
 - [ ] 2026-11-21 — `REQUIREMENTS.md`: the link of acceptance check 4 still names the JS documentation of LanceDB, while the text names the Python binding
 - [ ] 2026-11-21 — Git: initialized on 2026-11-21 (user), branch `main`, with a `.gitignore` for `build/` and the links `ail` and `lib`; still open are the remote, the published name and the licence
+- [ ] 2026-11-21 — The binary32 statements are on the unpushed branch `binary32` of the AIL checkout (`a5b4559`); the user reviews and publishes it, then `ail.pin` moves. The VS Code grammar of the repository ail-extensions does not know the three names yet ([page](../architecture/feasibility.md))

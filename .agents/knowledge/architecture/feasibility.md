@@ -33,6 +33,14 @@ the figures of acceptance check 4 when the engine exists.
   eight partial sums was 1.6 times faster on the whole scan but gives other bits, so it is
   a question for that check.
 
+- **The three statements were written on 2026-11-21** under the proposed names, as the
+  commits `d5f236b` (`f4to8`, `f8to4`) and `a5b4559` (`fdot4`) of the branch `binary32` of
+  the AIL checkout, which is not pushed: rows of `optab`, with tests against bits computed
+  outside the compiler and against the loop of `load4`, `f4to8`, `fmul` and `fadd`.
+  `f8to4` rounds to nearest, ties to even, and gives an infinity for a double beyond the
+  binary32 range, so `build` must check the rounded value where it matters. The text under
+  "What is missing" below is the proposal as it was before they existed.
+
 ## What AIL at 7dea612 has
 - Any system call by number: `fsync` 74, `flock` 73, `ftruncate` 77, `pread64` 17,
   `fadvise64` 221 and `mincore` 27 as `const`s; `mmap`, `rename`, `openat`, `fstat`, `kill`
