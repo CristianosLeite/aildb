@@ -46,7 +46,16 @@ AILLIB := $(wildcard lib/std/*.aiw)
 $(B)/aildb: src/aildb.aiw $(SRC) $(AILLIB) $(B)/ailc
 	$(call compile,$(B)/ailc)
 
+# Every test, or with T the tests of tests/run.sh named there:
+# make test T="name name".
+test: all
+ifeq ($(T),)
+	@f=0; AILC=$(B)/ailc tests/run.sh || f=1; tests/indent.sh || f=1; exit $$f
+else
+	@AILC=$(B)/ailc tests/run.sh $(T)
+endif
+
 clean:
 	rm -rf $(B)
 
-.PHONY: all clean FORCE
+.PHONY: all test clean FORCE

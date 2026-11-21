@@ -1,0 +1,36 @@
+---
+title: How the tests run
+last-verified: 2026-11-21
+sources: [tests/run.sh, tests/indent.sh, Makefile, tests/run.sh of ail-bench at 9b31e35]
+status: current
+---
+# How the tests run
+
+**Summary.** `make test` runs `tests/run.sh` and `tests/indent.sh`. A test is an AIL
+program `tests/<name>.aiw` with the output and exit status expected of it; the shell only
+compiles it, runs it under a deadline and compares. What a test needs beyond that (starting
+`build/aildb`, writing input files, reading results) is written in AIL, as
+`REQUIREMENTS.md` asks.
+
+## Decisions
+- **The runner is the one of AIL and ail-bench** (TODO step 2; written 2026-11-21):
+  `name.aiw` with `name.out`, an optional `name.code`, or `name.err` when the compiler must
+  refuse the source. It has no `name.aiw.sh` form, which AIL needs for sources a file
+  cannot hold; nothing here does.
+- **A test is compiled and run from the top of the repository**, so a `use` names
+  `lib/std/...` and `src/lib/...` as the engine does, and `build/aildb` is the executable
+  under test.
+- **Files a test makes go to the directory in `AILDB_TMP`**, one for each test of each
+  run, which the runner makes and removes. Rejected: a fixed directory under `build/`,
+  which two runs at the same time would share.
+- **A deadline of 10 seconds a program**, enforced with `SIGKILL` to the process group, so
+  a child that a test started ends with it.
+- **The indentation check reads the sources git knows or would add** (`git ls-files
+  --cached --others --exclude-standard`), so a new source is checked before its first
+  commit; ail-bench lists only the committed ones.
+
+## Unchecked
+- The runner itself has no test in the repository. On 2026-11-21 it was tried by hand with
+  temporary tests: one that passes, a wrong output, a wrong status, an expected status, an
+  expected compiler error, a program that never ends (killed, FAIL), a read of
+  `AILDB_TMP`, and a source indented with spaces (reported with its line).

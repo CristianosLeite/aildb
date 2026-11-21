@@ -9,7 +9,7 @@ The decisions about the language AIL, its compiler and its libraries are in the 
 - [Requirement decisions for version 1](architecture/requirements-decisions.md) — a read-only mapping, CRC-32, raw binary32 and TSV in, JSON Lines out, stop points only in a test executable, AIL pinned as in ail-bench, the example and the LanceDB binding; what is proposed and not yet decided
 
 ## testing
-No page yet.
+- [How the tests run](testing/runner.md) — `make test`: AIL programs with expected output and status, compiled and run from the top of the repository, files in `AILDB_TMP`, the indentation check
 
 ## status
 - [Open items](status/open-items.md) — pending decisions; the work, step by step, is in `docs/TODO.md`

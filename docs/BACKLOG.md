@@ -19,3 +19,5 @@ completed, under the section it had there.
   has them.
 - [x] `Makefile`: the compiler linked from `ail/`, one executable `aildb`
   from `src/aildb.aiw`, compiled into a temporary file and moved.
+- [x] `tests/run.sh` in the manner of AIL (`name.aiw` with `name.out`,
+  `name.code` or `name.err`), and the indentation check.

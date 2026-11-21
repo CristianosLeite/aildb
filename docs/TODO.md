@@ -37,8 +37,6 @@ Steps 2 to 5 do not wait for this one; `build` and `search` do.
 
 ## 2. Skeleton
 
-- [ ] `tests/run.sh` in the manner of AIL (`name.aiw` with `name.out`,
-  `name.code` or `name.err`), and the indentation check.
 - [ ] `aildb` with no command or an unknown one: usage on stderr and the
   usage status.
 
