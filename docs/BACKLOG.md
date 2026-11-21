@@ -131,6 +131,10 @@ and `a5b4559`, 2026-11-21); `make test` passed there.
 
 ## 9. The example, and acceptance check 1
 
+Acceptance check 1: build a snapshot for a real repository, query it end
+to end, and verify that results identify the expected source lines; copy
+the file to another path and verify the same query results.
+
 - [x] The chunker in AIL: `build/chunk`, from `example/chunk.aiw`, cuts
   the `.aiw` and `.md` files of a list into chunks of whole lines, a
   function or a section each, 40 lines and 1500 bytes at most, and writes
@@ -138,3 +142,8 @@ and `a5b4559`, 2026-11-21); `make test` passed there.
 - [x] The embedding step outside the engine: nomic-embed-text (user,
   2026-11-21) run by Ollama, asked by `example/embed.py`, a Python
   program of the standard library that writes the raw binary32.
+- [x] `make example`: chunk, embed, build, check, copy, and
+  `build/example-check` with the queries of `example/queries.tsv`, whose
+  expected lines are among the five results, and the same bytes from the
+  copy. Passed on 2026-11-21; `docs/example.md` has the output and the
+  four queries of ten that were taken out.

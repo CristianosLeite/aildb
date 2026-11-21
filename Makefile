@@ -65,7 +65,31 @@ else
 	@AILC=$(B)/ailc tests/run.sh $(T)
 endif
 
+# The example, acceptance check 1 (docs/example.md): the files of AIL at
+# the revision of ail.pin are cut into chunks, example/embed.py asks a
+# running Ollama for the embeddings of the chunks and of the queries,
+# build makes the snapshot, and build/example-check searches it and a
+# copy of it at another path for the lines each query is to find.
+E := $(B)/example
+PIN := $(shell awk '!/^\#/ && NF {print $$2}' ail.pin)
+
+$(B)/example-check: example/check.aiw $(SRC) $(AILLIB) $(B)/ailc
+	$(call compile,$(B)/ailc)
+
+example: all $(B)/chunk $(B)/example-check
+	rm -rf $(E)
+	mkdir -p $(E)/src $(E)/copy
+	git -C ail archive $(PIN) | tar -x -C $(E)/src
+	git -C ail ls-tree -r --name-only $(PIN) > $(E)/list
+	$(B)/chunk $(E)/src $(E)/meta.tsv $(E)/text.jsonl < $(E)/list
+	python3 example/embed.py document $(E)/text.jsonl $(E)/vectors.bin
+	python3 example/embed.py query example/queries.tsv $(E)/queries.bin
+	$(B)/aildb build -o $(E)/ail.idx -v $(E)/vectors.bin -m $(E)/meta.tsv -d 768 -i nomic-embed-text -r $(PIN)
+	$(B)/aildb check $(E)/ail.idx
+	cp $(E)/ail.idx $(E)/copy/moved.idx
+	$(B)/example-check $(B)/aildb $(E)/ail.idx $(E)/copy/moved.idx example/queries.tsv $(E)/queries.bin
+
 clean:
 	rm -rf $(B)
 
-.PHONY: all test clean FORCE
+.PHONY: all test example clean FORCE

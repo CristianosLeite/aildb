@@ -6,7 +6,7 @@ The first application is semantic search over a source repository: given the emb
 
 ## Status
 
-Being written. The three commands work and are tested, against an independent implementation and under interruption among others; the end-to-end example and the measurements are still to come: [docs/TODO.md](docs/TODO.md) has the steps that are left, with what each must show, and the questions still open are listed in [.agents/knowledge/status/open-items.md](.agents/knowledge/status/open-items.md).
+Being written. The three commands work and are tested, against an independent implementation and under interruption among others; an end-to-end example indexes the AIL repository ([docs/example.md](docs/example.md)); the measurements are still to come: [docs/TODO.md](docs/TODO.md) has the steps that are left, with what each must show, and the questions still open are listed in [.agents/knowledge/status/open-items.md](.agents/knowledge/status/open-items.md).
 
 ## Version 1 in short
 
@@ -22,7 +22,7 @@ SQL, approximate indexes, incremental writes and a network service are outside v
 - [docs/usage.md](docs/usage.md): the three commands, their inputs, their output and their exit statuses
 - [docs/format.md](docs/format.md): the format of the snapshot file, its checks and the precision of a score
 - [docs/durability.md](docs/durability.md): what a build leaves when it is interrupted, and what is assumed of the filesystem and the storage when power is lost
-- [docs/example.md](docs/example.md): the example, which indexes the AIL repository: how its files are cut into chunks and how the embeddings are made
+- [docs/example.md](docs/example.md): the example, `make example`, which indexes the AIL repository with a local embedding model and queries it
 - [AGENTS.md](AGENTS.md): guidance for AI coding agents, with the rules of the repository and what AIL offers the project
 - [.agents/knowledge/INDEX.md](.agents/knowledge/INDEX.md): the knowledge base, decisions and their reasons
 

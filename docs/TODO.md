@@ -24,18 +24,6 @@ The statements are written and `ail.pin` names the revision that has them
 
 - [ ] Float literals (user's proposal): not needed for version 1.
 
-## 9. The example, and acceptance check 1
-
-Acceptance check 1: build a snapshot for a real repository, query it end
-to end, and verify that results identify the expected source lines; copy
-the file to another path and verify the same query results. The example
-chunks the AIL repository at the pinned revision, generates document and
-query embeddings with the same open model running locally, builds the
-file and queries it; embedding generation stays outside the engine.
-
-- [ ] `make example`: chunk, embed, build, query; a test with queries whose
-  expected lines are known, and the same results from a copy of the file.
-
 ## 10. Measurement, and acceptance check 4
 
 Acceptance check 4: measure top-10 at 10,000 and 100,000 vectors of 768

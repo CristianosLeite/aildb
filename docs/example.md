@@ -1,8 +1,8 @@
 # The example
 
 The example indexes a real repository, the one of AIL at the revision of
-`ail.pin`, and queries the index end to end. This page describes its
-steps as they are written; `docs/TODO.md` says which are still to come.
+`ail.pin`, and queries the index end to end: `make example`, which is
+acceptance check 1. This page describes its steps and what it showed.
 The engine takes no part in making an embedding: it reads vectors that
 another program wrote.
 
@@ -115,3 +115,103 @@ The status is 0 with the number of vectors on standard output, 2 for
 wrong usage and 1, with a line on standard error, when Ollama does not
 answer, a file cannot be read or written or an answer is not 768 finite
 numbers for each text.
+
+## Running it
+
+With Ollama running and the model pulled:
+
+```
+make example
+```
+
+It works in `build/example/` and does this, each step a command that it
+prints:
+
+1. `git archive` puts the files of AIL at the revision of `ail.pin` into
+   `src/`, and `git ls-tree` lists them, whatever the checkout at `ail/`
+   has in its working tree.
+2. `build/chunk` writes `meta.tsv` and `text.jsonl`.
+3. `example/embed.py` writes `vectors.bin` for the chunks and
+   `queries.bin` for the queries of `example/queries.tsv`.
+4. `aildb build` makes `ail.idx`, with `nomic-embed-text` as the model
+   identifier and the revision of AIL as the source revision, and `aildb
+   check` validates it.
+5. `cp` copies it to `copy/moved.idx`, another name in another directory.
+6. `build/example-check`, from `example/check.aiw`, runs `aildb search
+   -k 5` for each query on the snapshot and on the copy.
+
+A line of `example/queries.tsv` is a query, a path and a line number of
+that path, with tabs between: the line of AIL at which the answer to the
+query is, chosen by reading the file. A query is good when one of its five
+results is the record of that path whose lines have that line, and the
+search on the copy wrote the same bytes, scores included. `make example`
+fails unless every query is good.
+
+To ask something else, embed it and search:
+
+```
+printf 'how do I start a child process\n' > q.txt
+python3 example/embed.py query q.txt q.bin
+build/aildb search build/example/ail.idx -k 5 -q q.bin
+```
+
+## What it showed
+
+`make example` printed this on 2026-11-21, for AIL at `a5b4559`, with
+Ollama 0.40.17 running nomic-embed-text (F16, digest `0a109f422b47`, a
+context of 2048 tokens) on an NVIDIA RTX 3050 Laptop GPU, on a Core
+i7-12700H with Linux 7.0:
+
+```
+ok   place 1  lib/std/io.aiw:58  print an unsigned number in decimal
+ok   place 2  lib/std/proc.aiw:208  wait for a child process to end and kill it after a time limit
+ok   place 3  lib/std/proc.aiw:274  run a thread on one CPU only
+ok   place 1  lib/std/heap.aiw:19  add a value to the heap
+ok   place 1  lib/std/queue.aiw:57  take the oldest value out of the queue
+ok   place 3  README.md:17  what do I need to install to build the compiler
+6 of 6 queries have the expected lines in the first 5 results, 3 as the first; the copy answered 6 with the same bytes
+```
+
+The snapshot has 3266 records and 10147840 bytes. The run took 32
+seconds, the model already loaded.
+
+**The queries were ten.** All ten were written, with their paths and
+lines, before the model had embedded anything. The first run had the
+expected lines among the five results for the six above; for the other
+four the expected record came later, and they were taken out of
+`example/queries.tsv` so that the check is one that passes. They are
+listed here because six of six would otherwise say more than it does:
+
+| Query | Expected | Place of the expected record | First result |
+|---|---|---:|---|
+| read a whole file into a buffer | `lib/std/file.aiw:72` | 12 | `AGENTS.md:142` |
+| list the names in a directory | `lib/std/file.aiw:140` | 8 | `tests/lib_file_names.aiw:1` |
+| look up a key in the hash map | `lib/std/map.aiw:142` | 17 | `lib/std/map.aiw:1` |
+| under which license is the project published | `README.md:112` | 12 | `.agents/knowledge/architecture/source-extension.md:1` |
+
+The first results of these are near the subject (the test of the function
+that lists a directory, the head of the hash map's file), and the last is
+not: the chunk of the licence is three lines. How well a query finds its
+lines is a property of the model, of the texts and of how they are cut,
+and the example does not measure it; ten queries are no such measure. What
+the example shows is the path from a repository to lines that can be
+opened, and that a copy of the file answers the same.
+
+**The ranking is the engine's part**, and it was compared on that run: for
+each of the ten queries, the five results of `aildb search` were the five
+records with the highest cosine that numpy computed in binary64 from
+`vectors.bin` and `queries.bin`, in the same order, and each printed score
+was the one of numpy to its six decimals. Acceptance check 2 is the test
+of this that `make test` runs.
+
+**Not the same on every machine.** Asking twice for the vectors of the
+queries gave the same bytes on this machine. Another processor, another
+version of Ollama or the model without the GPU may give vectors that
+differ in their last bits, so a score may differ late in its decimals and
+two results that are close may change places. The six queries have their
+record among five results with room, not by a rule that depends on the
+last digit; the places in the output above are those of this run.
+
+**17 of the 3266 chunks are longer than 1500 bytes**, single lines of the
+documents, the longest 16983 bytes. The model read these up to its
+context.

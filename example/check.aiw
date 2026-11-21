@@ -1,0 +1,235 @@
+# check -- acceptance check 1 on the index of the example.
+#
+#   check AILDB INDEX COPY QUERIES VECTORS
+#
+# QUERIES has a line for each query: its text, a path and a line number
+# of that path, with tabs between; VECTORS has the embedding of each, 768
+# binary32, as example/embed.py writes them. For each query the program
+# AILDB searches the snapshot INDEX and its copy COPY for the five best
+# results. A query is good if one of the results on INDEX is a record of
+# the path whose lines have the line number, and the search on COPY wrote
+# the same bytes. A line is printed for each query and one for all; the
+# status is 0 if every query is good, 1 if not, 2 for wrong usage and 4
+# for a file that cannot be read or written or a search that failed. The
+# files VECTORS.one and VECTORS.out are written beside VECTORS.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "src/lib/text.aiw"
+use "src/lib/fmt.aiw"
+
+const dim4 3072
+buf qs 24
+buf vs 24
+buf one 24      # the path VECTORS.one
+buf out 24      # the path VECTORS.out
+buf args 24     # the arguments of a search, a NUL after each
+buf av 80
+buf ra 24       # what the search on INDEX wrote
+buf rb 24       # and the one on COPY
+buf need 24
+
+fn fail p n q m
+	call eprint "check: "
+	call eprint p n
+	call eprint q m
+	call eprint "\n"
+	sys exit_group 4
+end
+
+# add the n bytes at p to args as an argument, number k
+fn arg k p n
+	load args+8 as o
+	call byadd args p n
+	call byaddb args 0
+	store av+k*8 o
+end
+
+# search the snapshot at ip in with the program at xp xn for the query in
+# the file of one, and make r hold what it wrote
+fn search xp xn ip in r
+	call bycut args 0
+	call arg 0 xp xn
+	call arg 1 "search"
+	call arg 2 ip in
+	call arg 3 "-k"
+	call arg 4 "5"
+	call arg 5 "-q"
+	load one as p
+	load one+8 as n
+	call arg 6 p n
+	# the offsets become addresses when args grows no more
+	load args as p
+	i=0
+	while i<7
+		load av+i*8 as o
+		store av+i*8 p+o
+		i+=1
+	end
+	store av+56 0
+	load out as p
+	load out+8 as n
+	call fileopen p n 0x241 420 as fd
+	call fileopen "/dev/null" 0 0 as nul
+	ifslt fd|nul 0
+		call fail "cannot write " p n
+	end
+	call procstart av nul fd 2 as pid
+	sys close fd
+	sys close nul
+	st=-1
+	ifsge pid 0
+		call procwait pid 0 as st
+	end
+	if st
+		call fail "the search failed on " ip in
+	end
+	call bycut r 0
+	call fileread p n r as st
+	ifslt st 0
+		call fail "cannot read " p n
+	end
+end
+
+# the place of the first result among the n bytes at p, the output of a
+# search, that is a record of the path pp pn with the line in its lines,
+# from 1; 0 if there is none
+fn place p n pp pn line
+	call bycut need 0
+	call byadd need "\"path\":"
+	call fmtjson need pp pn
+	call byadd need ",\"start_line\":"
+	load need as q
+	load need+8 as m
+	rank=0
+	while n
+		call textline p n as l ok
+		# the first line is about the snapshot
+		if rank
+			i=0
+			while i+m<l
+				call texteq p+i m q m as same
+				if same
+					call textfind p+i+m l-i-m 44 as d ok2
+					call textnum p+i+m d as first ok2
+					# ,"end_line": and the number up to the brace
+					j=i+m+d+12
+					call textnum p+j l-j-1 as last ok3
+					if ok2&ok3&(first<=line)&(line<=last)
+						ret rank
+					end
+					i=l
+				end
+				i+=1
+			end
+		end
+		rank+=1
+		p+=l+ok
+		n-=l+ok
+	end
+	ret 0
+end
+
+call argc as c
+if c!=6
+	call eprint "usage: check AILDB INDEX COPY QUERIES VECTORS\n"
+	sys exit_group 2
+end
+call argv 1 as xp xn
+call argv 2 as ip in
+call argv 3 as cp cn
+call argv 4 as p n
+call fileread p n qs as r
+ifslt r 0
+	call fail "cannot read " p n
+end
+call argv 5 as p n
+call fileread p n vs as r
+ifslt r 0
+	call fail "cannot read " p n
+end
+call byadd one p n
+call byadd one ".one"
+call byadd out p n
+call byadd out ".out"
+load qs as q
+load qs+8 as m
+load vs as v
+load vs+8 as vn
+total=0
+good=0
+top=0
+moved=0
+while m
+	call textline q m as l ok
+	if l
+		call textfield q l as tn ok1
+		call textfield q+tn+1 l-tn-1 as pn ok2
+		pp=q+tn+1
+		call textnum pp+pn+1 l-tn-pn-2 as line ok3
+		ifz ok1&ok2&ok3
+			call fail "a line of the queries is not a text, a path and a line number" ""
+		end
+		if (total+1)*dim4>vn
+			call fail "fewer vectors than queries" ""
+		end
+		load one as p
+		load one+8 as n
+		call filewrite p n v+total*dim4 dim4 as r
+		ifslt r 0
+			call fail "cannot write " p n
+		end
+		call search xp xn ip in ra
+		call search xp xn cp cn rb
+		load ra as a
+		load ra+8 as an
+		load rb as b
+		load rb+8 as bn
+		call texteq a an b bn as same
+		call place a an pp pn line as rank
+		total+=1
+		moved+=same
+		if rank
+			good+=1
+			if rank==1
+				top+=1
+			end
+			call print "ok   "
+			if same
+				call print "place "
+				call putn rank
+			else
+				call print "but the copy answers otherwise"
+			end
+		else
+			call print "FAIL not in the first 5"
+		end
+		call print "  "
+		call print pp pn
+		call print ":"
+		call putn line
+		call print "  "
+		call print q tn
+		call print "\n"
+	end
+	q+=l+ok
+	m-=l+ok
+end
+load one as p
+load one+8 as n
+call fileunlink p n
+load out as p
+load out+8 as n
+call fileunlink p n
+call putn good
+call print " of "
+call putn total
+call print " queries have the expected lines in the first 5 results, "
+call putn top
+call print " as the first; the copy answered "
+call putn moved
+call print " with the same bytes\n"
+if (good!=total)|(moved!=total)
+	sys exit_group 1
+end
