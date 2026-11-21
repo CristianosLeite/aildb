@@ -12,6 +12,17 @@ completed, under the section it had there.
   bits; `build` normalizes; a read-only mapping and the binary32 statements
   of AIL; two CRC-32; no stop point in the shipped executable; the oracle in
   AIL; the Python binding of LanceDB.
+- [x] Stop points of the interruption tests: a second executable,
+  built by the tests from the same sources, is what was meant (user,
+  2026-11-21).
+- [x] Tolerances: the same bits for a sum in the order of the engine, 1e-12
+  for another order, about 1e-5 against LanceDB (user, 2026-11-21).
+- [x] Overlapping builds: `flock` on `<destination>.lock` (user, 2026-11-21).
+- [x] Semantics: path prefix by bytes, language by equality, the empty
+  index valid, a filter that matches nothing gives no line and status 0;
+  the statuses 0 success, 2 usage, 3 invalid file or input, 4 I/O, 5 build
+  in progress, 6 published without confirmed durability (user,
+  2026-11-21).
 
 ## 2. Skeleton
 

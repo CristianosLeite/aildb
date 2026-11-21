@@ -13,20 +13,16 @@ to `BACKLOG.md`, under the same section.
 
 - [ ] `REQUIREMENTS.md`: the link of acceptance check 4 names the JS
   documentation of LanceDB while the Python binding is used.
-- [ ] Stop points of the interruption tests: confirm that a second
-  executable, built by the tests from the same sources, is what was meant.
-- [ ] Tolerances: the same bits for a sum in the order of the engine, 1e-12
-  for another order, about 1e-5 against LanceDB (all proposed).
-- [ ] Semantics: path prefix by bytes, language by equality, the empty
-  index, a filter that matches nothing, the limits of k, dimension and
-  count, one exit status for each class of error.
-- [ ] Overlapping builds: `flock` on `<destination>.lock` (proposed).
+- [ ] The limits of k, dimension and count, fixed with the format of
+  step 3.
 - [ ] Git: the remote, the published name and the licence. The repository
   was initialized on 2026-11-21, with a `.gitignore`.
 
 ## 1. binary32 in AIL (work in the AIL repository)
 
-Steps 2 to 5 do not wait for this one; `build` and `search` do.
+Steps 2 to 5 do not wait for this one; `build` and `search` do. It is done
+by the agent on a branch of the checkout that is not pushed; the user
+reviews and publishes it, and `ail.pin` then moves to that revision.
 
 - [ ] `f4to8 a as x` and `f8to4 a as x`: rows of `optab`, cases in
   `tests/insn.cases`, tests, `docs/language.md`.

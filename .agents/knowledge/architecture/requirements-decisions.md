@@ -45,7 +45,7 @@ documented.
   exist in the shipped executable** (user, 2026-11-21: "this must not exist in the final
   version"). Read here as: the test suite builds a second executable from the same sources
   with a constant that compiles the stop points in, and the released one has none; the
-  user has not yet confirmed that reading. Kills from outside at varying moments run
+  user confirmed that reading the same day. Kills from outside at varying moments run
   against the released executable as well.
 - **AIL is obtained as in ail-bench** (user, 2026-11-21): a file `ail.pin` with the URL and
   the revision, a script `tools/ail.sh` that clones it or links a local checkout, and the
@@ -58,15 +58,33 @@ documented.
   (user, 2026-11-21), a process a query, from the harness written in AIL. The start of the
   interpreter is part of its end-to-end time and is reported apart from its search time.
 
-## Proposed, not yet decided
-- Tolerance: the same bits for an implementation that adds in the order of the engine (the
-  AIL oracle does), and 1e-12 absolute for one that adds in another order (the bound is
-  8.6e-14). LanceDB computes in binary32, so its scores are compared within about 1e-5 and
-  its order may differ between near ties.
-- A path prefix is compared byte by byte; a language filter is equality with the field the
-  producer gave; an empty index is valid; a filter that matches nothing gives no result
-  line and status 0; one exit status for each class of error (usage, invalid file, I/O,
-  build in progress).
-- Overlapping builds: a non-blocking exclusive `flock` on `<destination>.lock`, with the
-  temporary file under one fixed name while the lock is held. `flock` is not reliable on
-  every network filesystem, which belongs with the storage assumptions.
+## Decided on the proposals (user, 2026-11-21, when the implementation started)
+- **Exit statuses, one for each class of error**: 0 success; 2 wrong usage; 3 an invalid
+  snapshot or invalid input (a malformed or corrupted file, a wrong dimension, a value that
+  is not finite, a zero vector, a model identifier that differs); 4 an I/O failure (open,
+  read, write, sync, map, rename); 5 another build in progress for the destination; 6 the
+  snapshot was published but its durability is not confirmed, which is the rename that
+  succeeded followed by a sync of the directory that failed. 1 is left unused: it is what
+  `die` of the AIL library and a shell give for failures that are none of these. Rejected:
+  0, 1 and 2 only, with the diagnostic telling the cases apart, which a caller would have
+  to parse.
+- **Semantics of `search`**: a path prefix is compared byte by byte; a language filter is
+  equality with the field the producer gave; an empty index is valid; a filter that matches
+  nothing gives no result line and status 0.
+- **Tolerances**: the same bits for an implementation that adds in the order of the engine
+  (the AIL oracle does), and 1e-12 absolute for one that adds in another order (the bound
+  is 8.6e-14). LanceDB computes in binary32, so its scores are compared within about 1e-5
+  and its order may differ between near ties.
+- **Overlapping builds**: a non-blocking exclusive `flock` on `<destination>.lock`, with
+  the temporary file under one fixed name while the lock is held. `flock` is not reliable
+  on every network filesystem, which belongs with the storage assumptions.
+- **Stop points**: the reading above is confirmed. The test suite builds a second
+  executable from the same sources with a constant that compiles the stop points in; the
+  shipped `build/aildb` has none.
+- **The binary32 statements are added to the AIL repository by the agent, on a branch that
+  is not pushed**; the user reviews and publishes it, and `ail.pin` moves to the published
+  revision afterwards.
+
+## Still open
+- The limits of the result count, the dimension and the record count; they are fixed where
+  the format is documented (step 3 of `docs/TODO.md`).
