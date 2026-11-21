@@ -12,7 +12,7 @@ trap 'exit 1' HUP INT TERM
 # the sources git knows or would add, so that a new one is checked before
 # its first commit; without git, those of the directories that have them
 git ls-files --cached --others --exclude-standard '*.aiw' 2> /dev/null > "$tmp/list"
-[ -s "$tmp/list" ] || find src tests tools -name '*.aiw' > "$tmp/list"
+[ -s "$tmp/list" ] || find src tests tools example -name '*.aiw' > "$tmp/list"
 xargs build/tools/indent --check < "$tmp/list" > "$tmp/said" 2>&1
 r=$?
 if [ $r -eq 0 ]; then echo "ok   indent_sources"; else head -n 20 "$tmp/said"; echo "FAIL indent_sources"; fi

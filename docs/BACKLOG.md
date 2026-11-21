@@ -128,3 +128,10 @@ and `a5b4559`, 2026-11-21); `make test` passed there.
   destination is absent, or a complete old or new snapshot.
 - [x] A failed rebuild keeps the previous file; an overlapping build is
   rejected; readers that opened before a rebuild finish on the old file.
+
+## 9. The example, and acceptance check 1
+
+- [x] The chunker in AIL: `build/chunk`, from `example/chunk.aiw`, cuts
+  the `.aiw` and `.md` files of a list into chunks of whole lines, a
+  function or a section each, 40 lines and 1500 bytes at most, and writes
+  the TSV and the text of each chunk; `docs/example.md` has the rules.

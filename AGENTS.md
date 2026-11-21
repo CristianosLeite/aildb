@@ -17,13 +17,14 @@ The documents the code follows, each changed in the commit that changes what it 
 - `docs/usage.md`: the three commands, their options, inputs, JSON Lines and exit statuses (0, 2 usage, 3 invalid snapshot or input, 4 I/O, 5 build in progress, 6 published without confirmed durability).
 - `docs/format.md`: the snapshot file, version 1, the validation a reader does, the definition of a score, the tolerances and the limits.
 - `docs/durability.md`: what a build leaves when it is interrupted and what it assumes for a loss of power.
+- `docs/example.md`: the example of step 9, as far as it is written: how the chunker cuts the files of a repository.
 
 The layout and the limits of the format, the option letters and the form of the output lines were chosen by the agent and wait for the user's review (open items).
 
 How it is built and tested:
 
 - `make` runs `tools/ail.sh`, which puts AIL at `ail/` (a clone at the revision of `ail.pin`, or a link: `make AIL=../ailang`) and links `lib`; builds the compiler there, links it as `build/ailc`, and compiles `src/aildb.aiw` to `build/aildb`. `build/tools/indent file.aiw` indents a source.
-- `make test` also builds `build/aildb-stops` and runs `tests/run.sh` and `tests/indent.sh`. A test is `tests/<name>.aiw` with `<name>.out`, an optional `<name>.code`, or `<name>.err`; it is compiled and started at the top of the repository and works in the directory of `AILDB_TMP`. `make test T=<name>` runs one.
+- `make test` also builds `build/aildb-stops` and `build/chunk`, the chunker of the example (`example/chunk.aiw`, with `tests/example_chunk.aiw`), and runs `tests/run.sh` and `tests/indent.sh`. A test is `tests/<name>.aiw` with `<name>.out`, an optional `<name>.code`, or `<name>.err`; it is compiled and started at the top of the repository and works in the directory of `AILDB_TMP`. `make test T=<name>` runs one.
 - The expected output of a test that prints what the engine wrote is made by running the test once and reading the result against what was reasoned or computed outside (Python for bits of floating point, CRC-32 and UTF-8); say in the commit how it was checked.
 
 Where things are:

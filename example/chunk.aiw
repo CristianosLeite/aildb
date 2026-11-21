@@ -1,0 +1,246 @@
+# chunk -- cut the sources of a repository into chunks for the example.
+#
+#   chunk ROOT META TEXT < LIST
+#
+# LIST, on stdin, is paths relative to the directory ROOT, one a line, as
+# "git ls-tree -r --name-only" prints them. A path that ends in ".aiw" is
+# a source of AIL, one that ends in ".md" is Markdown, and every other
+# path is passed over. META gets one line for each chunk, as build takes
+# its metadata: the path, the first line, the last line and the language
+# ("ail" or "markdown"), with tabs between. TEXT gets one line for each
+# chunk, in the same order: the bytes of the chunk as a string of JSON.
+# docs/example.md says how a file is cut. The status is 0 and stdout has
+# the number of files and of chunks, or 2 for wrong usage, 3 for a path
+# that build would not take and 4 for a file that cannot be read or
+# written, with a line on stderr.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "src/lib/text.aiw"
+use "src/lib/fmt.aiw"
+
+# a chunk has at most this many lines and, if it has more than one line,
+# at most this many bytes
+const maxlines 40
+const maxbytes 1500
+
+buf list 24
+buf src 24
+buf meta 24
+buf text 24
+buf path 24
+var chunks
+
+fn fail st p n q m
+	call eprint "chunk: "
+	call eprint p n
+	call eprint q m
+	call eprint "\n"
+	sys exit_group st
+end
+
+# 1 if the n bytes at p have a byte that is not a space, a tab or a
+# carriage return
+fn inked p n
+	i=0
+	while i<n
+		loadb p+i as c
+		if (c!=32)&(c!=9)&(c!=13)
+			ret 1
+		end
+		i+=1
+	end
+	ret 0
+end
+
+# 1 if the n bytes at p, which start a line of AIL, start a function: the
+# line starts with "fn ", or it is the first of a run of lines that start
+# with "#" and the line after the run starts with "fn ". prev says that
+# the line before starts with "#".
+fn fnstart p n prev
+	if prev
+		ret 0
+	end
+	call textprefix p n "fn " as r
+	if r
+		ret 1
+	end
+	label run
+	ifz n
+		ret 0
+	end
+	loadb p as c
+	if c!=35
+		tail textprefix p n "fn "
+	end
+	call textline p n as l ok
+	ifz ok
+		ret 0
+	end
+	p+=l+1
+	n-=l+1
+	jmp run
+end
+
+# 1 if the n bytes of a line at p are a heading of Markdown: one to six
+# "#" and a space
+fn heading p n
+	i=0
+	while i<n
+		loadb p+i as c
+		if c!=35
+			if (c==32)&(i>0)&(i<7)
+				ret 1
+			end
+			ret 0
+		end
+		i+=1
+	end
+	ret 0
+end
+
+# add the chunk of the lines first to last, the n bytes at p, of the file
+# at the path pp pn, which is Markdown if md says so and else AIL
+fn emit pp pn first last md p n
+	call byadd meta pp pn
+	call byaddb meta 9
+	call byaddn meta first
+	call byaddb meta 9
+	call byaddn meta last
+	call byaddb meta 9
+	if md
+		call byadd meta "markdown"
+	else
+		call byadd meta "ail"
+	end
+	call byaddb meta 10 as a
+	call fmtjson text p n as b
+	call byaddb text 10 as c
+	if (a==0)|(b==0)|(c==0)
+		call fail 4 "out of memory" ""
+	end
+	chunks+=1
+end
+
+# cut the n bytes at p, the file at the path pp pn; md says that it is
+# Markdown and not AIL
+fn cut pp pn p n md
+	line=1
+	# the chunk that is open: its first line and where that starts, its
+	# last line with ink and where that ends; first is 0 if there is none
+	first=0
+	start=0
+	last=0
+	stop=0
+	prev=0
+	fence=0
+	pos=0
+	while pos<n
+		call textline p+pos n-pos as l ok
+		q=p+pos
+		new=0
+		if md
+			call textprefix q l "```" as r
+			if r
+				fence=1-fence
+			else
+				ifz fence
+					call heading q l as new
+				end
+			end
+		else
+			call fnstart q n-pos prev as new
+			call textprefix q l "#" as prev
+		end
+		call inked q l as ink
+		if ink
+			if first
+				if new|(line-first>=maxlines)|(pos+l-start>maxbytes)
+					call emit pp pn first last md p+start stop-start
+					first=0
+				end
+			end
+			ifz first
+				first=line
+				start=pos
+			end
+			last=line
+			stop=pos+l
+		end
+		pos+=l+1
+		line+=1
+	end
+	if first
+		call emit pp pn first last md p+start stop-start
+	end
+end
+
+call argc as c
+if c!=4
+	call eprint "usage: chunk ROOT META TEXT < LIST\n"
+	sys exit_group 2
+end
+call argv 1 as rp rn
+call filereadfd 0 list as r
+ifslt r 0
+	call fail 4 "cannot read the list on stdin" ""
+end
+load list as p
+load list+8 as n
+files=0
+while n
+	call textline p n as l ok
+	ail=0
+	md=0
+	if l>4
+		call texteq p+l-4 4 ".aiw" as ail
+	end
+	if l>3
+		call texteq p+l-3 3 ".md" as md
+	end
+	if ail|md
+		call textvalid p l as a
+		call textinside p l as b
+		if (a==0)|(b==0)
+			call fail 3 "a path with a byte that build does not take, or one that leaves the directory" ""
+		end
+		call bycut path 0
+		call byadd path rp rn
+		call byaddb path 47
+		call byadd path p l as a
+		ifz a
+			call fail 4 "out of memory" ""
+		end
+		call bycut src 0
+		load path as q
+		load path+8 as m
+		call fileread q m src as r
+		ifslt r 0
+			call fail 4 "cannot read " q m
+		end
+		load src as q
+		load src+8 as m
+		call cut p l q m md
+		files+=1
+	end
+	p+=l+ok
+	n-=l+ok
+end
+call argv 2 as p n
+load meta as q
+load meta+8 as m
+call filewrite p n q m as r
+ifslt r 0
+	call fail 4 "cannot write " p n
+end
+call argv 3 as p n
+load text as q
+load text+8 as m
+call filewrite p n q m as r
+ifslt r 0
+	call fail 4 "cannot write " p n
+end
+call putn files
+call print " files, "
+call putn chunks
+call print " chunks\n"

@@ -12,6 +12,7 @@ The decisions about the language AIL, its compiler and its libraries are in the 
 - [The snapshot format, version 1](architecture/format.md) — why the header writes every offset, one canonical form, records of 24 bytes with shared strings, the chain of the two CRC-32, UTF-8 checked by the reader, the limits; chosen by the agent, for the user to review
 - [The command line and the interchange formats](architecture/interface.md) — one-letter options, strict metadata, the JSON object of `check` and `build`, six decimals for `score`; chosen by the agent, for the user to review
 - [How build publishes a snapshot](architecture/publication.md) — lock, temporary file, sync, validation, rename, directory sync; status 6; stop points and failing syncs as a file of hooks that the shipped executable has empty
+- [The example](architecture/example.md) — nomic-embed-text; chunks of whole lines without overlap, a function with its comment or a Markdown section, 40 lines and 1500 bytes at most; the list of files comes from git, the text goes out as JSON strings
 
 ## testing
 - [How the tests run](testing/runner.md) — `make test`: AIL programs with expected output and status, compiled and run from the top of the repository, files in `AILDB_TMP`, the indentation check

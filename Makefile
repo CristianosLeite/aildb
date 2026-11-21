@@ -52,9 +52,13 @@ $(B)/aildb: src/aildb.aiw $(SRC) $(AILLIB) $(B)/ailc
 $(B)/aildb-stops: tests/lib/stops.aiw tests/lib/hook.aiw $(SRC) $(AILLIB) $(B)/ailc
 	$(call compile,$(B)/ailc)
 
+# The chunker of the example (docs/example.md), which has a test.
+$(B)/chunk: example/chunk.aiw $(SRC) $(AILLIB) $(B)/ailc
+	$(call compile,$(B)/ailc)
+
 # Every test, or with T the tests of tests/run.sh named there:
 # make test T="name name".
-test: all $(B)/aildb-stops
+test: all $(B)/aildb-stops $(B)/chunk
 ifeq ($(T),)
 	@f=0; AILC=$(B)/ailc tests/run.sh || f=1; tests/indent.sh || f=1; exit $$f
 else

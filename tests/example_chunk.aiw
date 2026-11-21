@@ -1,0 +1,109 @@
+# the chunker of the example, build/chunk: how it cuts a source of AIL
+# and a Markdown file into chunks, as docs/example.md says, the lines of
+# metadata and of text it writes, and what it says of wrong arguments, a
+# path that build would not take and a file that is not there.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "tests/lib/cmd.aiw"
+buf b 24
+buf f 24
+# run the chunker on the list at list.txt and print what it wrote
+fn run
+	call fileunlink "meta.tsv"
+	call fileunlink "text.jsonl"
+	call cmdshowin "chunk . meta.tsv text.jsonl" "list.txt"
+	call bycut b 0
+	call fileread "meta.tsv" b
+	call print "--- meta.tsv\n"
+	load b as p
+	load b+8 as n
+	call print p n
+	call bycut b 0
+	call fileread "text.jsonl" b
+	call print "--- text.jsonl\n"
+	load b as p
+	load b+8 as n
+	call print p n
+end
+# write the bytes of f to the file at p n and empty f
+fn save p n
+	load f as q
+	load f+8 as m
+	call filewrite p n q m
+	call bycut f 0
+end
+
+call print "# AIL: a function starts a chunk, with the comment above it\n"
+call filemkdir "lib" 493
+call byadd f "# a.aiw -- two functions\nuse \"x.aiw\"\n\n# the first,\n# with two lines of comment\nfn one a\n\tret a\nend\n"
+call byadd f "fn two a\n\t# a comment inside\n\tret a\nend\n\n\n# no function follows\nvar v\n# the third\n\nfn three\nend\ncall one 1\n"
+call save "lib/a.aiw"
+call filewrite "list.txt" "lib/a.aiw\n"
+call run
+
+call print "\n# Markdown: a heading starts a chunk, a line in a fence does not\n"
+call byadd f "intro\n\n# Title\n\ntext \\ \"quoted\"\n```\n# a comment of AIL\nfn x\n```\n#no heading\n####### seven\n## Second\n   \n\t\nlast"
+call save "doc.md"
+call filewrite "list.txt" "doc.md\n"
+call run
+
+call print "\n# forty lines at most; blank lines at the ends belong to no chunk\n"
+i=0
+while i<95
+	if (i==39)|(i==40)|(i==41)
+		call byadd f "\n"
+	else
+		call byadd f "x\n"
+	end
+	i+=1
+end
+call save "long.aiw"
+call filewrite "list.txt" "long.aiw\n"
+call run
+
+call print "\n# 1500 bytes at most, but for a line that is longer\n"
+# three lines of 700 bytes, one of 1600, one of 100 and one of 1399
+i=0
+while i<6
+	n=700
+	if i==3
+		n=1600
+	end
+	if i==4
+		n=100
+	end
+	if i==5
+		n=1399
+	end
+	while n>1
+		call byaddb f 97+i
+		n-=1
+	end
+	call byaddb f 10
+	i+=1
+end
+call save "wide.md"
+call filewrite "list.txt" "wide.md\n"
+call run
+
+call print "\n# files without a chunk, carriage returns, paths that are passed over\n"
+call filewrite "empty.aiw" ""
+call filewrite "blank.md" "\n \n\t\x0d\n"
+call filewrite "crlf.aiw" "fn a\x0d\nend\x0d\n\x0d\nfn b\x0d\nend\x0d\n"
+call filewrite "list.txt" "empty.aiw\nMakefile\nblank.md\n.aiw\n.md\nnone.txt\n\ncrlf.aiw\nlib/a.aiw"
+call run
+
+call print "\n# what it refuses\n"
+call cmdshow "chunk . meta.tsv"
+call filewrite "list.txt" "lib/a.aiw\nlib/none.aiw\n"
+call run
+call filewrite "list.txt" "../lib/a.aiw\n"
+call run
+call filewrite "list.txt" "li\x01b/a.aiw\n"
+call run
+call filewrite "list.txt" "/etc/a.md\n"
+call run
+call filewrite "list.txt" "lib/a.aiw\n"
+call cmdshowin "chunk . none/meta.tsv text.jsonl" "list.txt"
