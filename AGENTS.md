@@ -10,7 +10,7 @@ aildb is a local, file-based vector search engine written in AIL (https://github
 
 ## State
 
-Nothing is built yet. The repository holds `REQUIREMENTS.md`, this file, `README.md`, `docs/TODO.md` and the knowledge base; there is no source, no Makefile and no test. Git was initialized on 2026-11-21 with the branch `main` and no remote; every implementation is one commit under the rules below (user, 2026-11-21). Do not add a remote, push or create the build before the user says so. The steps to version 1 are in `docs/TODO.md`, in the order in which one unblocks the next; an item that is completed is moved to `docs/BACKLOG.md`. The questions that are open are in `.agents/knowledge/status/open-items.md`; a decision taken in a conversation goes into the knowledge base the same day, and this section is rewritten when the first code lands.
+The implementation started on 2026-11-21 (user) and is at step 2 of `docs/TODO.md`, the skeleton. AIL is pinned in `ail.pin` and `tools/ail.sh` puts it at `ail/`; there is no source, no Makefile and no test yet. Git was initialized on 2026-11-21 with the branch `main` and no remote; every implementation is one commit under the rules below (user, 2026-11-21). Do not add a remote or push before the user says so. The steps to version 1 are in `docs/TODO.md`, in the order in which one unblocks the next; an item that is completed is moved to `docs/BACKLOG.md`. The questions that are open are in `.agents/knowledge/status/open-items.md`; a decision taken in a conversation goes into the knowledge base the same day, and this section is rewritten when the first code lands.
 
 ## Rules
 
@@ -25,7 +25,7 @@ The rules for commits, pull requests and written text are those of the AIL repos
 
 ## AIL
 
-The language, its compiler and its libraries are in the AIL repository; its `AGENTS.md` and `docs/language.md` describe them, and they are read before AIL is written here. A checkout is usually beside this repository (`../ailang` on the user's machine; the published name is `ail`). Nothing of it is copied here. This repository will get it as the repository ail-bench (https://github.com/CristianosLeite/ail-bench) does (user, 2026-11-21): a file `ail.pin` with the revision, a script `tools/ail.sh` and a link `lib -> ail/lib`; none of them exists yet.
+The language, its compiler and its libraries are in the AIL repository; its `AGENTS.md` and `docs/language.md` describe them, and they are read before AIL is written here. A checkout is usually beside this repository (`../ailang` on the user's machine; the published name is `ail`). Nothing of it is copied here. This repository gets it as the repository ail-bench (https://github.com/CristianosLeite/ail-bench) does (user, 2026-11-21): the file `ail.pin` has the address and the revision, and `tools/ail.sh` makes `ail/` a clone at that revision, or with a path a link to that checkout (`tools/ail.sh ../ailang`), and then the link `lib -> ail/lib`. Git ignores `ail` and `lib`.
 
 What AIL gives this project, as of its revision `7dea612` (2026-11-21):
 

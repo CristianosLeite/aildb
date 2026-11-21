@@ -37,8 +37,6 @@ Steps 2 to 5 do not wait for this one; `build` and `search` do.
 
 ## 2. Skeleton
 
-- [ ] `ail.pin`, `tools/ail.sh` and the link `lib -> ail/lib`, as ail-bench
-  has them.
 - [ ] `Makefile`: the compiler linked from `ail/`, one executable `aildb`
   from `src/aildb.aiw`, compiled into a temporary file and moved.
 - [ ] `tests/run.sh` in the manner of AIL (`name.aiw` with `name.out`,

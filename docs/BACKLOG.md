@@ -12,3 +12,8 @@ completed, under the section it had there.
   bits; `build` normalizes; a read-only mapping and the binary32 statements
   of AIL; two CRC-32; no stop point in the shipped executable; the oracle in
   AIL; the Python binding of LanceDB.
+
+## 2. Skeleton
+
+- [x] `ail.pin`, `tools/ail.sh` and the link `lib -> ail/lib`, as ail-bench
+  has them.
