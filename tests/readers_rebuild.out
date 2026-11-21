@@ -1,0 +1,42 @@
+$ aildb build -o r.idx -v old.bin -m old.tsv -d 2 -i m -r old
+--- stdout
+{"records":1,"dimension":2,"model":"m","source_revision":"old"}
+--- stderr
+--- status 0
+reader 0 has the snapshot mapped: 1
+reader 1 has the snapshot mapped: 1
+reader 2 has the snapshot mapped: 1
+$ aildb build -o r.idx -v new.bin -m new.tsv -d 2 -i m -r new
+--- stdout
+{"records":2,"dimension":2,"model":"m","source_revision":"new"}
+--- stderr
+--- status 0
+$ aildb search r.idx -k 5 < q.bin
+--- stdout
+{"source_revision":"new","model":"m"}
+{"rank":1,"score":1.000000,"score_bits":"3ff0000000000000","path":"new1.aiw","start_line":1,"end_line":9}
+{"rank":2,"score":0.000000,"score_bits":"0000000000000000","path":"new2.aiw","start_line":1,"end_line":9}
+--- stderr
+--- status 0
+reader 0 ended with status 0 and printed
+{"source_revision":"old","model":"m"}
+{"rank":1,"score":1.000000,"score_bits":"3ff0000000000000","path":"old.aiw","start_line":1,"end_line":9}
+reader 1 ended with status 0 and printed
+{"source_revision":"old","model":"m"}
+{"rank":1,"score":1.000000,"score_bits":"3ff0000000000000","path":"old.aiw","start_line":1,"end_line":9}
+reader 2 ended with status 0 and printed
+{"source_revision":"old","model":"m"}
+{"rank":1,"score":1.000000,"score_bits":"3ff0000000000000","path":"old.aiw","start_line":1,"end_line":9}
+bytes on stderr of the readers: 0
+$ aildb build -o r.idx -v old.bin -m new.tsv -d 2 -i m -r bad
+--- stdout
+--- stderr
+aildb: old.bin: holds 8 bytes, and 2 records of 2 dimensions are 16
+--- status 3
+$ aildb search r.idx -k 5 < q.bin
+--- stdout
+{"source_revision":"new","model":"m"}
+{"rank":1,"score":1.000000,"score_bits":"3ff0000000000000","path":"new1.aiw","start_line":1,"end_line":9}
+{"rank":2,"score":0.000000,"score_bits":"0000000000000000","path":"new2.aiw","start_line":1,"end_line":9}
+--- stderr
+--- status 0

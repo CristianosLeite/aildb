@@ -28,11 +28,6 @@ reviews and publishes it, and `ail.pin` then moves to that revision.
   `make AIL=<that checkout>` can compile them.
 - [ ] Float literals (user's proposal): not needed for version 1.
 
-## 8. Acceptance checks 2 and 3
-
-- [ ] A failed rebuild keeps the previous file; an overlapping build is
-  rejected; readers that opened before a rebuild finish on the old file.
-
 ## 9. The example, and acceptance check 1
 
 - [ ] The chunker in AIL: files of the AIL repository at the pinned

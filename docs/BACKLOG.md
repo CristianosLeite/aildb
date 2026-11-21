@@ -118,3 +118,5 @@ and `a5b4559`, 2026-11-21), not pushed; `make test` passed there.
 - [x] Interruption: the test executable with stop points before and after
   `rename`, and kills at varying moments of the shipped one; the
   destination is absent, or a complete old or new snapshot.
+- [x] A failed rebuild keeps the previous file; an overlapping build is
+  rejected; readers that opened before a rebuild finish on the old file.

@@ -1,0 +1,130 @@
+# acceptance check 3, readers overlapping a rebuild: a search that has
+# opened a snapshot finishes on it when a build replaces the file,
+# while a search started afterwards sees the new one; and a rebuild
+# that fails leaves the snapshot that is there. Three searches are
+# started with a pipe as their standard input, so that they open and
+# map the snapshot and then wait for their query; the build runs while
+# they wait. tests/cli_build_publish.aiw has the overlapping build that
+# is rejected.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "tests/lib/cmd.aiw"
+const pipe2 293
+buf v 24
+buf fds 8
+buf pids 24
+buf ends 24
+buf name 24
+buf maps 24
+buf out 24
+buf ts 16
+# 1 once the process pid has a file mapped whose line in /proc has the
+# n bytes at p, within five seconds
+fn mapped pid p n
+	tries=0
+	label look
+	call bycut name 0
+	call byadd name "/proc/"
+	call byaddn name pid
+	call byadd name "/maps"
+	load name as q
+	load name+8 as m
+	call bycut maps 0
+	call fileread q m maps as r
+	load maps as q
+	load maps+8 as m
+	i=0
+	while i+n<=m
+		j=0
+		while j<n
+			loadb q+i+j as x
+			loadb p+j as y
+			jne x y no
+			j+=1
+		end
+		ret 1
+		label no
+		i+=1
+	end
+	if tries>=5000
+		ret 0
+	end
+	store ts 0
+	store ts+8 1000000
+	sys nanosleep ts 0
+	tries+=1
+	jmp look
+end
+# the old snapshot, one record, and the new, two; the query is the
+# first axis
+store4 v 0x3f800000
+store4 v+4 0
+store4 v+8 0
+store4 v+12 0x3f800000
+load v as p
+call filewrite "q.bin" v 8
+call filewrite "old.bin" v 8
+call filewrite "old.tsv" "old.aiw\t1\t9\tail\n"
+call filewrite "new.bin" v 16
+call filewrite "new.tsv" "new1.aiw\t1\t9\tail\nnew2.aiw\t1\t9\tail\n"
+call cmdshow "aildb build -o r.idx -v old.bin -m old.tsv -d 2 -i m -r old"
+# three readers, each waiting for its query with the snapshot mapped
+i=0
+while i<3
+	sys pipe2 fds 0x80000
+	load4 fds as rd
+	load4 fds+4 as wr
+	call bycut name 0
+	call byadd name "reader"
+	call byaddn name i
+	load name as p
+	load name+8 as n
+	call cmdspawnin "aildb search r.idx -k 5" rd p n as pid
+	sys close rd
+	store pids+i*8 pid
+	store ends+i*8 wr
+	call mapped pid "r.idx" as r
+	call print "reader "
+	call putn i
+	call print " has the snapshot mapped: "
+	call putn r
+	call print "\n"
+	i+=1
+end
+call cmdshow "aildb build -o r.idx -v new.bin -m new.tsv -d 2 -i m -r new"
+call cmdshowin "aildb search r.idx -k 5" "q.bin"
+# now the three get their query
+i=0
+while i<3
+	load ends+i*8 as wr
+	sys write wr v 8
+	sys close wr
+	load pids+i*8 as pid
+	call procwait pid 5000 as r
+	call print "reader "
+	call putn i
+	call print " ended with status "
+	call putn r
+	call print " and printed\n"
+	call bycut name 0
+	call byadd name "reader"
+	call byaddn name i
+	load name as p
+	load name+8 as n
+	call bycut out 0
+	call fileread p n out
+	load out as p
+	load out+8 as n
+	call print p n
+	i+=1
+end
+call bycut out 0
+call fileread "bg.err" out as r
+call print "bytes on stderr of the readers: "
+call putn r
+call print "\n"
+# a rebuild that fails: the snapshot of two records stays
+call cmdshow "aildb build -o r.idx -v old.bin -m new.tsv -d 2 -i m -r bad"
+call cmdshowin "aildb search r.idx -k 5" "q.bin"

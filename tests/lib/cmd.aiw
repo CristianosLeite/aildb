@@ -221,3 +221,23 @@ fn cmdawait cmdp cmdn cmdms
 	cmdms-=1
 	jmp look
 end
+
+# Start a command line with the descriptor cmdin as its stdin and do not
+# wait for it: the number of the child, or a negative number. Its stdout
+# goes to the file at the path of the cmdm bytes at cmdq, and what it
+# writes to stderr is added to the file bg.err.
+fn cmdspawnin cmdp cmdn cmdin cmdq cmdm
+	call cmdargs cmdp cmdn as cmdav
+	ifz cmdav
+		ret -2000
+	end
+	call fileopen cmdq cmdm 0x241 420 as cmdo
+	call fileopen "bg.err" 0x441 420 as cmde
+	ifslt cmdo|cmde 0
+		ret -2000
+	end
+	call procstart cmdav cmdin cmdo cmde as cmdpid
+	sys close cmdo
+	sys close cmde
+	ret cmdpid
+end
