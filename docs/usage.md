@@ -85,8 +85,8 @@ before the rename leaves what was at `INDEX` as it was, a snapshot or
 nothing. If the rename succeeded and the sync of the directory failed, the
 new snapshot is at `INDEX` and complete, but may not survive a loss of
 power: `build` prints no line on standard output, says so on standard error
-and ends with status 6. `docs/durability.md` is to say what is assumed of
-the filesystem.
+and ends with status 6. [durability.md](durability.md) says what is assumed
+of the filesystem.
 
 Only one `build` runs for a destination at a time: it holds a lock on the
 file `INDEX.lock`, which it makes and never removes. A second one ends with

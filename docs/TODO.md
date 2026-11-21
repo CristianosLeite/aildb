@@ -28,11 +28,6 @@ reviews and publishes it, and `ail.pin` then moves to that revision.
   `make AIL=<that checkout>` can compile them.
 - [ ] Float literals (user's proposal): not needed for version 1.
 
-## 6. `build`
-
-- [ ] `docs/durability.md`: the filesystem and storage assumptions for a
-  loss of power.
-
 ## 7. `search`
 
 - [ ] Read the query (file or stdin), reject a wrong dimension, a value

@@ -95,3 +95,5 @@ and `a5b4559`, 2026-11-21), not pushed; `make test` passed there.
   directory; write and sync
   failures reported, and the case of a rename that succeeded with a
   directory sync that failed.
+- [x] `docs/durability.md`: the filesystem and storage assumptions for a
+  loss of power.
