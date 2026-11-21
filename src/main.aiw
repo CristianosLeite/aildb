@@ -32,6 +32,7 @@ buf recs 24             # its records
 buf strs 24             # the strings of the snapshot
 buf block 24            # everything before the vectors
 buf tmp 24              # the path of the temporary file, with a NUL byte
+var made                # 1 once this build has created that file
 buf dst 24              # the path of the destination, with a NUL byte
 buf lck 24              # the path of the lock file, with a NUL byte
 buf qraw 24             # search: the bytes of the query
@@ -39,6 +40,7 @@ var qvec                # its doubles, normalized
 buf sel 24              # the best records so far
 const pwrite 18
 const flock 73
+const getrandom 318
 
 # print the usage on stderr and end the program
 fn usage
@@ -265,23 +267,76 @@ fn mapfile p n
 end
 
 # end the program with the status st after the line of msg, and remove
-# the temporary file of build first
+# the temporary file of build first, if this build made one: no other
+# file is removed, whatever its name
 fn giveup st
-	load tmp as p
-	load tmp+8 as n
-	call fileunlink p n-1
+	if made
+		load tmp as p
+		load tmp+8 as n
+		call fileunlink p n-1
+	end
 	call fail st
 end
 
 # end the program for the error r of the kernel in doing what the wn
-# bytes at wp say with the temporary file
+# bytes at wp say with the temporary file. The line names the
+# destination: the name of the temporary file is another in every build.
 fn tmperr wp wn r
-	load tmp as p
-	load tmp+8 as n
+	load dst as p
+	load dst+8 as n
 	call about p n-1
 	call byadd msg wp wn
 	call oserr r
 	call giveup stio
+end
+
+# Make the temporary file of build beside the destination and open it
+# to write: its descriptor. Its name is that of the destination, a dot,
+# sixteen hexadecimal digits from the random numbers of the kernel and
+# ".tmp", and it is created only if nothing has that name (O_EXCL), so
+# no file that was there is opened, cut or removed, a snapshot whose
+# name ends in ".tmp" least of all.
+fn stage
+	local rnd 8
+	load dst as dp
+	load dst+8 as dn
+	dn-=1
+	tries=0
+	label again
+	sys getrandom rnd 8 0 as r
+	if r!=8
+		call about dp dn
+		call byadd msg "cannot name the temporary file: "
+		call oserr r
+		call fail stio
+	end
+	load rnd as x
+	call bycut tmp 0
+	call byadd tmp dp dn as a
+	call byaddb tmp 46 as b
+	call fmthex tmp x as c
+	call byadd tmp ".tmp\0" as d
+	ifz a&b&c&d
+		call bycut msg 0
+		call byadd msg "aildb: out of memory"
+		call fail stio
+	end
+	load tmp as tp
+	load tmp+8 as tn
+	# O_WRONLY, O_CREAT and O_EXCL
+	call fileopen tp tn-1 0xc1 420 as fd
+	if (fd==-17)&(tries<16)
+		tries+=1
+		jmp again
+	end
+	ifslt fd 0
+		call about dp dn
+		call byadd msg "cannot create the temporary file: "
+		call oserr fd
+		call fail stio
+	end
+	made=1
+	ret fd
 end
 
 # flush the directory of the file at the path p n to its device: 0, or
@@ -344,28 +399,23 @@ fn lock
 	end
 end
 
-# Write the snapshot of build to the temporary file, flush it, validate
-# it, put it in the place of the destination and flush the directory. block is everything before the vectors, vec
-# the address of the count vectors of dim binary32 as they were given,
-# and vp vn the path they came from, for the line of an error. Returns
-# when the destination is the new snapshot, which snap then is, and its
-# directory was flushed; the lock is held by the caller.
+# Write the snapshot of build to a temporary file, flush it, validate
+# it, put it in the place of the destination and flush the directory.
+# block is everything before the vectors, vec the address of the count
+# vectors of dim binary32 as they were given, and vp vn the path they
+# came from, for the line of an error. Returns when the destination is
+# the new snapshot, which snap then is, and its directory was flushed;
+# the lock is held by the caller.
 fn publish vec count dim vp vn
+	call stage as fd
 	load tmp as tp
 	load tmp+8 as tn
 	tn-=1
-	call fileopen tp tn 0x241 420 as fd
-	ifslt fd 0
-		call about tp tn
-		call byadd msg "cannot create: "
-		call oserr fd
-		call fail stio
-	end
 	load block as bp
 	load block+8 as bn
 	call writeall fd bp bn as r
 	if r
-		call tmperr "cannot write: " r
+		call tmperr "cannot write the temporary file: " r
 	end
 	call hookstop 1
 	# the doubles of one vector, and a megabyte or so of whole vectors as
@@ -378,7 +428,7 @@ fn publish vec count dim vp vn
 	alloc dim*8 as q
 	alloc room as w
 	if (q==0)|(w==0)
-		call tmperr "cannot write: " -12
+		call tmperr "cannot write the temporary file: " -12
 	end
 	crc=0
 	fill=0
@@ -402,7 +452,7 @@ fn publish vec count dim vp vn
 			call crc32 crc w fill as crc
 			call writeall fd w fill as r
 			if r
-				call tmperr "cannot write: " r
+				call tmperr "cannot write the temporary file: " r
 			end
 			fill=0
 		end
@@ -411,44 +461,44 @@ fn publish vec count dim vp vn
 	call crc32 crc w fill as crc
 	call writeall fd w fill as r
 	if r
-		call tmperr "cannot write: " r
+		call tmperr "cannot write the temporary file: " r
 	end
 	# the checksums are known now: the header once more
 	call packseal block crc
 	call writeat fd bp 128 0 as r
 	if r
-		call tmperr "cannot write: " r
+		call tmperr "cannot write the temporary file: " r
 	end
 	# on the device before it is looked at and before it gets its name
 	call hooksync fd 1 as r
 	if r
 		sys close fd
-		call tmperr "cannot sync: " r
+		call tmperr "cannot sync the temporary file: " r
 	end
 	sys close fd as r
 	if r
-		call tmperr "cannot write: " r
+		call tmperr "cannot write the temporary file: " r
 	end
 	# what was written must be a snapshot to the reader
+	load dst as dp
+	load dst+8 as dn
 	call snapopen snap tp tn as r
 	ifz r
 		call snapcheck snap as r
 	end
 	ifslt r 0
-		call tmperr "cannot read back: " r
+		call tmperr "cannot read the temporary file back: " r
 	end
 	if r
-		call about tp tn
+		call about dp dn-1
 		call byadd msg "written, and read back as no valid snapshot: "
 		call snapwhy msg snap r
 		call giveup stio
 	end
 	call hookstop 2
-	load dst as dp
-	load dst+8 as dn
 	sys rename tp dp as r
 	if r
-		call tmperr "cannot rename to the destination: " r
+		call tmperr "cannot rename the temporary file to it: " r
 	end
 	call hookstop 3
 	# the new name is durable when its directory is: until then a loss of
@@ -480,14 +530,22 @@ fn build
 	end
 	call byadd dst op on as a
 	call byaddb dst 0 as b
-	call byadd tmp op on as c
-	call byadd tmp ".tmp\0" as d
 	call byadd lck op on as e
 	call byadd lck ".lock\0" as f
 	call bycut msg 0
-	ifz a&b&c&d&e&f
+	ifz a&b&e&f
 		call byadd msg "aildb: out of memory"
 		call fail stio
+	end
+	# the lock of a destination is the file of its name and ".lock", so a
+	# snapshot of such a name could take the place of a lock that is held
+	if on>=5
+		call texteq op+on-5 5 ".lock" as ok
+		if ok
+			call about op on
+			call byadd msg "a destination cannot have a name that ends in .lock, which is that of a lock file"
+			call fail stinvalid
+		end
 	end
 	call lock
 	call bycut msg 0

@@ -5,7 +5,7 @@ $ aildb build -o out.idx -v two.bin -m two.tsv -d 2 -i m
 aildb: out.idx: another build is in progress
 --- status 5
 destination 0
-temporary file 1
+temporary files 1
 $ aildb build -o other.idx -v two.bin -m two.tsv -d 2 -i m
 --- stdout
 {"records":2,"dimension":2,"model":"m","source_revision":null}
@@ -13,20 +13,63 @@ $ aildb build -o other.idx -v two.bin -m two.tsv -d 2 -i m
 --- status 0
 killed by signal 9
 destination 0
-temporary file 1
+temporary files 1
 $ aildb build -o out.idx -v one.bin -m one.tsv -d 2 -i m
 --- stdout
 {"records":1,"dimension":2,"model":"m","source_revision":null}
 --- stderr
 --- status 0
-temporary file 0
+temporary files 1
 lock file 1
+$ aildb build -o base.tmp -v two.bin -m two.tsv -d 2 -i m
+--- stdout
+{"records":2,"dimension":2,"model":"m","source_revision":null}
+--- stderr
+--- status 0
+$ aildb build -o base -v zero.bin -m two.tsv -d 2 -i m
+--- stdout
+--- stderr
+aildb: zero.bin: the vector of line 2 is all zeros
+--- status 3
+$ aildb check base.tmp
+--- stdout
+{"records":2,"dimension":2,"model":"m","source_revision":null}
+--- stderr
+--- status 0
+base 0
+$ aildb build -o base -v one.bin -m one.tsv -d 2 -i m
+--- stdout
+{"records":1,"dimension":2,"model":"m","source_revision":null}
+--- stderr
+--- status 0
+$ aildb check base.tmp
+--- stdout
+{"records":2,"dimension":2,"model":"m","source_revision":null}
+--- stderr
+--- status 0
+temporary files 1
+$ aildb build -o base.lock -v one.bin -m one.tsv -d 2 -i m
+--- stdout
+--- stderr
+aildb: base.lock: a destination cannot have a name that ends in .lock, which is that of a lock file
+--- status 3
+$ aildb build -o .lock -v one.bin -m one.tsv -d 2 -i m
+--- stdout
+--- stderr
+aildb: .lock: a destination cannot have a name that ends in .lock, which is that of a lock file
+--- status 3
+.lock 0
+$ aildb build -o base.locks -v one.bin -m one.tsv -d 2 -i m
+--- stdout
+{"records":1,"dimension":2,"model":"m","source_revision":null}
+--- stderr
+--- status 0
 $ aildb-stops build -o out.idx -v two.bin -m two.tsv -d 2 -i m
 --- stdout
 --- stderr
-aildb: out.idx.tmp: cannot sync: input/output error
+aildb: out.idx: cannot sync the temporary file: input/output error
 --- status 4
-temporary file 0
+temporary files 1
 $ aildb check out.idx
 --- stdout
 {"records":1,"dimension":2,"model":"m","source_revision":null}
@@ -35,9 +78,9 @@ $ aildb check out.idx
 $ aildb build -o out.idx -v big.bin -m big.tsv -d 1024 -i m
 --- stdout
 --- stderr
-aildb: out.idx.tmp: cannot write: file too large
+aildb: out.idx: cannot write the temporary file: file too large
 --- status 4
-temporary file 0
+temporary files 1
 $ aildb check out.idx
 --- stdout
 {"records":1,"dimension":2,"model":"m","source_revision":null}
@@ -48,7 +91,7 @@ $ aildb-stops build -o out.idx -v two.bin -m two.tsv -d 2 -i m
 --- stderr
 aildb: out.idx: published, but its directory could not be synced, so it may not survive a loss of power: input/output error
 --- status 6
-temporary file 0
+temporary files 1
 $ aildb check out.idx
 --- stdout
 {"records":2,"dimension":2,"model":"m","source_revision":null}

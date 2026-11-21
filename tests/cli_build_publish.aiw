@@ -1,7 +1,10 @@
 # how build publishes: a second build for a destination that is being
 # built is refused at once and changes nothing, while one for another
 # destination runs; a build that was killed leaves a lock and a
-# temporary file that the next build is not held up by; a sync of the
+# temporary file that the next build is not held up by and does not
+# touch; a build that fails removes its own temporary file and no other
+# file, a snapshot named like one of the files beside a destination
+# least of all; a name that ends in .lock is no destination; a sync of the
 # temporary file that fails and a write that fails are reported and keep
 # the old snapshot; a sync of the directory that fails after the rename
 # is reported with a status of its own, and the new snapshot is there.
@@ -61,8 +64,8 @@ call num "stopped before the rename " r
 call cmdshow "aildb build -o out.idx -v two.bin -m two.tsv -d 2 -i m"
 call there "out.idx" as r
 call num "destination " r
-call there "out.idx.tmp" as r
-call num "temporary file " r
+call cmdstaged as r
+call num "temporary files " r
 call cmdshow "aildb build -o other.idx -v two.bin -m two.tsv -d 2 -i m"
 sys kill pid 9
 call procwait pid 0 as r
@@ -71,20 +74,47 @@ call fileunlink "aildb.hook"
 call fileunlink "aildb.stopped"
 call there "out.idx" as r
 call num "destination " r
-call there "out.idx.tmp" as r
-call num "temporary file " r
-# the lock died with its holder, and the temporary file is written over
+call cmdstaged as r
+call num "temporary files " r
+# the lock died with its holder, and the temporary file of the build
+# that was killed is left as it is: this build made its own
 call cmdshow "aildb build -o out.idx -v one.bin -m one.tsv -d 2 -i m"
-call there "out.idx.tmp" as r
-call num "temporary file " r
+call cmdstaged as r
+call num "temporary files " r
 call there "out.idx.lock" as r
 call num "lock file " r
+
+
+# A snapshot may have the name that a build for another destination
+# once gave its temporary file. A build for that destination that fails
+# leaves it whole, and so does one that succeeds.
+call cmdshow "aildb build -o base.tmp -v two.bin -m two.tsv -d 2 -i m"
+store4 v+8 0
+store4 v+12 0
+call filewrite "zero.bin" v 16
+store4 v+8 0x3f800000
+store4 v+12 0x3f800000
+call cmdshow "aildb build -o base -v zero.bin -m two.tsv -d 2 -i m"
+call cmdshow "aildb check base.tmp"
+call there "base" as r
+call num "base " r
+call cmdshow "aildb build -o base -v one.bin -m one.tsv -d 2 -i m"
+call cmdshow "aildb check base.tmp"
+call cmdstaged as r
+call num "temporary files " r
+# the lock of a destination cannot be the destination of another build,
+# which would put a new file where the lock is held
+call cmdshow "aildb build -o base.lock -v one.bin -m one.tsv -d 2 -i m"
+call cmdshow "aildb build -o .lock -v one.bin -m one.tsv -d 2 -i m"
+call there ".lock" as r
+call num ".lock " r
+call cmdshow "aildb build -o base.locks -v one.bin -m one.tsv -d 2 -i m"
 
 # the sync of the temporary file fails: the snapshot of one record stays
 call filewrite "aildb.hook" "fail 1"
 call cmdshow "aildb-stops build -o out.idx -v two.bin -m two.tsv -d 2 -i m"
-call there "out.idx.tmp" as r
-call num "temporary file " r
+call cmdstaged as r
+call num "temporary files " r
 call cmdshow "aildb check out.idx"
 
 # a write fails, the file being limited to 64 KiB for this process and
@@ -99,16 +129,16 @@ sys setrlimit 1 lim
 call cmdshow "aildb build -o out.idx -v big.bin -m big.tsv -d 1024 -i m"
 store lim old
 sys setrlimit 1 lim
-call there "out.idx.tmp" as r
-call num "temporary file " r
+call cmdstaged as r
+call num "temporary files " r
 call cmdshow "aildb check out.idx"
 
 # the sync of the directory fails after the rename: the snapshot of two
 # records is there, and the status says that it may not last
 call filewrite "aildb.hook" "fail 2"
 call cmdshow "aildb-stops build -o out.idx -v two.bin -m two.tsv -d 2 -i m"
-call there "out.idx.tmp" as r
-call num "temporary file " r
+call cmdstaged as r
+call num "temporary files " r
 call cmdshow "aildb check out.idx"
 
 # the shipped executable has no stop point and no failing sync: with the

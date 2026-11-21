@@ -127,7 +127,7 @@ aildb build -o x.idx -v f.bin -m m.tsv -d 2 -i m
   status 3, stdout 0
   aildb: f.bin: the vector of line 1 is all zeros
 
-x.idx is there: 0, x.idx.tmp: 0
+x.idx is there: 0, temporary files: 0
 
 # search: a snapshot that is none
 aildb search v.bin -k 3 -q q.bin

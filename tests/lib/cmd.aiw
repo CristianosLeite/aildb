@@ -22,6 +22,7 @@ buf cmdso 24            # what cmdshow read of the two outputs
 buf cmdse 24
 buf cmdline 4096        # the arguments of cmdargs, a NUL after each
 buf cmdargv 520         # their addresses, 64 at most, and a 0
+buf cmdnames 24         # the names of cmdstaged
 var cmdhomen
 
 sys cmdgetcwd cmdhome 4096 as cmdr
@@ -240,4 +241,42 @@ fn cmdspawnin cmdp cmdn cmdin cmdq cmdm
 	sys close cmdo
 	sys close cmde
 	ret cmdpid
+end
+
+# The number of temporary files of build in the current directory: the
+# names that end in a dot, sixteen hexadecimal digits and ".tmp", which
+# is what docs/usage.md says a build names its file. -1 if the directory
+# cannot be read.
+fn cmdstaged
+	call bycut cmdnames 0
+	call filenames "." cmdnames as cmdk
+	ifslt cmdk 0
+		ret -1
+	end
+	load cmdnames as cmdq
+	cmdc=0
+	while cmdk
+		call strlen cmdq as cmdl
+		if cmdl>=21
+			cmdw=cmdq+cmdl-21
+			loadb cmdw as cmdx
+			load4 cmdw+17 as cmdy
+			# ".tmp" as the four bytes are read
+			if (cmdx==46)&(cmdy==0x706d742e)
+				cmdi=1
+				while cmdi<17
+					loadb cmdw+cmdi as cmdx
+					if (cmdx-48>9)&(cmdx-97>5)
+						jmp next
+					end
+					cmdi+=1
+				end
+				cmdc+=1
+			end
+		end
+		label next
+		cmdq+=cmdl+1
+		cmdk-=1
+	end
+	ret cmdc
 end

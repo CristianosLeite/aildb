@@ -147,9 +147,9 @@ call try "aildb build -o x.idx -v f.bin -m m.tsv -d 2 -i m"
 call fileopen "x.idx" 0 0 as fd
 call print "\nx.idx is there: "
 call putn fd!=-2
-call fileopen "x.idx.tmp" 0 0 as fd
-call print ", x.idx.tmp: "
-call putn fd!=-2
+call cmdstaged as fd
+call print ", temporary files: "
+call putn fd
 call print "\n"
 
 call print "\n# search: a snapshot that is none\n"

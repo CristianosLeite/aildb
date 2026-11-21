@@ -24,7 +24,7 @@ prints the usage above on standard error and ends with status 2.
 |---:|---|
 | 0 | success |
 | 2 | wrong usage |
-| 3 | an invalid snapshot or invalid input: a file that is no snapshot, of another version, truncated or damaged; a wrong length or dimension; a value that is not finite; a zero vector; a malformed line of metadata; a model identifier that differs |
+| 3 | an invalid snapshot or invalid input: a file that is no snapshot, of another version, truncated or damaged; a wrong length or dimension; a value that is not finite; a zero vector; a malformed line of metadata; a model identifier that differs; a destination whose name ends in `.lock` |
 | 4 | an I/O failure: a file that cannot be opened, read, written, synced, mapped or renamed, output that cannot be written, and no memory |
 | 5 | another build is in progress for the same destination |
 | 6 | the snapshot was published, but its durability is not confirmed |
@@ -41,7 +41,8 @@ aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
 ```
 
 Makes the snapshot `INDEX` from the vectors and the metadata, replacing a
-snapshot that is there.
+snapshot that is there. `INDEX` is any path whose name does not end in
+`.lock`, which is the name of the lock of another destination.
 
 - `-d DIMENSION`: the number of elements of every vector, 1 to 65536.
 - `-i MODEL`: the identifier of the embedding model, any name the caller
@@ -74,12 +75,16 @@ snapshot that is there.
 
 The model identifier and the revision follow the rule of the fields.
 
-`build` writes a temporary file beside `INDEX`, named `INDEX.tmp`, syncs it,
-validates it as `check` would, renames it to `INDEX` and syncs the directory. Then, and only
-then, it prints one line on standard output, the report of a durable
-snapshot, in the form of [`check`](#check), and ends with status 0. A failure
-before the rename leaves what was at `INDEX` as it was, a snapshot or
-nothing. If the rename succeeded and the sync of the directory failed, the
+`build` writes a temporary file beside `INDEX`, syncs it, validates it as
+`check` would, renames it to `INDEX` and syncs the directory. Then, and
+only then, it prints one line on standard output, the report of a durable
+snapshot, in the form of [`check`](#check), and ends with status 0. The
+temporary file is named `INDEX.`, sixteen hexadecimal digits chosen at
+random and `.tmp`, and is created only if nothing has that name: `build`
+never opens, cuts or removes a file that it did not create, so a snapshot
+may be named `x.tmp` beside a destination `x`. A failure before the rename
+removes the temporary file and leaves what was at `INDEX` as it was, a
+snapshot or nothing. If the rename succeeded and the sync of the directory failed, the
 new snapshot is at `INDEX` and complete, but may not survive a loss of
 power: `build` prints no line on standard output, says so on standard error
 and ends with status 6. [durability.md](durability.md) says what is assumed
@@ -87,9 +92,11 @@ of the filesystem.
 
 Only one `build` runs for a destination at a time: it holds a lock on the
 file `INDEX.lock`, which it makes and never removes. A second one ends with
-status 5 at once and changes nothing. A build that was killed holds no lock,
-and the temporary file it left is written over by the next. Readers are not held up: a `search`
-that opened the snapshot before the rename finishes on the old one.
+status 5 at once and changes nothing. A build that was killed holds no
+lock; the temporary file it left stays until someone removes it, and no
+later build reads it or is held up by it. Readers are not held up: a
+`search` that opened the snapshot before the rename finishes on the old
+one.
 
 ## `search`
 

@@ -10,22 +10,32 @@ assumptions.
 
 1. It takes an exclusive lock (`flock`, non-blocking) on `INDEX.lock`, a
    file beside the destination that it makes if needed and never removes.
-2. It writes the whole snapshot to `INDEX.tmp`, in the same directory.
+2. It creates a temporary file in the same directory, `INDEX.`, sixteen
+   random hexadecimal digits and `.tmp`, with `O_EXCL`, so that it is a
+   new file and no file that was there, and writes the whole snapshot to
+   it.
 3. It flushes that file (`fsync`) and closes it.
 4. It opens the file again and validates it as `check` does, the checksum
    of the vectors included.
-5. It renames `INDEX.tmp` to `INDEX` (`rename`), which replaces a snapshot
-   that is there.
+5. It renames the temporary file to `INDEX` (`rename`), which replaces a
+   snapshot that is there.
 6. It flushes the directory (`fsync` on the directory).
 7. It prints its line on standard output and ends with status 0.
 
 A failure in steps 1 to 5 ends the build with a line on standard error and
-status 4 or 5 (3 if an input was at fault); `INDEX.tmp` is removed and
-`INDEX` is what it was. A failure in step 6 ends it with status 6: `INDEX`
+status 4 or 5 (3 if an input was at fault); the temporary file, if this
+build created one, is removed, no other file is, and `INDEX` is what it
+was. A failure in step 6 ends it with status 6: `INDEX`
 is the new snapshot, and nothing was printed on standard output.
 
 A published snapshot is never written again. A reader maps the file it
 opened and keeps that file when the name is given to another one.
+
+No name that `build` uses beside a destination can be taken from it by
+another build. A destination cannot end in `.lock`, so no snapshot is
+renamed over a lock that is held, which would let a third build lock the
+new file. A temporary file is never one that was there, so a snapshot that
+has the name of one, old or new, is not touched.
 
 ## When a process is interrupted
 
@@ -35,8 +45,10 @@ kills it there, as a first build and over an old snapshot; and it kills the
 shipped executable at 48 moments spread over the time of a build:
 
 - Killed before the rename: `INDEX` is absent if it was absent, and else the
-  old snapshot, complete. `INDEX.tmp` may be left, with any contents; the
-  next build writes over it, and nothing else reads it.
+  old snapshot, complete. The temporary file of the killed build may be
+  left, with any contents. Nothing reads it and no build removes it: it
+  is for whoever killed the build to remove, when no build is running for
+  that destination.
 - Killed after the rename: `INDEX` is the new snapshot, complete.
 - There is no moment at which `INDEX` names a file that is partly written,
   since the name is only ever given to a file that was complete, flushed and
@@ -85,9 +97,10 @@ loss of power, in the state the list above gives, if all of it holds:
 - **The temporary file and the destination are in one filesystem.** They
   are in one directory by construction, so `rename` never has to copy.
 
-What a loss of power may leave behind even if all of it holds: `INDEX.tmp`
-with any contents, and `INDEX.lock`. Both are harmless and are not cleaned
-up by anything but the next build, which writes over the first.
+What a loss of power may leave behind even if all of it holds: a temporary
+file with any contents, and `INDEX.lock`. Both are harmless. The lock file
+stays; the temporary file is not cleaned up by a later build and can be
+removed by hand.
 
 ## What a reader assumes
 

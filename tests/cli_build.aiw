@@ -69,8 +69,8 @@ call mkrec "docs/b.md" "md" 10 20 v
 call mkdone want
 call same "out.idx" as r
 call num "the file of the format " r
-call there "out.idx.tmp" as r
-call num "temporary file " r
+call cmdstaged as r
+call num "temporary files " r
 call cmdshow "aildb check out.idx"
 
 # one dimension, the options in another order, no revision; the path of
@@ -133,6 +133,6 @@ call cmdshow "aildb build -o out.idx -v v1.bin -m tab.tsv -d 4 -i m"
 call cmdshow "aildb build -o out.idx -v v1.bin -m absent.tsv -d 1 -i m"
 call cmdshow "aildb build -o out.idx -v absent.bin -m m1.tsv -d 1 -i m"
 call cmdshow "aildb build -o absent/out.idx -v v1.bin -m m1.tsv -d 1 -i m"
-call there "out.idx.tmp" as r
-call num "temporary file " r
+call cmdstaged as r
+call num "temporary files " r
 call cmdshow "aildb check out.idx"

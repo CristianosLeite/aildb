@@ -4,7 +4,7 @@ $ aildb build -o out.idx -v v.bin -m m.tsv -d 3 -i nomic-embed-text -r 7dea612
 --- stderr
 --- status 0
 the file of the format 1
-temporary file 0
+temporary files 0
 $ aildb check out.idx
 --- stdout
 {"records":2,"dimension":3,"model":"nomic-embed-text","source_revision":"7dea612"}
@@ -70,7 +70,7 @@ $ aildb build -o absent/out.idx -v v1.bin -m m1.tsv -d 1 -i m
 --- stderr
 aildb: absent/out.idx.lock: cannot create: no such file or directory
 --- status 4
-temporary file 0
+temporary files 0
 $ aildb check out.idx
 --- stdout
 {"records":4,"dimension":1,"model":"m","source_revision":null}

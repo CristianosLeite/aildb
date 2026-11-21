@@ -76,7 +76,8 @@ documented.
   is 8.6e-14). LanceDB computes in binary32, so its scores are compared within about 1e-5
   and its order may differ between near ties.
 - **Overlapping builds**: a non-blocking exclusive `flock` on `<destination>.lock`, with
-  the temporary file under one fixed name while the lock is held. `flock` is not reliable
+  the temporary file under one fixed name while the lock is held (the fixed name was
+  given up after the review of `76104ec`: `architecture/publication.md`). `flock` is not reliable
   on every network filesystem, which belongs with the storage assumptions.
 - **Stop points**: the reading above is confirmed. The test suite builds a second
   executable from the same sources with a constant that compiles the stop points in; the
