@@ -1,0 +1,21 @@
+# Open items
+
+The decisions still to be taken. The work, step by step, is in `docs/TODO.md`
+(since 2026-11-21); an item here that was work and not a decision points there.
+
+- [x] 2026-11-21 — binary32 in AIL: decided (user, 2026-11-21), new compiler statements; the conversion with integers is the oracle of the tests ([page](../architecture/feasibility.md))
+- [x] 2026-11-21 — Add the statements `fdot4`, `f4to8` and `f8to4` to the AIL repository and pin the revision: work, now step 1 of `docs/TODO.md`
+- [x] 2026-11-21 — Float literals in the AIL compiler (user's proposal, 2026-11-21): work for the AIL repository, now in step 1 of `docs/TODO.md`
+- [ ] 2026-11-21 — Tolerances to document: 1e-12 proposed against a sum in another order, about 1e-5 against LanceDB; and the semantics of filters, the empty index and the exit statuses, proposed and not yet decided ([page](../architecture/requirements-decisions.md))
+- [x] 2026-11-21 — How the repository gets AIL at a pinned revision: decided (user, 2026-11-21), `ail.pin`, `tools/ail.sh` and the link `lib` as in ail-bench ([page](../architecture/requirements-decisions.md))
+- [x] 2026-11-21 — The Makefile, the test runner and the layout of the sources: work, now step 2 of `docs/TODO.md`
+- [ ] 2026-11-21 — The file format in detail: header fields, offsets, where metadata (paths, lines, language, source revision) lives, how normalization is recorded. Decided so far: CRC-32, one over header and metadata and one over the vectors ([page](../architecture/requirements-decisions.md)); written in step 3 of `docs/TODO.md`
+- [x] 2026-11-21 — The interchange format: decided (user, 2026-11-21), raw binary32 and TSV in, JSON Lines out with the score in decimal and as bits ([page](../architecture/requirements-decisions.md))
+- [ ] 2026-11-21 — The exact columns, options and JSON field order of the interchange format; written in step 3 of `docs/TODO.md`
+- [x] 2026-11-21 — Buffered reads or a read-only mapping: decided (user, 2026-11-21), a mapping; acceptance check 4 measures it again with the engine ([page](../architecture/requirements-decisions.md))
+- [ ] 2026-11-21 — How an overlapping build is rejected: `flock` on a lock file is proposed. Stop points for the interruption tests are decided (an environment variable, absent from the shipped executable); the user is to confirm that a second test executable is what was meant ([page](../architecture/requirements-decisions.md))
+- [ ] 2026-11-21 — The end-to-end example: the AIL repository and a local model of 768 dimensions are decided; still open are the tool that runs the model and how chunks are cut (the chunker is AIL) ([page](../architecture/requirements-decisions.md))
+- [x] 2026-11-21 — The independent cosine implementation of acceptance check 2: decided (user, 2026-11-21), an AIL program apart from the engine with its own loop ([page](../architecture/feasibility.md))
+- [x] 2026-11-21 — The LanceDB comparison of check 4: the Python binding is decided ([page](../architecture/requirements-decisions.md)); the harness is work, now step 10 of `docs/TODO.md`
+- [ ] 2026-11-21 — `REQUIREMENTS.md`: an amendment of eleven passages was drafted on 2026-11-21 and shown to the user, who has not yet accepted or changed it; the link of acceptance check 4 still names the JS documentation of LanceDB
+- [ ] 2026-11-21 — Git: initialized on 2026-11-21 (user), branch `main`, with a `.gitignore` for `build/` and the links `ail` and `lib`; still open are the remote, the published name and the licence

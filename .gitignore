@@ -1,0 +1,4 @@
+build/
+# links into the AIL repository, made by make
+/ail
+/lib

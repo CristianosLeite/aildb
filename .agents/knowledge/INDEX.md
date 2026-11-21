@@ -1,0 +1,15 @@
+# Knowledge index
+
+The decisions about the language AIL, its compiler and its libraries are in the knowledge base of the AIL repository (https://github.com/CristianosLeite/ail, `.agents/knowledge/`), and what was learned about measuring time in that of ail-bench (https://github.com/CristianosLeite/ail-bench). The pages here are about aildb.
+
+## architecture
+- [Starting point](architecture/starting-point.md) — what `REQUIREMENTS.md` already decides for version 1, what AIL at `7dea612` offers and lacks for it (no binary32), and what is left to decide
+
+- [Feasibility of version 1 in AIL](architecture/feasibility.md) — nothing blocks it; binary32 through three new compiler statements, `build` normalizes, tests in AIL; prototype measurements of the scan (41 ms warm, 187 ms cold at 100,000 vectors), mapping against `pread64`, checksums
+- [Requirement decisions for version 1](architecture/requirements-decisions.md) — a read-only mapping, CRC-32, raw binary32 and TSV in, JSON Lines out, stop points only in a test executable, AIL pinned as in ail-bench, the example and the LanceDB binding; what is proposed and not yet decided
+
+## testing
+No page yet.
+
+## status
+- [Open items](status/open-items.md) — pending decisions; the work, step by step, is in `docs/TODO.md`
