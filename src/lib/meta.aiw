@@ -16,6 +16,7 @@ const metalast 5        # the last line is none, or below the first
 const metalang 6        # a language over 255 bytes or no valid text
 const metamany 7        # more records or bytes of strings than 2^32-1
 const metamem 8         # no memory
+const metaoutside 9     # a path that is absolute or leads out of the root
 
 # the string of the metan bytes at metap in the strings metastrs: the
 # offset of the bytes at metao with the length metal if they are the
@@ -84,6 +85,10 @@ fn metaparse metap metan metarecs metastrs
 		if (metaa-1>4094)|(metaok==0)
 			ret metaline metapath
 		end
+		call textinside metap metaa as metaok
+		ifz metaok
+			ret metaline metaoutside
+		end
 		call textnum metaq metab as metaf metaok
 		if (metaok==0)|(metaf-1>0xfffffffe)
 			ret metaline metafirst
@@ -149,6 +154,9 @@ fn metawhy metab metar
 	end
 	if metar==metamany
 		tail byadd metab "more records or more bytes of paths and languages than 4294967295"
+	end
+	if metar==metaoutside
+		tail byadd metab "the path is absolute or leads out of the repository"
 	end
 	tail byadd metab "out of memory"
 end

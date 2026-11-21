@@ -81,10 +81,17 @@ share bytes: `build` writes the path or the language of a record once when
 the record before it has the same. Bytes that nothing names are allowed.
 
 A string is well-formed UTF-8 (no surrogate, no overlong form, nothing above
-U+10FFFF) and has no byte below 0x20 and no byte 0x7F. A path is relative to
-the top of the source repository, with `/` between its parts, as the
-producer of the metadata wrote it; aildb compares its bytes and never opens
-it.
+U+10FFFF) and has no byte below 0x20 and no byte 0x7F.
+
+A path is relative to the top of the source repository, with `/` between
+its parts, as the producer of the metadata wrote it; aildb compares its
+bytes and never opens it. It names something in or below that top, read as
+text: it does not start with `/`, and when its parts are followed from the
+left, an empty part and `.` changing nothing, `..` going one step back and
+any other part one step down, no `..` goes above the start. So `a/../b` is
+a path and `/tmp/a`, `../a` and `a/../../b` are none. What a link in the
+repository points to is not looked at. A path is not brought to one form:
+`./a` and `a` are different bytes to the prefix filter.
 
 ## Vectors
 
@@ -152,7 +159,8 @@ and none of them can wrap 64 bits within the limits below.
    4095 bytes; the language lies within the strings and has at most 255;
    the first line is at least 1 and the last line not below it.
 10. Every string named by the header or a record is as
-    [Strings](#strings) says.
+    [Strings](#strings) says, and every path stays in or below the top of
+    the repository as it says.
 11. Only `check`: the CRC-32 of the vectors is the one in the header.
 12. Only `check`: every element of every vector is finite. `search` does
     not read the vectors of records that a filter leaves out; of those it

@@ -65,7 +65,9 @@ snapshot that is there. `INDEX` is any path whose name does not end in
   ```
 
   The path is that of the source file from the top of the repository, 1 to
-  4095 bytes. The lines are decimal numbers from 1 to 4294967295 without a
+  4095 bytes. It does not start with `/` and no `..` in it leads above the
+  top ([format.md](format.md#strings)), so that a result is a place in the
+  repository whoever wrote the metadata. The lines are decimal numbers from 1 to 4294967295 without a
   sign, the last not below the first: the lines of the file that the vector
   stands for, counted from 1. The language is a name of the producer's
   choosing, at most 255 bytes, and may be empty. Fields are well-formed

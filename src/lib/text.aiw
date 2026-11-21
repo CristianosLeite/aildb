@@ -1,6 +1,6 @@
 # src/lib/text.aiw -- bytes read as text: an unsigned number, the end of
-# a line or a field, a prefix, and whether bytes are a string a snapshot
-# may hold. Text is an address and a length, with no byte after it that
+# a line or a field, a prefix, whether bytes are a string a snapshot may
+# hold, and whether a path stays below the directory it starts in. Text is an address and a length, with no byte after it that
 # belongs to it. The functions read and never write, need no other file
 # and cannot fail: what they did not find is a result.
 #
@@ -146,6 +146,55 @@ fn textvalid textp textn
 				textk-=1
 			end
 		end
+	end
+	ret 1
+end
+
+# 1 if the path of the textn bytes at textp names something in or below
+# the directory it is taken from, read as text alone: it does not start
+# with a slash, and no ".." among its parts leads above that directory
+# when the parts are followed from the left. A part is what stands
+# between slashes; an empty one and "." change nothing, ".." takes one
+# step back and every other part one step down. So "a/../b" is inside
+# and "a/../../b" is not. No link of a filesystem is looked at.
+fn textinside textp textn
+	ifz textn
+		ret 1
+	end
+	loadb textp as textc
+	if textc==47
+		ret 0
+	end
+	textd=0
+	texti=0
+	while texti<textn
+		# the part from texti to the next slash or the end
+		textj=texti
+		label part
+		if textj<textn
+			loadb textp+textj as textc
+			if textc!=47
+				textj+=1
+				jmp part
+			end
+		end
+		textk=textj-texti
+		loadb textp+texti as textc
+		if (textk==2)&(textc==46)
+			loadb textp+texti+1 as textc
+			if textc==46
+				ifz textd
+					ret 0
+				end
+				textd-=2
+			end
+			textd+=1
+		else
+			if (textk>1)|((textk==1)&(textc!=46))
+				textd+=1
+			end
+		end
+		texti=textj+1
 	end
 	ret 1
 end

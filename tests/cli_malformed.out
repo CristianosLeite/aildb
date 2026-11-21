@@ -99,6 +99,12 @@ aildb build -o x.idx -v v.bin -m f.tsv -d 2 -i m
   aildb: f.tsv: line 2: the language is longer than 255 bytes or not valid text
 aildb build -o x.idx -v v.bin -m f.tsv -d 2 -i m
   status 3, stdout 0
+  aildb: f.tsv: line 1: the path is absolute or leads out of the repository
+aildb build -o x.idx -v v.bin -m f.tsv -d 2 -i m
+  status 3, stdout 0
+  aildb: f.tsv: line 2: the path is absolute or leads out of the repository
+aildb build -o x.idx -v v.bin -m f.tsv -d 2 -i m
+  status 3, stdout 0
   aildb: f.tsv: line 1: the language is longer than 255 bytes or not valid text
 aildb build -o x.idx -v v.bin -m . -d 2 -i m
   status 4, stdout 0

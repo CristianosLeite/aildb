@@ -63,6 +63,16 @@ written, before any reader existed, and are the user's to change until a release
   fail the other. Not done: a test of the norm, or of zero vectors, which only give
   scores that mean little.
 
+- **A path is relative and stays below the top of the repository, as text** (review of
+  `76104ec`, 2026-11-21). `build` accepted `/tmp/source.aiw` and `../source.aiw`, and
+  `search` gave them back as locations an agent opens. `textinside` is the one check,
+  used by the metadata parser and by the reader, so a snapshot from elsewhere is held to
+  it too: no leading `/`, and no `..` that goes above the start when the parts are
+  followed from the left. Chosen over refusing every `.`, `..` and empty part, which
+  would also refuse `./a` from a producer that writes it; the cost is that a path has no
+  single form, and `-p` compares bytes. Symbolic links are not looked at: aildb never
+  opens a path.
+
 ## Learned
 - **The size of the strings is the one number of the layout that nothing else fixes**
   (2026-11-21, from the tests of invalid files): a header that says 54 bytes where 53 are

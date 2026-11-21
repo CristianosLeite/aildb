@@ -155,3 +155,38 @@ call textvalid "\xf1\x80\x80\x80x" as a
 call one a
 call textvalid "\xf1\x80\x80A" as a
 call one a
+# a path that stays below where it starts, and one that does not
+fn inside p n
+	call textinside p n as a
+	call print p n
+	call print " "
+	call putn a
+	call print "\n"
+end
+call inside "lib/std/io.aiw"
+call inside "a"
+call inside "./a"
+call inside "a/./b"
+call inside "a//b"
+call inside "a/"
+call inside "a/.."
+call inside "a/../b"
+call inside "a/b/../../c"
+call inside "..a"
+call inside "a.."
+call inside "a/..b/c"
+call inside "..."
+call inside ".../a"
+call inside "."
+call inside ""
+call inside "/"
+call inside "/tmp/source.aiw"
+call inside ".."
+call inside "../source.aiw"
+call inside "./../a"
+call inside "a/../.."
+call inside "a/../../b"
+call inside "a/b/../../../c"
+call inside "a//../../b"
+call inside "a/./../../b"
+call inside "x/../y/../../z"

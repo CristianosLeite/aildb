@@ -19,8 +19,8 @@
 #    72  its length
 #    80  the address of the source revision
 #    88  its length, 0 for none
-#    96  after the results 11, 12 and 14, the ordinal of the record at
-#        fault
+#    96  after the results 11, 12, 14 and 15, the ordinal of the record
+#        at fault
 #
 # The functions return what they found and print nothing. A result below
 # zero is the error of the kernel, negated; one above zero is a reason
@@ -50,6 +50,7 @@ const snaprecord 11     # a record: a string out of bounds, a line number
 const snaptext 12       # a record: a string that is no valid text
 const snapvcrc 13       # the checksum of the vectors
 const snapvalue 14      # a vector: an element that is not finite
+const snapoutside 15    # a record: a path that is absolute or leads out
 
 data snapzero 0 0 0 0
 
@@ -161,6 +162,11 @@ fn snaprecs snaps
 			ifz snapx
 				store snaps+96 snapi
 				ret snaptext
+			end
+			call textinside snapst+snapa snapc as snapx
+			ifz snapx
+				store snaps+96 snapi
+				ret snapoutside
 			end
 			snappo=snapa
 			snappl=snapc
@@ -309,7 +315,11 @@ fn snapwhy snapb snaps snapr
 		if snapr==snaptext
 			call byadd snapb "invalid snapshot: a string that is no valid text in record " as snapx
 		else
-			call byadd snapb "invalid snapshot: an element that is not finite in the vector of record " as snapx
+			if snapr==snapvalue
+				call byadd snapb "invalid snapshot: an element that is not finite in the vector of record " as snapx
+			else
+				call byadd snapb "invalid snapshot: a path that is absolute or leads out of the repository in record " as snapx
+			end
 		end
 	end
 	load snaps+96 as snapi

@@ -253,6 +253,22 @@ call pokeb 202 9
 call seal
 call try "path with a tab" -1
 call fresh
+call pokeb 199 47
+call seal
+call try "path from the root" -1
+call fresh
+call pokeb 216 46
+call pokeb 217 46
+call pokeb 218 47
+call seal
+call try "path that leads out, record 1" -1
+call fresh
+call pokeb 216 46
+call pokeb 217 46
+call seal
+call try "path with two dots in a name is valid" -1
+call print "\n"
+call fresh
 call pokeb 216 10
 call seal
 call try "path with a line end, record 1" -1

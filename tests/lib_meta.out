@@ -37,3 +37,9 @@ line 1: the language is longer than 255 bytes or not valid text
 line 1: the language is longer than 255 bytes or not valid text
 line 1: the language is longer than 255 bytes or not valid text
 line 3: the last line is not a number up to 4294967295, or is below the first
+line 1: the path is absolute or leads out of the repository
+line 2: the path is absolute or leads out of the repository
+line 1: the path is absolute or leads out of the repository
+2 records, 17 bytes of strings
+5 [a/../b] 11 [ail] 1 2
+14 [./c] 11 [ail] 1 2

@@ -119,3 +119,8 @@ call longlang 256
 call show "a\t1\t2\tail\x0d\n"
 call show "a\t1\t2\ta\xc3\n"
 call show "ok\t1\t2\tail\nok\t3\t4\tail\nbad\t5\t4\tail\n"
+# a path that is not below the top of the repository
+call show "/tmp/source.aiw\t1\t2\tail\n"
+call show "ok\t1\t2\tail\n../source.aiw\t1\t2\tail\n"
+call show "a/../../b\t1\t2\tail\n"
+call show "a/../b\t1\t2\tail\n./c\t1\t2\tail\n"

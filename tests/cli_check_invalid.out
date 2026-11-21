@@ -96,6 +96,12 @@ last line below the first, record 1: status 3, stdout 0
   aildb: x.idx: invalid snapshot: a string out of bounds or a line number in record 1
 path with a tab: status 3, stdout 0
   aildb: x.idx: invalid snapshot: a string that is no valid text in record 0
+path from the root: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: a path that is absolute or leads out of the repository in record 0
+path that leads out, record 1: status 3, stdout 0
+  aildb: x.idx: invalid snapshot: a path that is absolute or leads out of the repository in record 1
+path with two dots in a name is valid: status 0, stdout 83
+  
 path with a line end, record 1: status 3, stdout 0
   aildb: x.idx: invalid snapshot: a string that is no valid text in record 1
 language that is no UTF-8: status 3, stdout 0
