@@ -49,6 +49,16 @@ nothing.
   and `SIGXFSZ` ignored, both of which a child inherits: the write returns `EFBIG`. No
   hook is needed for it.
 
+- **What a killed build leaves is tested two ways** (2026-11-21, `tests/kill_build.aiw`).
+  `build/aildb-stops` is stopped and killed at each stop point, as a first build and over
+  an old snapshot: the destination is absent or old before the rename and new after it.
+  `build/aildb` is killed at 48 moments from the start of a build to one and a half times
+  its measured length, each build replacing the snapshot of the one before with one of
+  another record count: what is at the destination must pass `check` and have the count
+  of the old or of the new snapshot. The moments depend on the machine, so the expected
+  output has only that some builds were killed, some finished and none left anything
+  else; six runs in a row gave the same output.
+
 ## Unchecked
 - That `fsync` and the rename do what they promise at a loss of power: no test can show
   it, and `docs/durability.md` is to state the assumptions.

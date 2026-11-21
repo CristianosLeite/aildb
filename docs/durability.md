@@ -29,8 +29,10 @@ opened and keeps that file when the name is given to another one.
 
 ## When a process is interrupted
 
-This is what the tests establish, by killing a build at chosen points and at
-arbitrary moments (`docs/TODO.md`, step 8, has the state of those tests):
+This is what `tests/kill_build.aiw` establishes. It stops a build at three
+points, with the temporary file begun, before the rename and after it, and
+kills it there, as a first build and over an old snapshot; and it kills the
+shipped executable at 48 moments spread over the time of a build:
 
 - Killed before the rename: `INDEX` is absent if it was absent, and else the
   old snapshot, complete. `INDEX.tmp` may be left, with any contents; the

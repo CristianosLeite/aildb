@@ -115,3 +115,6 @@ and `a5b4559`, 2026-11-21), not pushed; `make test` passed there.
   the norm of the stored vector is reported apart.
 - [x] Malformed inputs of `build` and `search`, each with its diagnostic
   and status.
+- [x] Interruption: the test executable with stop points before and after
+  `rename`, and kills at varying moments of the shipped one; the
+  destination is absent, or a complete old or new snapshot.

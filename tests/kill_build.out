@@ -1,0 +1,26 @@
+a first build
+stop 1: reached 1, ended by signal 9, the destination is nothing
+stop 2: reached 1, ended by signal 9, the destination is nothing
+stop 3: reached 1, ended by signal 9, the destination is 2 records
+a build over a snapshot of one record
+$ aildb build -o r.idx -v one.bin -m one.tsv -d 2 -i m
+--- stdout
+{"records":1,"dimension":2,"model":"m","source_revision":null}
+--- stderr
+--- status 0
+stop 1: reached 1, ended by signal 9, the destination is 1 records
+stop 2: reached 1, ended by signal 9, the destination is 1 records
+stop 3: reached 1, ended by signal 9, the destination is 2 records
+and the next build after a killed one
+$ aildb build -o f1.idx -v one.bin -m one.tsv -d 2 -i m
+--- stdout
+{"records":1,"dimension":2,"model":"m","source_revision":null}
+--- stderr
+--- status 0
+a whole build: status 0, the destination is 8000 records
+48 builds killed at spread moments: some killed 1, some finished 1, destinations that were neither the old nor the new snapshot 0
+$ aildb build -o k.idx -v a.bin -m a.tsv -d 256 -i m
+--- stdout
+{"records":8000,"dimension":256,"model":"m","source_revision":null}
+--- stderr
+--- status 0

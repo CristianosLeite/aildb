@@ -1,0 +1,198 @@
+# acceptance check 3, interruption: a build that is killed never leaves
+# a partial snapshot at the destination. With build/aildb-stops a build
+# is stopped and killed at each of its three stop points, as a first
+# build and over an old snapshot: before the rename the destination is
+# absent or the old snapshot, after it the new one, and check accepts
+# what is there. Then the shipped build/aildb is killed at 48 moments
+# spread over the time a build takes and beyond, each build replacing
+# the snapshot of the one before: whatever is at the destination must
+# pass check and have the records of the old or of the new snapshot.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "tests/lib/cmd.aiw"
+buf v 24
+buf t 24
+buf w 8
+buf so 24
+buf se 24
+buf line 24
+buf ts 16
+var seed
+fn rnd
+	seed=seed*6364136223846793005+1442695040888963407
+	ret seed>>32
+end
+# What is at the path: -1 nothing, -2 a file that check does not accept,
+# and else the number of records that check prints for it.
+fn state p n
+	call fileopen p n 0 0 as fd
+	ifslt fd 0
+		ret -1
+	end
+	sys close fd
+	call bycut line 0
+	call byadd line "aildb check "
+	call byadd line p n
+	load line as q
+	load line+8 as m
+	call cmdargs q m as av
+	call cmdrun av -1 so se as st
+	if st
+		ret -2
+	end
+	# the digits after {"records":
+	load so as q
+	x=0
+	i=11
+	label digit
+	loadb q+i as c
+	c-=48
+	if c<10
+		x=x*10+c
+		i+=1
+		jmp digit
+	end
+	ret x
+end
+fn show p n x
+	call print p n
+	ifslt x 0
+		if x==-1
+			call print "nothing\n"
+		else
+			call print "NOT A SNAPSHOT\n"
+		end
+	else
+		call putn x
+		call print " records\n"
+	end
+end
+# Stop a build of two records for the destination p n at the stop point
+# s, kill it and say what is at the destination.
+fn stopped p n s
+	storeb w 48+s
+	call filewrite "aildb.hook" "stop "
+	call fileopen "aildb.hook" 0x401 0 as fd
+	sys write fd w 1
+	sys close fd
+	call bycut line 0
+	call byadd line "aildb-stops build -v two.bin -m two.tsv -d 2 -i m -o "
+	call byadd line p n
+	load line as q
+	load line+8 as m
+	call cmdspawn q m as pid
+	call cmdawait "aildb.stopped" 5000 as r
+	sys kill pid 9
+	call procwait pid 0 as x
+	call fileunlink "aildb.stopped"
+	call fileunlink "aildb.hook"
+	call print "stop "
+	call putn s
+	call print ": reached "
+	call putn r
+	call print ", ended by signal "
+	call putn 0-x
+	call state p n as x
+	call show ", the destination is " x
+end
+# one and two records of two dimensions
+store4 w 0x3f800000
+call byadd v w 4
+call byadd v w 4
+call byadd v w 4
+call byadd v w 4
+load v as p
+call filewrite "one.bin" p 8
+call filewrite "one.tsv" "a.aiw\t1\t9\tail\n"
+call filewrite "two.bin" p 16
+call filewrite "two.tsv" "a.aiw\t1\t9\tail\nb.aiw\t1\t9\tail\n"
+call print "a first build\n"
+call stopped "f1.idx" 1
+call stopped "f2.idx" 2
+call stopped "f3.idx" 3
+call print "a build over a snapshot of one record\n"
+call cmdshow "aildb build -o r.idx -v one.bin -m one.tsv -d 2 -i m"
+call stopped "r.idx" 1
+call stopped "r.idx" 2
+call stopped "r.idx" 3
+call print "and the next build after a killed one\n"
+call cmdshow "aildb build -o f1.idx -v one.bin -m one.tsv -d 2 -i m"
+
+# 8000 records of 256 dimensions, and the first 7999 of them
+call bycut v 0
+i=0
+while i<2048000
+	call rnd as a
+	store4 w (a&1)<<31|120+a%8<<23|a>>8&0x7fffff
+	call byadd v w 4
+	i+=1
+end
+i=0
+while i<8000
+	call byadd t "f"
+	call byaddn t i
+	call byadd t "\t1\t9\tl\n"
+	i+=1
+end
+load v as p
+call filewrite "a.bin" p 8192000
+call filewrite "b.bin" p 8190976
+load t as p
+load t+8 as n
+call filewrite "a.tsv" p n
+call filewrite "b.tsv" p n-12
+# the time a build takes
+call procnow as t0
+call cmdargs "aildb build -o k.idx -v a.bin -m a.tsv -d 256 -i m" as av
+call cmdrun av -1 so se as st
+call procnow as t1
+call print "a whole build: status "
+call putn st
+call state "k.idx" as cur
+call show ", the destination is " cur
+span=t1-t0
+killed=0
+done=0
+wrong=0
+i=0
+while i<48
+	# moments from the start of a build to one and a half times its length
+	new=8000-(i&1)
+	if i&1
+		call cmdspawn "aildb build -o k.idx -v b.bin -m b.tsv -d 256 -i m" as pid
+	else
+		call cmdspawn "aildb build -o k.idx -v a.bin -m a.tsv -d 256 -i m" as pid
+	end
+	d=span*i/32
+	store ts d/1000000000
+	store ts+8 d%1000000000
+	sys nanosleep ts 0
+	sys kill pid 9
+	call procwait pid 0 as r
+	if r==-9
+		killed+=1
+	else
+		ifz r
+			done+=1
+		else
+			wrong+=1
+		end
+	end
+	call state "k.idx" as x
+	if (x!=cur)&(x!=new)
+		wrong+=1
+		call show "at the destination after a kill: " x
+	end
+	cur=x
+	i+=1
+end
+call print "48 builds killed at spread moments: some killed "
+call putn killed!=0
+call print ", some finished "
+call putn done!=0
+call print ", destinations that were neither the old nor the new snapshot "
+call putn wrong
+call print "\n"
+call cmdshow "aildb build -o k.idx -v a.bin -m a.tsv -d 256 -i m"
