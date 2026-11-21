@@ -34,5 +34,9 @@ when the page was written, and is the user's to change until a release.
   that gives the bits back (an algorithm of its own, for a value that is already there in
   hexadecimal).
 - **A query is exactly `4*dimension` bytes**, from a file or from standard input read to
-  its end; more or fewer is invalid input.
+  its end; more or fewer is invalid input. Only that many bytes and one more are read
+  (review of `76104ec`, 2026-11-21): the dimension is known before the query is, and an
+  input read to its end made a wrong length cost memory without a bound and, when the
+  memory failed, status 4 in the place of 3. The line for an input that is too long says
+  "more than" the length, not its size.
 - **An empty `-l` takes the records without a language; an empty `-p` takes all.**

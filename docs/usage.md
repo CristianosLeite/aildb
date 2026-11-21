@@ -112,7 +112,10 @@ the query, best first.
   snapshot has dimensions, little-endian, and nothing else. Without `-q`
   the same bytes are read from standard input, to its end. A query of
   another length, with an element that is not finite, or of all zeros is
-  invalid input. It need not have the norm 1.
+  invalid input. It need not have the norm 1. No more is read than the
+  bytes of a query and one byte, which shows an input that is too long:
+  `search` ends then, with status 3, and does not wait for the end of the
+  input.
 - `-p PREFIX`: only records whose path starts with the bytes of `PREFIX`.
   Bytes are compared, nothing is made of `/`, `.` or case: `-p lib/std`
   takes `lib/std/io.aiw` and also `lib/stdx.aiw`.

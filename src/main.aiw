@@ -35,8 +35,7 @@ buf tmp 24              # the path of the temporary file, with a NUL byte
 var made                # 1 once this build has created that file
 buf dst 24              # the path of the destination, with a NUL byte
 buf lck 24              # the path of the lock file, with a NUL byte
-buf qraw 24             # search: the bytes of the query
-var qvec                # its doubles, normalized
+var qvec                # search: the doubles of the query, normalized
 buf sel 24              # the best records so far
 const pwrite 18
 const flock 73
@@ -616,10 +615,33 @@ fn build
 	sys exit_group 0
 end
 
+# read from the file fd to the n bytes at p until they are full or the
+# file ends: the number of bytes read, or the error of the kernel
+fn readupto fd p n
+	got=0
+	while got<n
+		sys read fd p+got n-got as r
+		ifz r
+			ret got
+		end
+		ifslt r 0
+			if r!=-4
+				ret r
+			end
+			r=0
+		end
+		got+=r
+	end
+	ret got
+end
+
 # search: open the snapshot at the path ip in, read the query from the
 # file at qp qn, or from stdin if qp is 0, and make qvec its doubles of
 # the norm 1. mp mn is the model identifier the caller gave, if mp is
-# not 0. Whatever is wrong ends the program.
+# not 0. Whatever is wrong ends the program. The dimension says how long
+# a query is before a byte of it is read, so the bytes of a query and
+# one more are all that is ever read: an input that is longer is known
+# to be wrong by that byte, however long it is.
 fn query ip in qp qn mp mn
 	call snapopen snap ip in as r
 	if r
@@ -639,12 +661,24 @@ fn query ip in qp qn mp mn
 			call fail stinvalid
 		end
 	end
+	need=dim*4
+	alloc need+1 as p
+	alloc dim*8 as q
+	if (p==0)|(q==0)
+		call bycut msg 0
+		call byadd msg "aildb: out of memory"
+		call fail stio
+	end
+	fd=0
 	if qp
-		call fileread qp qn qraw as r
+		call fileopen qp qn 0 0 as fd
 	else
 		set "standard input" as qp
 		qn=14
-		call filereadfd 0 qraw as r
+	end
+	r=fd
+	ifsge fd 0
+		call readupto fd p need+1 as r
 	end
 	ifslt r 0
 		call about qp qn
@@ -652,23 +686,20 @@ fn query ip in qp qn mp mn
 		call oserr r
 		call fail stio
 	end
-	if r!=dim*4
+	if r!=need
 		call about qp qn
 		call byadd msg "holds "
+		if r>need
+			call byadd msg "more than "
+			r=need
+		end
 		call byaddn msg r
 		call byadd msg " bytes, and a query of "
 		call byaddn msg dim
 		call byadd msg " dimensions is "
-		call byaddn msg dim*4
+		call byaddn msg need
 		call fail stinvalid
 	end
-	alloc dim*8 as q
-	ifz q
-		call bycut msg 0
-		call byadd msg "aildb: out of memory"
-		call fail stio
-	end
-	load qraw as p
 	call normwide p q dim as r
 	if r
 		call about qp qn

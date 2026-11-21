@@ -37,6 +37,10 @@ call cmdshow "aildb search one.idx -k 10 -q short.bin"
 call filewrite "long.bin" v 16
 call cmdshow "aildb search one.idx -k 10 -q long.bin"
 call cmdshowin "aildb search one.idx -k 10" "long.bin"
+# an input without an end is wrong by its thirteenth byte, and no more
+# of it is read
+call cmdshow "aildb search one.idx -k 10 -q /dev/zero"
+call cmdshowin "aildb search one.idx -k 10" "/dev/zero"
 call cmdshow "aildb search one.idx -k 10"
 call cmdshow "aildb search one.idx -k 10 -q absent.bin"
 store4 v+4 0x7f800000

@@ -41,12 +41,22 @@ aildb: short.bin: holds 8 bytes, and a query of 3 dimensions is 12
 $ aildb search one.idx -k 10 -q long.bin
 --- stdout
 --- stderr
-aildb: long.bin: holds 16 bytes, and a query of 3 dimensions is 12
+aildb: long.bin: holds more than 12 bytes, and a query of 3 dimensions is 12
 --- status 3
 $ aildb search one.idx -k 10 < long.bin
 --- stdout
 --- stderr
-aildb: standard input: holds 16 bytes, and a query of 3 dimensions is 12
+aildb: standard input: holds more than 12 bytes, and a query of 3 dimensions is 12
+--- status 3
+$ aildb search one.idx -k 10 -q /dev/zero
+--- stdout
+--- stderr
+aildb: /dev/zero: holds more than 12 bytes, and a query of 3 dimensions is 12
+--- status 3
+$ aildb search one.idx -k 10 < /dev/zero
+--- stdout
+--- stderr
+aildb: standard input: holds more than 12 bytes, and a query of 3 dimensions is 12
 --- status 3
 $ aildb search one.idx -k 10
 --- stdout
