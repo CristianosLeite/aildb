@@ -105,3 +105,11 @@ and `a5b4559`, 2026-11-21), not pushed; `make test` passed there.
   identifier that differs; normalize.
 - [x] Filters before scoring, the scan with `fdot4` over buffers allocated
   once, top-k, JSON Lines with the first line of source revision and model.
+
+## 8. Acceptance checks 2 and 3
+
+- [x] The oracle: an AIL program apart from the engine, with its own
+  reader and loop; the same top-k and the same bits on generated files.
+  Empty collection, a filter with no match, equal scores in record order,
+  k above the eligible count. The difference to a cosine that divides by
+  the norm of the stored vector is reported apart.

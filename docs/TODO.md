@@ -30,11 +30,6 @@ reviews and publishes it, and `ail.pin` then moves to that revision.
 
 ## 8. Acceptance checks 2 and 3
 
-- [ ] The oracle: an AIL program apart from the engine, with its own
-  reader and loop; the same top-k and the same bits on generated files.
-  Empty collection, a filter with no match, equal scores in record order,
-  k above the eligible count. The difference to a cosine that divides by
-  the norm of the stored vector is reported apart.
 - [ ] Malformed inputs of `build` and `search`, each with its diagnostic
   and status.
 - [ ] Interruption: the test executable with stop points before and after

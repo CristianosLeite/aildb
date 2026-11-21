@@ -1,0 +1,273 @@
+# acceptance check 2: on snapshots that build made of generated vectors,
+# search prints the lines of the independent implementation of
+# tests/lib/oracle.aiw, the same records in the same order with the
+# same 64 bits of every score. A third of the records has the vector of
+# another record, so equal scores are among the results. The cases are
+# a limit of 1, of 10, of all records and of more, a path prefix, a
+# language, both, filters that take no record, and a snapshot without
+# records. Two differences are reported for each snapshot, in units
+# that make them whole numbers: that to a sum in the opposite order,
+# which must stay within 1e-12, and that to a cosine divided by the
+# norm of the stored vector.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "tests/lib/cmd.aiw"
+use "tests/lib/wide.aiw"
+use "tests/lib/oracle.aiw"
+buf vecs 24             # the vectors given to build
+buf text 24             # the metadata
+buf line 24             # a command line
+buf so 24               # what search printed, and its stderr
+buf se 24
+buf cut 24              # the same without the field "score"
+buf want 24             # the lines of the oracle
+buf w 8
+var seed dim
+fn rnd
+	seed=seed*6364136223846793005+1442695040888963407
+	ret seed>>32
+end
+# a finite binary32 of either sign between 2^-9 and 2^3
+fn element
+	call rnd as a
+	call rnd as b
+	ret (a&1)<<31|118+b%12<<23|a>>8&0x7fffff
+end
+# Make v.bin and m.tsv for n records of d dimensions and build g.idx.
+# The record i has the path d<i%5>/f<i/4>.aiw, ten lines from i%4*10+1
+# and the language l<i%3>; if i%3 is 2 its vector is that of the record
+# two before it.
+fn make n d
+	dim=d
+	call bycut vecs 0
+	call bycut text 0
+	i=0
+	while i<n
+		if (i%3==2)&(i>=2)
+			# byadd takes no bytes of the buffer itself: one element at a time
+			j=0
+			while j<d
+				load vecs as p
+				load4 p+(i-2)*d*4+j*4 as x
+				store4 w x
+				call byadd vecs w 4
+				j+=1
+			end
+		else
+			j=0
+			while j<d
+				call element as x
+				store4 w x
+				call byadd vecs w 4
+				j+=1
+			end
+		end
+		call byadd text "d"
+		call byaddn text i%5
+		call byadd text "/f"
+		call byaddn text i/4
+		call byadd text ".aiw\t"
+		call byaddn text i%4*10+1
+		call byaddb text 9
+		call byaddn text i%4*10+10
+		call byadd text "\tl"
+		call byaddn text i%3
+		call byaddb text 10
+		i+=1
+	end
+	load vecs as p
+	load vecs+8 as l
+	call filewrite "v.bin" p l
+	load text as p
+	load text+8 as l
+	call filewrite "m.tsv" p l
+	call bycut line 0
+	call byadd line "aildb build -o g.idx -v v.bin -m m.tsv -i gen -r r7 -d "
+	call byaddn line d
+	load line as p
+	load line+8 as l
+	call cmdargs p l as av
+	call cmdrun av -1 so se as st
+	call print "build of "
+	call putn n
+	call print " records of "
+	call putn d
+	call print " dimensions: status "
+	call putn st
+	call oracleopen "g.idx" as c
+	call print ", the oracle reads "
+	call putn c
+	call print "\n"
+end
+# the file q.bin and the query of the oracle: the dim binary32 at p
+fn ask p
+	call filewrite "q.bin" p dim*4
+	call oraclequery p
+end
+# copy what search printed without the field "score" of each line
+fn strip
+	call bycut cut 0
+	load so as p
+	load so+8 as n
+	i=0
+	while i<n
+		x=0
+		if i+8<=n
+			load p+i as x
+		end
+		# the eight bytes of "score": with its quotes and colon
+		if x==0x3a2265726f637322
+			label skip
+			loadb p+i as x
+			i+=1
+			jne x 44 skip
+		else
+			loadb p+i as x
+			call byaddb cut x
+			i+=1
+		end
+	end
+end
+# search with the limit k, the prefix pp pn if pn is not 0 and the
+# language lp ln if ln is not -1, and say whether the lines are those
+# of the oracle
+fn case k pp pn lp ln
+	call bycut line 0
+	call byadd line "aildb search g.idx -q q.bin -k "
+	call byaddn line k
+	if pn
+		call byadd line " -p "
+		call byadd line pp pn
+	end
+	if ln!=-1
+		call byadd line " -l "
+		call byadd line lp ln
+	end
+	load line as p
+	load line+8 as l
+	call print p+30 l-30
+	call cmdargs p l as av
+	call cmdrun av -1 so se as st
+	call strip
+	call bycut want 0
+	call oraclesearch want k pp pn lp ln
+	load want as p
+	load want+8 as l
+	load cut as q
+	load cut+8 as m
+	same=l==m
+	lines=0
+	i=0
+	while i<l
+		loadb p+i as x
+		lines+=x==10
+		if same
+			loadb q+i as y
+			same=x==y
+		end
+		i+=1
+	end
+	call print ": status "
+	call putn st
+	call print ", "
+	call putn lines-1
+	if same
+		call print " results, the same\n"
+	else
+		call print " results, NOT THE SAME\n"
+	end
+end
+# the cases of one snapshot and one query
+fn cases n
+	call case 1 "" 0 -1
+	call case 10 "" 0 -1
+	call case n "" 0 -1
+	call case n+5 "" 0 -1
+	call case 10 "d3/" 0 -1
+	call case n "d3/" 0 -1
+	call case 10 "" "l1"
+	call case n "d0/f1" "l2"
+	call case n+5 "d4/" "l0"
+	call case 10 "zz" 0 -1
+	call case 10 "" "l9"
+	call case 10 "d3/" "l9"
+end
+# for the query taken, over all records: the largest difference of the
+# score to the sum in the opposite order, in units of 1e-18, with the
+# number of records where it is above 1e-12; and to the cosine divided
+# by the norm of the stored vector, in units of 1e-12
+fn differences n
+	itof 1000000 as m6
+	fmul m6 m6 as m12
+	fmul m12 m6 as m18
+	itof 1 as one
+	fdiv one m12 as tol
+	itof 0 as dmax
+	itof 0 as cmax
+	over=0
+	i=0
+	while i<n
+		call oraclescore i as s
+		call oracleback i as b
+		fsub s b as d
+		d=d&0x7fffffffffffffff
+		flt dmax d as c
+		if c
+			dmax=d
+		end
+		flt tol d as c
+		over+=c
+		call oraclecos i as b
+		fsub s b as d
+		d=d&0x7fffffffffffffff
+		flt cmax d as c
+		if c
+			cmax=d
+		end
+		i+=1
+	end
+	fmul dmax m18 as dmax
+	ftoi dmax as x
+	call print "opposite order: at most "
+	call putn x
+	call print "e-18, "
+	call putn over
+	call print " records above 1e-12\n"
+	fmul cmax m12 as cmax
+	ftoi cmax as x
+	call print "cosine by the stored norm: at most "
+	call putn x
+	call print "e-12\n"
+end
+seed=20261121
+call make 3000 96
+load vecs as p
+call ask p+1500*96*4
+call print "the query is the vector of record 1500\n"
+call cases 3000
+call differences 3000
+call make 3000 96
+alloc 768*4 as qv
+i=0
+while i<768
+	call element as x
+	store4 qv+i*4 x
+	i+=1
+end
+call ask qv
+call print "a random query\n"
+call cases 3000
+call differences 3000
+call make 200 768
+call ask qv
+call cases 200
+call differences 200
+call make 1 1
+call ask qv
+call cases 1
+# no records: every limit is above what there is
+call make 0 8
+call ask qv
+call cases 7

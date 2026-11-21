@@ -1,0 +1,247 @@
+# tests/lib/oracle.aiw -- the independent implementation of acceptance
+# check 2: a search over a snapshot that shares no code with the engine.
+# It reads the file by the offsets of docs/format.md, makes a double of
+# a binary32 with the integer statements of tests/lib/wide.aiw, scores
+# with a loop of fmul and fadd in the order of the elements, and selects
+# by scanning all scores for the best one left, as often as there are
+# results. A test that uses it uses lib/std/io.aiw, lib/std/bytes.aiw,
+# lib/std/file.aiw and tests/lib/wide.aiw first.
+#
+# It trusts the file: nothing is validated, since the files it is given
+# are those the engine has just built and accepted.
+#
+# Every name of this file starts with "oracle"; a test has no var of
+# such a name.
+
+buf oraclefile 24       # the snapshot, whole
+var oraclen oracledim oraclerecs oraclestrs oraclevecs
+var oracleq             # the doubles of the query, normalized
+var oraclesc            # a score for each record
+var oraclest            # for each record: 0 not eligible, 1 eligible, 2 given
+
+# read the snapshot at the path: the number of its records, or a
+# negative number
+fn oracleopen oraclep oraclel
+	call bycut oraclefile 0
+	call fileread oraclep oraclel oraclefile as oracler
+	ifslt oracler 0
+		ret oracler
+	end
+	load oraclefile as oracleb
+	load oracleb+24 as oraclen
+	load oracleb+32 as oracledim
+	oraclerecs=oracleb+128
+	load oracleb+48 as oraclex
+	oraclestrs=oracleb+oraclex
+	load oracleb+64 as oraclex
+	oraclevecs=oracleb+oraclex
+	alloc oracledim*8 as oracleq
+	alloc oraclen*8+8 as oraclesc
+	alloc oraclen+8 as oraclest
+	ret oraclen
+end
+
+# take the query, as many binary32 as the snapshot has dimensions at
+# oraclep, and divide it by its norm
+fn oraclequery oraclep
+	itof 0 as oracles
+	oraclei=0
+	while oraclei<oracledim
+		load4 oraclep+oraclei*4 as oraclex
+		call wide4to8 oraclex as oraclex
+		store oracleq+oraclei*8 oraclex
+		fmul oraclex oraclex as oraclex
+		fadd oracles oraclex as oracles
+		oraclei+=1
+	end
+	fsqrt oracles as oracles
+	oraclei=0
+	while oraclei<oracledim
+		load oracleq+oraclei*8 as oraclex
+		fdiv oraclex oracles as oraclex
+		store oracleq+oraclei*8 oraclex
+		oraclei+=1
+	end
+end
+
+# the score of record oracler: the products of its elements with those
+# of the query, each rounded and added to the sum of those before it
+fn oraclescore oracler
+	oraclev=oraclevecs+oracler*oracledim*4
+	itof 0 as oracles
+	oraclei=0
+	while oraclei<oracledim
+		load4 oraclev+oraclei*4 as oraclex
+		call wide4to8 oraclex as oraclex
+		load oracleq+oraclei*8 as oracley
+		fmul oraclex oracley as oraclex
+		fadd oracles oraclex as oracles
+		oraclei+=1
+	end
+	ret oracles
+end
+
+# the same sum with the elements taken from the last to the first
+fn oracleback oracler
+	oraclev=oraclevecs+oracler*oracledim*4
+	itof 0 as oracles
+	oraclei=oracledim
+	while oraclei
+		oraclei-=1
+		load4 oraclev+oraclei*4 as oraclex
+		call wide4to8 oraclex as oraclex
+		load oracleq+oraclei*8 as oracley
+		fmul oraclex oracley as oraclex
+		fadd oracles oraclex as oracles
+	end
+	ret oracles
+end
+
+# the cosine of record oracler and the query as a reference would have
+# it that does not trust the stored vector to have the norm 1: the
+# score divided by the norm of the stored vector
+fn oraclecos oracler
+	oraclev=oraclevecs+oracler*oracledim*4
+	itof 0 as oracles
+	oraclei=0
+	while oraclei<oracledim
+		load4 oraclev+oraclei*4 as oraclex
+		call wide4to8 oraclex as oraclex
+		fmul oraclex oraclex as oraclex
+		fadd oracles oraclex as oracles
+		oraclei+=1
+	end
+	fsqrt oracles as oracles
+	call oraclescore oracler as oraclex
+	fdiv oraclex oracles as oraclex
+	ret oraclex
+end
+
+# 1 if the oraclel bytes at oraclep start with the oraclem at oracles
+fn oraclestarts oraclep oraclel oracles oraclem
+	if oraclem>oraclel
+		ret 0
+	end
+	oraclei=0
+	while oraclei<oraclem
+		loadb oraclep+oraclei as oraclex
+		loadb oracles+oraclei as oracley
+		if oraclex!=oracley
+			ret 0
+		end
+		oraclei+=1
+	end
+	ret 1
+end
+
+# add a string of JSON to the bytes buffer
+fn oraclestr oracleb oraclep oraclel
+	call byaddb oracleb 34
+	oraclei=0
+	while oraclei<oraclel
+		loadb oraclep+oraclei as oraclex
+		if (oraclex==34)|(oraclex==92)
+			call byaddb oracleb 92
+		end
+		call byaddb oracleb oraclex
+		oraclei+=1
+	end
+	call byaddb oracleb 34
+end
+
+# Search: add to the bytes buffer oracleb the lines that search is to
+# print for the query taken, the limit oraclek, the path prefix of the
+# oraclepn bytes at oraclepp and, unless oracleln is -1, the language of
+# the oracleln bytes at oraclelp. A result line is that of the engine
+# without its field "score".
+fn oraclesearch oracleb oraclek oraclepp oraclepn oraclelp oracleln
+	load oraclefile as oraclef
+	call byadd oracleb "{\"source_revision\":"
+	load4 oraclef+88 as oracleo
+	load4 oraclef+92 as oraclel
+	if oraclel
+		call oraclestr oracleb oraclestrs+oracleo oraclel
+	else
+		call byadd oracleb "null"
+	end
+	call byadd oracleb ",\"model\":"
+	load4 oraclef+80 as oracleo
+	load4 oraclef+84 as oraclel
+	call oraclestr oracleb oraclestrs+oracleo oraclel
+	call byadd oracleb "}\n"
+	# which records are eligible, and their scores
+	oraclei=0
+	while oraclei<oraclen
+		oracler=oraclerecs+oraclei*24
+		load4 oracler as oracleo
+		load4 oracler+4 as oraclel
+		call oraclestarts oraclestrs+oracleo oraclel oraclepp oraclepn as oracleok
+		if oracleok&(oracleln!=-1)
+			load4 oracler+8 as oracleo
+			load4 oracler+12 as oraclel
+			oracleok=0
+			if oraclel==oracleln
+				call oraclestarts oraclestrs+oracleo oraclel oraclelp oracleln as oracleok
+			end
+		end
+		storeb oraclest+oraclei oracleok
+		if oracleok
+			call oraclescore oraclei as oraclex
+			store oraclesc+oraclei*8 oraclex
+		end
+		oraclei+=1
+	end
+	# the best that is left, as often as the limit allows; of equal
+	# scores the first found stays, which is the lower ordinal
+	oraclerank=0
+	while oraclerank<oraclek
+		oraclebest=-1
+		oraclei=0
+		while oraclei<oraclen
+			loadb oraclest+oraclei as oraclex
+			if oraclex==1
+				if oraclebest==-1
+					oraclebest=oraclei
+				else
+					load oraclesc+oraclei*8 as oraclex
+					load oraclesc+oraclebest*8 as oracley
+					flt oracley oraclex as oraclex
+					if oraclex
+						oraclebest=oraclei
+					end
+				end
+			end
+			oraclei+=1
+		end
+		if oraclebest==-1
+			ret 0
+		end
+		storeb oraclest+oraclebest 2
+		oraclerank+=1
+		oracler=oraclerecs+oraclebest*24
+		call byadd oracleb "{\"rank\":"
+		call byaddn oracleb oraclerank
+		call byadd oracleb ",\"score_bits\":\""
+		load oraclesc+oraclebest*8 as oraclex
+		oraclei=64
+		while oraclei
+			oraclei-=4
+			oracley=oraclex>>oraclei&15
+			if oracley>9
+				oracley+=39
+			end
+			call byaddb oracleb oracley+48
+		end
+		call byadd oracleb "\",\"path\":"
+		load4 oracler as oracleo
+		load4 oracler+4 as oraclel
+		call oraclestr oracleb oraclestrs+oracleo oraclel
+		call byadd oracleb ",\"start_line\":"
+		load4 oracler+16 as oraclex
+		call byaddn oracleb oraclex
+		call byadd oracleb ",\"end_line\":"
+		load4 oracler+20 as oraclex
+		call byaddn oracleb oraclex
+		call byadd oracleb "}\n"
+	end
+end

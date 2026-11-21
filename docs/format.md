@@ -189,6 +189,19 @@ binary64, and they are determined:
 - **LanceDB computes in binary32.** Its scores are compared within about
   1e-5, and records whose scores are that close may come in another order.
 
+`tests/oracle_search.aiw` measures two of these on generated snapshots; it
+printed, on 2026-11-21 with AIL at `a5b4559`, for every record of each
+snapshot against one query:
+
+| Snapshot | Largest difference to the sum in the opposite order | Records above 1e-12 | Largest difference to the cosine by the stored norm |
+|---|---|---|---|
+| 3000 records of 96 dimensions, the query a stored vector | 2.22e-16 | 0 | 5.3e-9 |
+| the same, a random query | 2.77e-16 | 0 | 4.2e-9 |
+| 200 records of 768 dimensions, a random query | 1.94e-16 | 0 | 5.8e-10 |
+
+The figures are the same on every machine, since the data come from a fixed
+seed and every operation is determined.
+
 A score is finite. It may lie outside -1 to 1 by the roundings above.
 
 ## Limits

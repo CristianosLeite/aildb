@@ -1,0 +1,73 @@
+build of 3000 records of 96 dimensions: status 0, the oracle reads 3000
+the query is the vector of record 1500
+ 1: status 0, 1 results, the same
+ 10: status 0, 10 results, the same
+ 3000: status 0, 3000 results, the same
+ 3005: status 0, 3000 results, the same
+ 10 -p d3/: status 0, 10 results, the same
+ 3000 -p d3/: status 0, 600 results, the same
+ 10 -l l1: status 0, 10 results, the same
+ 3000 -p d0/f1 -l l2: status 0, 29 results, the same
+ 3005 -p d4/ -l l0: status 0, 200 results, the same
+ 10 -p zz: status 0, 0 results, the same
+ 10 -l l9: status 0, 0 results, the same
+ 10 -p d3/ -l l9: status 0, 0 results, the same
+opposite order: at most 222e-18, 0 records above 1e-12
+cosine by the stored norm: at most 5322e-12
+build of 3000 records of 96 dimensions: status 0, the oracle reads 3000
+a random query
+ 1: status 0, 1 results, the same
+ 10: status 0, 10 results, the same
+ 3000: status 0, 3000 results, the same
+ 3005: status 0, 3000 results, the same
+ 10 -p d3/: status 0, 10 results, the same
+ 3000 -p d3/: status 0, 600 results, the same
+ 10 -l l1: status 0, 10 results, the same
+ 3000 -p d0/f1 -l l2: status 0, 29 results, the same
+ 3005 -p d4/ -l l0: status 0, 200 results, the same
+ 10 -p zz: status 0, 0 results, the same
+ 10 -l l9: status 0, 0 results, the same
+ 10 -p d3/ -l l9: status 0, 0 results, the same
+opposite order: at most 277e-18, 0 records above 1e-12
+cosine by the stored norm: at most 4236e-12
+build of 200 records of 768 dimensions: status 0, the oracle reads 200
+ 1: status 0, 1 results, the same
+ 10: status 0, 10 results, the same
+ 200: status 0, 200 results, the same
+ 205: status 0, 200 results, the same
+ 10 -p d3/: status 0, 10 results, the same
+ 200 -p d3/: status 0, 40 results, the same
+ 10 -l l1: status 0, 10 results, the same
+ 200 -p d0/f1 -l l2: status 0, 3 results, the same
+ 205 -p d4/ -l l0: status 0, 13 results, the same
+ 10 -p zz: status 0, 0 results, the same
+ 10 -l l9: status 0, 0 results, the same
+ 10 -p d3/ -l l9: status 0, 0 results, the same
+opposite order: at most 194e-18, 0 records above 1e-12
+cosine by the stored norm: at most 582e-12
+build of 1 records of 1 dimensions: status 0, the oracle reads 1
+ 1: status 0, 1 results, the same
+ 10: status 0, 1 results, the same
+ 1: status 0, 1 results, the same
+ 6: status 0, 1 results, the same
+ 10 -p d3/: status 0, 0 results, the same
+ 1 -p d3/: status 0, 0 results, the same
+ 10 -l l1: status 0, 0 results, the same
+ 1 -p d0/f1 -l l2: status 0, 0 results, the same
+ 6 -p d4/ -l l0: status 0, 0 results, the same
+ 10 -p zz: status 0, 0 results, the same
+ 10 -l l9: status 0, 0 results, the same
+ 10 -p d3/ -l l9: status 0, 0 results, the same
+build of 0 records of 8 dimensions: status 0, the oracle reads 0
+ 1: status 0, 0 results, the same
+ 10: status 0, 0 results, the same
+ 7: status 0, 0 results, the same
+ 12: status 0, 0 results, the same
+ 10 -p d3/: status 0, 0 results, the same
+ 7 -p d3/: status 0, 0 results, the same
+ 10 -l l1: status 0, 0 results, the same
+ 7 -p d0/f1 -l l2: status 0, 0 results, the same
+ 12 -p d4/ -l l0: status 0, 0 results, the same
+ 10 -p zz: status 0, 0 results, the same
+ 10 -l l9: status 0, 0 results, the same
+ 10 -p d3/ -l l9: status 0, 0 results, the same
