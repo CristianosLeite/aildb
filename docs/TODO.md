@@ -33,11 +33,11 @@ reviews and publishes it, and `ail.pin` then moves to that revision.
 - [ ] Read the vectors, the TSV, the model identifier and the source
   revision when there is one; reject a wrong length, a value that is not
   finite, a zero vector, a path with a tab; normalize in binary64 and round
-  with `f8to4`.
-- [ ] Write the file as `docs/format.md` says and validate it with the
-  reader of step 5.
+  with `f8to4`; write the file as `docs/format.md` says, through a
+  temporary file and a rename.
 - [ ] Publication: lock, temporary file in the destination directory,
-  `fsync`, validation, `rename`, `fsync` of the directory; write and sync
+  `fsync`, validation with the reader of step 5, `rename`, `fsync` of the
+  directory; write and sync
   failures reported, and the case of a rename that succeeded with a
   directory sync that failed.
 - [ ] `docs/durability.md`: the filesystem and storage assumptions for a

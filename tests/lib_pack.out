@@ -1,0 +1,15 @@
+packed 1
+block 4096
+same 1
+$ aildb check two.idx
+--- stdout
+{"records":2,"dimension":3,"model":"nomic-embed-text","source_revision":"7dea612"}
+--- stderr
+--- status 0
+packed 1
+same 1
+$ aildb check none.idx
+--- stdout
+{"records":0,"dimension":768,"model":"m","source_revision":null}
+--- stderr
+--- status 0

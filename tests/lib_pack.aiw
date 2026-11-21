@@ -1,0 +1,100 @@
+# the block of packmeta and packseal, followed by the vectors, is byte
+# for byte the file that tests/lib/mk.aiw writes for the same contents
+# from docs/format.md, with records and without; check accepts it
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "src/lib/crc.aiw"
+use "src/lib/pack.aiw"
+use "tests/lib/cmd.aiw"
+use "tests/lib/mk.aiw"
+buf want 24             # the file of mk.aiw
+buf got 24              # the block of pack.aiw, then the vectors
+buf recs 24
+buf strs 24
+buf vecs 24
+buf r 24
+buf v 24
+fn num p n x
+	call print p n
+	call putn x
+	call print "\n"
+end
+# 1 if the two files are the same bytes
+fn same
+	load want as p
+	load want+8 as n
+	load got as q
+	load got+8 as m
+	if n!=m
+		ret 0
+	end
+	i=0
+	while i<n
+		loadb p+i as a
+		loadb q+i as c
+		if a!=c
+			ret 0
+		end
+		i+=1
+	end
+	ret 1
+end
+# seal the block in got for the vectors in vecs and put them after it
+fn finish
+	load vecs as p
+	load vecs+8 as n
+	call crc32 0 p n as c
+	call packseal got c
+	call byadd got p n
+end
+# two records of three dimensions, with the strings in the order mk.aiw
+# writes them: model, revision, then path and language of each record
+call mknew 3 "nomic-embed-text" "7dea612"
+store4 v 0x3f800000
+store4 v+8 0xbf800000
+call mkrec "lib/std/io.aiw" "ail" 1 20 v
+call byadd vecs v 12
+store4 v 7
+call mkrec "docs/usage.md" "" 7 7 v
+call byadd vecs v 12
+call mkdone want
+call byadd strs "nomic-embed-text7dea612lib/std/io.aiwaildocs/usage.md"
+store4 r 23
+store4 r+4 14
+store4 r+8 37
+store4 r+12 3
+store4 r+16 1
+store4 r+20 20
+call byadd recs r 24
+store4 r 40
+store4 r+4 13
+store4 r+8 53
+store4 r+12 0
+store4 r+16 7
+store4 r+20 7
+call byadd recs r 24
+call packmeta got 3 recs strs 0 16 16 7 as ok
+call num "packed " ok
+load got+8 as n
+call num "block " n
+call finish
+call same as ok
+call num "same " ok
+call mksave got -1 "two.idx"
+call cmdshow "aildb check two.idx"
+# no record and no revision, in a buffer that held other bytes
+call mknew 768 "m" ""
+call mkdone want
+call bycut recs 0
+call bycut strs 0
+call bycut vecs 0
+call byadd strs "m"
+call packmeta got 768 recs strs 0 1 0 0 as ok
+call num "packed " ok
+call finish
+call same as ok
+call num "same " ok
+call mksave got -1 "none.idx"
+call cmdshow "aildb check none.idx"

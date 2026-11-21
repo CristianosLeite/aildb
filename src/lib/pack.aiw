@@ -1,0 +1,84 @@
+# src/lib/pack.aiw -- the part of a snapshot that lies before its
+# vectors, put together in memory as docs/format.md has it: the header,
+# the records, the strings and the zeros up to the next multiple of 4096.
+# A program that uses it uses lib/std/bytes.aiw and src/lib/crc.aiw
+# first.
+#
+# The writer of a snapshot makes that block with packmeta, writes it and
+# then the vectors, whose CRC-32 it computes on the way, and at last
+# gives the block its two checksums with packseal and writes its header
+# again. Nothing here opens or writes a file.
+#
+# Every name of this file starts with "pack"; a program has no var of
+# such a name.
+
+data packzero 0 0 0 0
+
+# Make the bytes buffer packb the block of a snapshot of the dimension
+# packdim: 1, or 0 without memory, and then packb is empty. packrecs is
+# a bytes buffer of the records, 24 bytes each and as many as there are,
+# and packstrs one of the strings; the model identifier is the packml
+# bytes at the offset packmo in the strings, and the source revision the
+# packrl at packro, both 0 for none. The two checksums are left zero.
+# The caller keeps within the limits of the format; nothing is checked
+# here.
+fn packmeta packb packdim packrecs packstrs packmo packml packro packrl
+	local packh 128
+	load packrecs as packrp
+	load packrecs+8 as packrn
+	load packstrs as packsp
+	load packstrs+8 as packsn
+	packso=128+packrn
+	packvo=(packso+packsn+4095)&0xfffffffffffff000
+	packi=0
+	while packi<128
+		store packh+packi 0
+		packi+=8
+	end
+	# the magic, AILDBIDX, then the version 1 and the flags 1
+	store packh 0x58444942444c4941
+	store4 packh+8 1
+	store4 packh+12 1
+	store packh+16 packvo+packrn/24*packdim*4
+	store packh+24 packrn/24
+	store packh+32 packdim
+	store packh+40 128
+	store packh+48 packso
+	store packh+56 packsn
+	store packh+64 packvo
+	store packh+72 packrn/24*packdim*4
+	store4 packh+80 packmo
+	store4 packh+84 packml
+	store4 packh+88 packro
+	store4 packh+92 packrl
+	call bycut packb 0
+	call byneed packb packvo as packok
+	ifz packok
+		ret 0
+	end
+	call byadd packb packh 128
+	call byadd packb packrp packrn
+	call byadd packb packsp packsn
+	# the room is zero only where nothing was written before
+	load packb as packp
+	packi=packso+packsn
+	while packi<packvo
+		storeb packp+packi 0
+		packi+=1
+	end
+	store packb+8 packvo
+	ret 1
+end
+
+# give the block of packmeta in the bytes buffer packb its checksums:
+# packv, the CRC-32 of the vectors that follow it in the file, and the
+# CRC-32 of the block itself with that field as zeros
+fn packseal packb packv
+	load packb as packp
+	load packb+8 as packn
+	store4 packp+96 packv
+	call crc32 0 packp 100 as packc
+	call crc32 packc packzero 4 as packc
+	call crc32 packc packp+104 packn-104 as packc
+	store4 packp+100 packc
+end

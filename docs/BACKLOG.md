@@ -78,3 +78,10 @@ and `a5b4559`, 2026-11-21), not pushed; `make test` passed there.
   dimension and model identifier.
 - [x] Tests on files written by hand: unknown version, each field out of
   range, truncation, one vector byte changed with the length kept.
+
+## 6. `build`
+
+- [x] The part of the file before the vectors put together in memory as
+  `docs/format.md` says (`src/lib/pack.aiw`): split from the item that
+  wrote the file, whose rest went to the items of the inputs and of the
+  publication.
