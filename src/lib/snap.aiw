@@ -1,0 +1,300 @@
+# src/lib/snap.aiw -- a snapshot opened for reading: the file mapped
+# read-only and validated as docs/format.md says, before any of its
+# records, strings or vectors is used. A program that uses it uses
+# lib/std/bytes.aiw, lib/std/file.aiw, src/lib/crc.aiw and
+# src/lib/text.aiw first.
+#
+# An open snapshot is 104 bytes that the caller owns, in a buf or a
+# local, which snapopen fills:
+#
+#     0  the address of the file in memory, 0 while none is open
+#     8  the size of the file
+#    16  the number of records
+#    24  the dimension
+#    32  the address of record 0; a record is 24 bytes (docs/format.md)
+#    40  the address of the strings
+#    48  the size of the strings
+#    56  the address of vector 0; a vector is 4 bytes a dimension
+#    64  the address of the model identifier
+#    72  its length
+#    80  the address of the source revision
+#    88  its length, 0 for none
+#    96  after the results 11 and 12, the ordinal of the record at fault
+#
+# The functions return what they found and print nothing. A result below
+# zero is the error of the kernel, negated; one above zero is a reason
+# why the file is no valid snapshot, a constant below, which snapwhy puts
+# into words.
+#
+# The mapping is of the file as it was opened: a snapshot is never
+# changed where it lies, only replaced by another file of the same name,
+# and a reader keeps the one it mapped. A file that is cut short while it
+# is mapped ends the program with SIGBUS, as an I/O error of the device
+# does (docs/durability.md).
+#
+# Every name of this file starts with "snap"; a program has no var of
+# such a name.
+
+const snapshort 1       # shorter than a header
+const snapmagic 2       # not the magic of a snapshot
+const snapversion 3     # a format version that is not 1
+const snapflags 4       # flags or reserved bytes of no meaning
+const snapsize 5        # the size in the header is not that of the file
+const snaplimit 6       # dimension, records or strings beyond the limits
+const snaplayout 7      # offsets and sizes that do not fit each other
+const snapcrc 8         # the checksum of header and metadata
+const snapmodel 9       # the model identifier
+const snaprev 10        # the source revision
+const snaprecord 11     # a record: a string out of bounds, a line number
+const snaptext 12       # a record: a string that is no valid text
+const snapvcrc 13       # the checksum of the vectors
+
+data snapzero 0 0 0 0
+
+# validate the header of the mapped file of snaps, with the checksum of
+# header and metadata, and fill the 104 bytes: 0, or the reason
+fn snaphead snaps
+	load snaps as snapb
+	load snaps+8 as snapz
+	load snapb as snapx
+	if snapx!=0x58444942444c4941
+		ret snapmagic
+	end
+	load4 snapb+8 as snapx
+	if snapx!=1
+		ret snapversion
+	end
+	load4 snapb+12 as snapx
+	load snapb+104 as snapa
+	load snapb+112 as snapc
+	load snapb+120 as snapd
+	if (snapx!=1)|((snapa|snapc|snapd)!=0)
+		ret snapflags
+	end
+	load snapb+16 as snapx
+	if snapx!=snapz
+		ret snapsize
+	end
+	load snapb+24 as snapn
+	load snapb+32 as snapdim
+	load snapb+56 as snapss
+	if (snapdim-1>65535)|(snapn>0xffffffff)|(snapss>0xffffffff)
+		ret snaplimit
+	end
+	# within the limits no product or sum below can wrap 64 bits
+	load snapb+40 as snapa
+	load snapb+48 as snapso
+	load snapb+64 as snapvo
+	load snapb+72 as snapvs
+	snapc=128+24*snapn
+	snapd=(snapc+snapss+4095)&0xfffffffffffff000
+	if (snapa!=128)|(snapso!=snapc)|(snapvo!=snapd)|(snapvs!=4*snapdim*snapn)|(snapz!=snapvo+snapvs)
+		ret snaplayout
+	end
+	# everything before the vectors, the four bytes of the field as zeros
+	call crc32 0 snapb 100 as snapx
+	call crc32 snapx snapzero 4 as snapx
+	call crc32 snapx snapb+104 snapvo-104 as snapx
+	load4 snapb+100 as snapa
+	if snapx!=snapa
+		ret snapcrc
+	end
+	load4 snapb+80 as snapa
+	load4 snapb+84 as snapc
+	if (snapc-1>254)|(snapa+snapc>snapss)
+		ret snapmodel
+	end
+	call textvalid snapb+snapso+snapa snapc as snapx
+	ifz snapx
+		ret snapmodel
+	end
+	store snaps+64 snapb+snapso+snapa
+	store snaps+72 snapc
+	load4 snapb+88 as snapa
+	load4 snapb+92 as snapc
+	if (snapc>255)|(snapa+snapc>snapss)|((snapc==0)&(snapa!=0))
+		ret snaprev
+	end
+	call textvalid snapb+snapso+snapa snapc as snapx
+	ifz snapx
+		ret snaprev
+	end
+	store snaps+80 snapb+snapso+snapa
+	store snaps+88 snapc
+	store snaps+16 snapn
+	store snaps+24 snapdim
+	store snaps+32 snapb+128
+	store snaps+40 snapb+snapso
+	store snaps+48 snapss
+	store snaps+56 snapb+snapvo
+	ret 0
+end
+
+# validate every record of snaps, whose header is valid: 0, or the
+# reason, with the ordinal of the record at 96. A string that the record
+# before named with the same offset and length was looked at there.
+fn snaprecs snaps
+	load snaps+16 as snapn
+	load snaps+32 as snapr
+	load snaps+40 as snapst
+	load snaps+48 as snapss
+	snappo=-1
+	snappl=-1
+	snaplo=-1
+	snapll=-1
+	snapi=0
+	while snapi<snapn
+		load4 snapr as snapa
+		load4 snapr+4 as snapc
+		load4 snapr+8 as snapd
+		load4 snapr+12 as snape
+		load4 snapr+16 as snapf
+		load4 snapr+20 as snapg
+		if (snapc-1>4094)|(snapa+snapc>snapss)|(snape>255)|(snapd+snape>snapss)|(snapf==0)|(snapg<snapf)
+			store snaps+96 snapi
+			ret snaprecord
+		end
+		if (snapa!=snappo)|(snapc!=snappl)
+			call textvalid snapst+snapa snapc as snapx
+			ifz snapx
+				store snaps+96 snapi
+				ret snaptext
+			end
+			snappo=snapa
+			snappl=snapc
+		end
+		if (snapd!=snaplo)|(snape!=snapll)
+			call textvalid snapst+snapd snape as snapx
+			ifz snapx
+				store snaps+96 snapi
+				ret snaptext
+			end
+			snaplo=snapd
+			snapll=snape
+		end
+		snapr+=24
+		snapi+=1
+	end
+	ret 0
+end
+
+# give the mapping of snaps back; the bytes from 0 to 96 are zero then,
+# no snapshot, and what is at 96 stays
+fn snapclose snaps
+	load snaps as snapb
+	load snaps+8 as snapz
+	if snapb
+		sys munmap snapb snapz
+	end
+	snapi=0
+	while snapi<96
+		store snaps+snapi 0
+		snapi+=8
+	end
+end
+
+# Open the file at the path of the snapn bytes at snapp as the snapshot
+# snaps: 0 when it is mapped and valid, the vectors' checksum apart,
+# which snapcheck verifies. Otherwise nothing stays open, and the result
+# is the error of the kernel, negated, for a file that cannot be opened
+# or mapped, or the reason why it is no valid snapshot.
+fn snapopen snaps snapp snapn
+	local snapst 144
+	snapi=0
+	while snapi<104
+		store snaps+snapi 0
+		snapi+=8
+	end
+	call fileopen snapp snapn 0 0 as snapfd
+	ifslt snapfd 0
+		ret snapfd
+	end
+	sys fstat snapfd snapst as snapr
+	ifslt snapr 0
+		sys close snapfd
+		ret snapr
+	end
+	# the size of the file, which the header must repeat
+	load snapst+48 as snapz
+	if snapz<128
+		sys close snapfd
+		ret snapshort
+	end
+	# readable, private: PROT_READ and MAP_PRIVATE
+	sys mmap 0 snapz 1 2 snapfd 0 as snapb
+	sys close snapfd
+	if snapb>-4096
+		ret snapb
+	end
+	store snaps snapb
+	store snaps+8 snapz
+	call snaphead snaps as snapr
+	ifz snapr
+		call snaprecs snaps as snapr
+	end
+	if snapr
+		call snapclose snaps
+	end
+	ret snapr
+end
+
+# verify the checksum of the vectors of the open snapshot snaps, which
+# reads every vector: 0, or snapvcrc. The snapshot stays open either way.
+fn snapcheck snaps
+	load snaps as snapb
+	load snaps+56 as snapv
+	load snapb+72 as snapvs
+	call crc32 0 snapv snapvs as snapx
+	load4 snapb+96 as snapa
+	if snapx!=snapa
+		ret snapvcrc
+	end
+	ret 0
+end
+
+# add to the bytes buffer snapb the words for the reason snapr, a result
+# above zero of snapopen or snapcheck; snaps is the snapshot it was the
+# result for. 1, or 0 without memory.
+fn snapwhy snapb snaps snapr
+	if snapr==snapshort
+		tail byadd snapb "not a snapshot: shorter than a header"
+	end
+	if snapr==snapmagic
+		tail byadd snapb "not a snapshot"
+	end
+	if snapr==snapversion
+		tail byadd snapb "a snapshot of another format version"
+	end
+	if snapr==snapflags
+		tail byadd snapb "invalid snapshot: unknown flags"
+	end
+	if snapr==snapsize
+		tail byadd snapb "invalid snapshot: truncated, or not of the size its header says"
+	end
+	if snapr==snaplimit
+		tail byadd snapb "invalid snapshot: a dimension or count beyond the limits"
+	end
+	if snapr==snaplayout
+		tail byadd snapb "invalid snapshot: offsets and sizes that do not fit"
+	end
+	if snapr==snapcrc
+		tail byadd snapb "invalid snapshot: the checksum of header and metadata differs"
+	end
+	if snapr==snapmodel
+		tail byadd snapb "invalid snapshot: the model identifier"
+	end
+	if snapr==snaprev
+		tail byadd snapb "invalid snapshot: the source revision"
+	end
+	if snapr==snapvcrc
+		tail byadd snapb "invalid snapshot: the checksum of the vectors differs"
+	end
+	if snapr==snaprecord
+		call byadd snapb "invalid snapshot: a string out of bounds or a line number in record " as snapx
+	else
+		call byadd snapb "invalid snapshot: a string that is no valid text in record " as snapx
+	end
+	load snaps+96 as snapi
+	call byaddn snapb snapi as snapy
+	ret snapx&snapy
+end

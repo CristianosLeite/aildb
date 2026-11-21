@@ -1,0 +1,106 @@
+# snapopen maps a snapshot that a test wrote by docs/format.md and gives
+# its numbers, its strings, its records and its vectors; one without
+# records is valid; a file that is not there is the error of the kernel
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "src/lib/crc.aiw"
+use "src/lib/text.aiw"
+use "src/lib/snap.aiw"
+use "tests/lib/cmd.aiw"
+use "tests/lib/mk.aiw"
+buf b 24
+buf s 104
+buf v 24
+fn num p n x
+	call print p n
+	call putn x
+	call print "\n"
+end
+fn str p n q m
+	call print p n
+	call print "["
+	call print q m
+	call print "]\n"
+end
+# what the open snapshot s holds
+fn dump
+	load s+16 as n
+	call num "records " n
+	load s+24 as d
+	call num "dimension " d
+	load s+48 as x
+	call num "strings " x
+	load s as base
+	load s+56 as x
+	call num "vectors at " x-base
+	load s+8 as x
+	call num "size " x
+	load s+64 as p
+	load s+72 as l
+	call str "model " p l
+	load s+80 as p
+	load s+88 as l
+	call str "revision " p l
+	load s+32 as r
+	load s+40 as st
+	load s+56 as vec
+	i=0
+	while i<n
+		load4 r+i*24 as o
+		load4 r+i*24+4 as l
+		call str "path " st+o l
+		load4 r+i*24+8 as o
+		load4 r+i*24+12 as l
+		call str "language " st+o l
+		load4 r+i*24+16 as x
+		call num "first " x
+		load4 r+i*24+20 as x
+		call num "last " x
+		j=0
+		while j<d
+			load4 vec+(i*d+j)*4 as x
+			call num "element " x
+			j+=1
+		end
+		i+=1
+	end
+end
+# two records of three dimensions; the elements are bit patterns, which
+# the reader does not look at
+call mknew 3 "nomic-embed-text" "7dea612"
+store4 v 0x3f800000
+store4 v+4 0
+store4 v+8 0x80000000
+call mkrec "lib/std/io.aiw" "ail" 1 20 v
+store4 v 1
+store4 v+4 2
+store4 v+8 3
+call mkrec "docs/caf\xc3\xa9.md" "" 7 7 v
+call mkdone b
+call mksave b -1 "two.idx" as r
+call num "saved " r
+call snapopen s "two.idx" as r
+call num "open " r
+call dump
+call snapcheck s as r
+call num "check " r
+call snapclose s
+load s as x
+call num "closed " x
+# no record and no revision
+call mknew 768 "m" ""
+call mkdone b
+call mksave b -1 "none.idx"
+call snapopen s "none.idx" as r
+call num "open " r
+call dump
+call snapcheck s as r
+call num "check " r
+call snapclose s
+# no such file: ENOENT, and nothing is open
+call snapopen s "absent.idx" as r
+call num "absent " 0-r
+load s as x
+call num "open " x

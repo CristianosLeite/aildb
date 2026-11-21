@@ -30,8 +30,6 @@ reviews and publishes it, and `ail.pin` then moves to that revision.
 
 ## 5. Reading a snapshot, and `check`
 
-- [ ] Open, `fstat`, map read-only; validate lengths, offsets, counts and
-  arithmetic before any access; verify the CRC-32 of header and metadata.
 - [ ] `check`: also the CRC-32 of the vectors; prints record count,
   dimension and model identifier.
 - [ ] Tests on files written by hand: unknown version, each field out of

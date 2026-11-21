@@ -29,12 +29,23 @@ compiles it, runs it under a deadline and compares. What a test needs beyond tha
   --cached --others --exclude-standard`), so a new source is checked before its first
   commit; ail-bench lists only the committed ones.
 
-- **A test starts the executable through `tests/lib/cmd.aiw`** (2026-11-21): `cmdshow`
-  takes a command line, runs it with `/dev/null` as stdin and prints the line, its stdout,
-  its stderr and its exit status or signal, which is what the `.out` of the test then
-  holds; `cmdrun` gives the two outputs in buffers and takes a descriptor for stdin. An
+- **A test starts the executable through `tests/lib/cmd.aiw`** (2026-11-21): its `use`
+  makes the directory of `AILDB_TMP` the current one, so a test names its files without a
+  directory and no path that changes from run to run reaches the expected output; a
+  program named without a slash is the one of `build/` in the repository (`aildb check
+  x`). `cmdshow` takes a command line, runs it with `/dev/null` as stdin and prints the
+  line, its stdout, its stderr and its exit status or signal, which is what the `.out` of
+  the test then holds; `cmdrun` gives the two outputs in buffers and takes a descriptor for stdin. An
   argument of `cmdshow` has no space in it and is not empty; a test that needs such an
   argument builds the argument addresses itself and calls `cmdrun`.
+
+- **Snapshots for the tests are written by `tests/lib/mk.aiw`** (2026-11-21), from
+  `docs/format.md` and with no code of the engine: its own layout and a CRC-32 of one bit
+  at a time. A test of an invalid file makes a valid one in memory, changes bytes, calls
+  `mkseal` again when the change is to pass the checksum of header and metadata, and saves
+  it, whole or cut. Reason: a reader checked only against the writer it ships with would
+  agree with that writer's mistakes. On 2026-11-21 both checksums of a file it wrote were
+  also those of `zlib.crc32` of Python 3, computed by hand.
 
 ## Unchecked
 - The runner itself has no test in the repository. On 2026-11-21 it was tried by hand with

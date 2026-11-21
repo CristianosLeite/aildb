@@ -1,18 +1,18 @@
-$ build/aildb
+$ aildb
 --- stdout
 --- stderr
 usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
        aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
        aildb check INDEX
 --- status 2
-$ build/aildb frob
+$ aildb frob
 --- stdout
 --- stderr
 usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
        aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
        aildb check INDEX
 --- status 2
-$ build/aildb frob a b
+$ aildb frob a b
 --- stdout
 --- stderr
 usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]

@@ -1,0 +1,157 @@
+# tests/lib/mk.aiw -- a snapshot written by a test, by the page
+# docs/format.md and with no code of the engine: its own layout and its
+# own CRC-32, a bit at a time. A test builds a valid snapshot in memory,
+# changes the bytes it wants to be wrong and writes the file. A test that
+# uses it uses lib/std/io.aiw, lib/std/bytes.aiw and lib/std/file.aiw
+# first.
+#
+#   call mknew 3 "model" "rev"          # dimension, model, revision
+#   call mkrec "a.aiw" "ail" 1 9 v      # path, language, lines, vector
+#   call mkdone b                       # the file, in the bytes buffer b
+#
+# The vector of a record is as many binary32 as the dimension, at the
+# address given, and is stored as it is: nothing is normalized. Every
+# string is written anew, none shared. A revision of no bytes is none.
+#
+# Every name of this file starts with "mk"; a test has no var of such a
+# name.
+
+buf mkrecs 24           # the records, the strings and the vectors so far
+buf mkstrs 24
+buf mkvecs 24
+var mkdim mkmo mkml mkro mkrl
+
+# the CRC-32 of the mkn bytes at mkp after those that mkc is the CRC-32
+# of, a bit at a time
+fn mkcrc mkc mkp mkn
+	mkc=mkc^0xffffffff
+	while mkn
+		loadb mkp as mkb
+		mkc=mkc^mkb
+		mkk=0
+		while mkk<8
+			if mkc&1
+				mkc=mkc>>1^0xedb88320
+			else
+				mkc>>=1
+			end
+			mkk+=1
+		end
+		mkp+=1
+		mkn-=1
+	end
+	ret mkc^0xffffffff
+end
+
+# add the mkn bytes at mkp to the strings: their offset there
+fn mkstr mkp mkn
+	load mkstrs+8 as mko
+	call byadd mkstrs mkp mkn
+	ret mko
+end
+
+# start a snapshot of the dimension mkd with the model identifier and
+# the source revision given, and no record
+fn mknew mkd mkp mkn mkq mkm
+	call bycut mkrecs 0
+	call bycut mkstrs 0
+	call bycut mkvecs 0
+	mkdim=mkd
+	call mkstr mkp mkn as mkmo
+	mkml=mkn
+	mkro=0
+	mkrl=mkm
+	if mkm
+		call mkstr mkq mkm as mkro
+	end
+end
+
+# add a record: the path, the language, the first and the last line, and
+# the address of its vector
+fn mkrec mkp mkn mkq mkm mkf mkl mkv
+	local mkr 24
+	call mkstr mkp mkn as mko
+	store4 mkr mko
+	store4 mkr+4 mkn
+	call mkstr mkq mkm as mko
+	store4 mkr+8 mko
+	store4 mkr+12 mkm
+	store4 mkr+16 mkf
+	store4 mkr+20 mkl
+	call byadd mkrecs mkr 24
+	call byadd mkvecs mkv mkdim*4
+end
+
+# write into the header of the file of mkn bytes at mkp the CRC-32 of
+# its header and metadata, which a test calls again after it changed a
+# byte that this checksum covers
+fn mkseal mkp mkn
+	load mkp+64 as mkv
+	if mkv>mkn
+		mkv=mkn
+	end
+	store4 mkp+100 0
+	call mkcrc 0 mkp mkv as mkc
+	store4 mkp+100 mkc
+end
+
+# make the bytes buffer mkb the file of the snapshot
+fn mkdone mkb
+	local mkh 128
+	load mkrecs+8 as mkrn
+	load mkstrs+8 as mksn
+	load mkvecs+8 as mkvn
+	mkso=128+mkrn
+	mkvo=(mkso+mksn+4095)/4096*4096
+	mki=0
+	while mki<128
+		store mkh+mki 0
+		mki+=8
+	end
+	call bycopy mkh "AILDBIDX"
+	store4 mkh+8 1
+	store4 mkh+12 1
+	store mkh+16 mkvo+mkvn
+	store mkh+24 mkrn/24
+	store mkh+32 mkdim
+	store mkh+40 128
+	store mkh+48 mkso
+	store mkh+56 mksn
+	store mkh+64 mkvo
+	store mkh+72 mkvn
+	store4 mkh+80 mkmo
+	store4 mkh+84 mkml
+	store4 mkh+88 mkro
+	store4 mkh+92 mkrl
+	load mkvecs as mkp
+	call mkcrc 0 mkp mkvn as mkc
+	store4 mkh+96 mkc
+	call bycut mkb 0
+	call byadd mkb mkh 128
+	load mkrecs as mkp
+	call byadd mkb mkp mkrn
+	load mkstrs as mkp
+	call byadd mkb mkp mksn
+	mki=mkso+mksn
+	while mki<mkvo
+		call byaddb mkb 0
+		mki+=1
+	end
+	load mkvecs as mkp
+	call byadd mkb mkp mkvn
+	load mkb as mkp
+	load mkb+8 as mkn
+	call mkseal mkp mkn
+end
+
+# write the mkn first bytes of the file in the bytes buffer mkb to the
+# path of the mkm bytes at mkq, or all of them if mkn is -1: 0, or the
+# error
+fn mksave mkb mkn mkq mkm
+	load mkb as mkp
+	if mkn==-1
+		load mkb+8 as mkn
+	end
+	call filewrite mkq mkm mkp mkn as mkr
+	ret mkr
+end

@@ -1,51 +1,53 @@
 # tests/lib/cmd.aiw -- start a program for a test and show what it did.
 # A test that uses it uses lib/std/io.aiw, lib/std/bytes.aiw,
 # lib/std/file.aiw and lib/std/proc.aiw first, and runs under
-# tests/run.sh, which names a directory for its files in AILDB_TMP.
+# tests/run.sh, which starts it at the top of the repository and names a
+# directory for its files in AILDB_TMP.
+#
+# The lines below run where the use stands: they note the directory the
+# test was started in, where build/ is, and make the directory of
+# AILDB_TMP the current one. A test therefore names the files it makes
+# without a directory, and a program by its name alone: "aildb check x"
+# starts build/aildb of the repository.
 #
 # Every name of this file starts with "cmd"; a test has no var of such a
 # name (see lib/std/io.aiw).
 
-buf cmdpo 24            # the paths of the files the outputs go to
-buf cmdpe 24
-buf cmdso 24            # what cmdshow read from them
+const cmdgetcwd 79
+const cmdchdir 80
+buf cmdhome 4096        # the directory the test was started in
+buf cmdexe 8192         # the path of the program of the last cmdargs
+buf cmdtmp 4096         # AILDB_TMP with a NUL byte
+buf cmdso 24            # what cmdshow read of the two outputs
 buf cmdse 24
 buf cmdline 4096        # the arguments of cmdargs, a NUL after each
 buf cmdargv 520         # their addresses, 64 at most, and a 0
+var cmdhomen
 
-# make the bytes buffer cmdb the path of the file named by the cmdn bytes
-# at cmdp in the directory of this test: 1, or 0 without the directory or
-# without memory
-fn cmdpath cmdb cmdp cmdn
-	call bycut cmdb 0
-	call procvar "AILDB_TMP" as cmdt cmdl
-	ifz cmdt
-		ret 0
-	end
-	call byadd cmdb cmdt cmdl as cmdx
-	call byaddb cmdb 47 as cmdy
-	call byadd cmdb cmdp cmdn as cmdz
-	ret cmdx&cmdy&cmdz
+sys cmdgetcwd cmdhome 4096 as cmdr
+ifsle cmdr 0
+	call die "cmd: no current directory\n"
+end
+cmdhomen=cmdr-1
+call procvar "AILDB_TMP" as cmdp cmdn
+if (cmdp==0)|(cmdn>4095)
+	call die "cmd: AILDB_TMP is not set\n"
+end
+call bycopy cmdtmp cmdp cmdn
+sys cmdchdir cmdtmp as cmdr
+if cmdr
+	call die "cmd: cannot enter AILDB_TMP\n"
 end
 
 # Run the program whose arguments are at cmdav, as procstart takes them,
 # until it ends: its result as procwait gives it, an exit status or a
 # signal negated, or -2000 if the test could not start it or read what it
 # wrote. cmdin is the descriptor it reads as stdin, -1 for /dev/null. Its
-# stdout and stderr go to files and are, afterwards, the contents of the
-# bytes buffers cmdout and cmderr.
+# stdout and stderr go to the files cmd.out and cmd.err and are,
+# afterwards, the contents of the bytes buffers cmdout and cmderr.
 fn cmdrun cmdav cmdin cmdout cmderr
-	call cmdpath cmdpo "cmd.out" as cmdx
-	call cmdpath cmdpe "cmd.err" as cmdy
-	ifz cmdx&cmdy
-		ret -2000
-	end
-	load cmdpo as cmdp
-	load cmdpo+8 as cmdn
-	call fileopen cmdp cmdn 0x241 420 as cmdo
-	load cmdpe as cmdp
-	load cmdpe+8 as cmdn
-	call fileopen cmdp cmdn 0x241 420 as cmde
+	call fileopen "cmd.out" 0x241 420 as cmdo
+	call fileopen "cmd.err" 0x241 420 as cmde
 	cmdi=cmdin
 	if cmdin==-1
 		call fileopen "/dev/null" 0 0 as cmdi
@@ -66,12 +68,8 @@ fn cmdrun cmdav cmdin cmdout cmderr
 	call procwait cmdpid 0 as cmds
 	call bycut cmdout 0
 	call bycut cmderr 0
-	load cmdpo as cmdp
-	load cmdpo+8 as cmdn
-	call fileread cmdp cmdn cmdout as cmdx
-	load cmdpe as cmdp
-	load cmdpe+8 as cmdn
-	call fileread cmdp cmdn cmderr as cmdy
+	call fileread "cmd.out" cmdout as cmdx
+	call fileread "cmd.err" cmderr as cmdy
 	ifslt cmdx|cmdy 0
 		ret -2000
 	end
@@ -81,8 +79,10 @@ end
 # The arguments of a command line, the cmdn bytes at cmdp, as procstart
 # takes them: the address of their addresses. An argument ends at a
 # space, so none has a space in it and none is empty; the line is shorter
-# than 4096 bytes and has 64 arguments at most, or the result is 0. The
-# result is good until the next call.
+# than 4096 bytes and has 64 arguments at most, or the result is 0. A
+# first argument without a slash is a program of build/ in the
+# repository, and is given by its whole path. The result is good until
+# the next call.
 fn cmdargs cmdp cmdn
 	if cmdn>4095
 		ret 0
@@ -110,6 +110,24 @@ fn cmdargs cmdp cmdn
 	end
 	storeb cmdline+cmdn 0
 	store cmdargv+cmdk*8 0
+	ifz cmdk
+		ret 0
+	end
+	load cmdargv as cmdq
+	cmdi=0
+	label slash
+	loadb cmdq+cmdi as cmdc
+	if cmdc
+		if cmdc==47
+			ret cmdargv
+		end
+		cmdi+=1
+		jmp slash
+	end
+	call bycopy cmdexe cmdhome cmdhomen
+	call bycopy cmdexe+cmdhomen "/build/"
+	call bycopy cmdexe+cmdhomen+7 cmdq cmdi+1
+	store cmdargv cmdexe
 	ret cmdargv
 end
 

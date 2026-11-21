@@ -69,3 +69,8 @@ and `a5b4559`, 2026-11-21), not pushed; `make test` passed there.
 - [x] binary32 to binary64 with integer statements, kept for the oracle:
   `tests/lib/wide.aiw`, with the tests and not in `src/lib/`, since the
   oracle shares nothing with the engine.
+
+## 5. Reading a snapshot, and `check`
+
+- [x] Open, `fstat`, map read-only; validate lengths, offsets, counts and
+  arithmetic before any access; verify the CRC-32 of header and metadata.
