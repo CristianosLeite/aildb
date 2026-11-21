@@ -1,7 +1,7 @@
 ---
 title: How build publishes a snapshot
 last-verified: 2026-11-21
-sources: [src/main.aiw, src/hook.aiw, tests/lib/hook.aiw, tests/cli_build_publish.aiw, REQUIREMENTS.md, REVIEW.md, architecture/requirements-decisions.md]
+sources: [src/main.aiw, src/hook.aiw, tests/lib/hook.aiw, tests/cli_build_publish.aiw, REQUIREMENTS.md, the review of 76104ec (2026-11-21, not in the repository), architecture/requirements-decisions.md]
 status: current
 ---
 # How build publishes a snapshot
