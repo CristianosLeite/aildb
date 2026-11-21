@@ -1,0 +1,83 @@
+# search opens the snapshot, compares the model identifier if one is
+# given, and reads the query from a file or from stdin: with a good one
+# it prints the line about the snapshot; a query of another length, with
+# an element that is not finite or of all zeros, another model, a limit
+# that is no number above zero and a snapshot that is none are refused
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "tests/lib/cmd.aiw"
+use "tests/lib/mk.aiw"
+buf b 24
+buf v 24
+call mknew 3 "nomic-embed-text" "7dea612"
+store4 v 0x3f800000
+call mkrec "lib/std/io.aiw" "ail" 1 20 v
+call mkdone b
+call mksave b -1 "one.idx"
+call mknew 3 "m" ""
+call mkdone b
+call mksave b -1 "none.idx"
+# the query 3 4 0, which need not have the norm 1
+store4 v 0x40400000
+store4 v+4 0x40800000
+store4 v+8 0
+call filewrite "q.bin" v 12
+call cmdshow "aildb search one.idx -k 10 -q q.bin"
+call cmdshowin "aildb search one.idx -k 10" "q.bin"
+call cmdshow "aildb search none.idx -q q.bin -k 1"
+call cmdshow "aildb search one.idx -k 4294967295 -q q.bin -i nomic-embed-text"
+# the model identifier
+call cmdshow "aildb search one.idx -k 10 -q q.bin -i nomic"
+call cmdshow "aildb search one.idx -k 10 -q q.bin -i"
+# the query
+call filewrite "short.bin" v 8
+call cmdshow "aildb search one.idx -k 10 -q short.bin"
+call filewrite "long.bin" v 16
+call cmdshow "aildb search one.idx -k 10 -q long.bin"
+call cmdshowin "aildb search one.idx -k 10" "long.bin"
+call cmdshow "aildb search one.idx -k 10"
+call cmdshow "aildb search one.idx -k 10 -q absent.bin"
+store4 v+4 0x7f800000
+call filewrite "inf.bin" v 12
+call cmdshow "aildb search one.idx -k 10 -q inf.bin"
+store4 v+4 0xffc00000
+call filewrite "nan.bin" v 12
+call cmdshow "aildb search one.idx -k 10 -q nan.bin"
+store4 v 0
+store4 v+4 0x80000000
+call filewrite "zero.bin" v 12
+call cmdshow "aildb search one.idx -k 10 -q zero.bin"
+# the snapshot
+call cmdshow "aildb search absent.idx -k 10 -q q.bin"
+call cmdshow "aildb search q.bin -k 10 -q q.bin"
+call mksave b 4000 "cut.idx"
+call cmdshow "aildb search cut.idx -k 10 -q q.bin"
+# usage: the limit, the options
+call print "the rest is wrong usage\n"
+buf so 24
+buf se 24
+fn bad p n
+	call cmdargs p n as av
+	call cmdrun av -1 so se as st
+	call print p n
+	call print ": "
+	call putn st
+	load so+8 as x
+	call print " "
+	call putn x
+	call print "\n"
+end
+call bad "aildb search"
+call bad "aildb search one.idx"
+call bad "aildb search one.idx -q q.bin"
+call bad "aildb search one.idx -k 0 -q q.bin"
+call bad "aildb search one.idx -k -1 -q q.bin"
+call bad "aildb search one.idx -k ten -q q.bin"
+call bad "aildb search one.idx -k 4294967296 -q q.bin"
+call bad "aildb search one.idx -k 1 -k 2 -q q.bin"
+call bad "aildb search one.idx -k 1 -x y"
+call bad "aildb search one.idx -k 1 -q"
+call bad "aildb search -k 1 one.idx"
+call bad "aildb search one.idx -k 1 q.bin"

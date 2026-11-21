@@ -6,7 +6,9 @@
 # It is compiled into an executable by a file that uses lib/std/io.aiw
 # and a file of hooks first: src/aildb.aiw for the one that is shipped.
 #
-# build and check are written; search is answered with the usage.
+# build and check are written. search reads and checks its query and
+# prints the line about the snapshot; the scan is the next item of
+# docs/TODO.md.
 use "lib/std/bytes.aiw"
 use "lib/std/file.aiw"
 use "src/lib/crc.aiw"
@@ -33,6 +35,8 @@ buf block 24            # everything before the vectors
 buf tmp 24              # the path of the temporary file, with a NUL byte
 buf dst 24              # the path of the destination, with a NUL byte
 buf lck 24              # the path of the lock file, with a NUL byte
+buf qraw 24             # search: the bytes of the query
+var qvec                # its doubles, normalized
 const pwrite 18
 const flock 73
 
@@ -554,6 +558,110 @@ fn build
 	sys exit_group 0
 end
 
+# search: open the snapshot at the path ip in, read the query from the
+# file at qp qn, or from stdin if qp is 0, and make qvec its doubles of
+# the norm 1. mp mn is the model identifier the caller gave, if mp is
+# not 0. Whatever is wrong ends the program.
+fn query ip in qp qn mp mn
+	call snapopen snap ip in as r
+	if r
+		call badsnap ip in r
+	end
+	load snap+24 as dim
+	load snap+64 as sp
+	load snap+72 as sn
+	if mp
+		call texteq mp mn sp sn as ok
+		ifz ok
+			call about ip in
+			call byadd msg "the model identifier of the snapshot is "
+			call fmtjson msg sp sn
+			call byadd msg ", not "
+			call fmtjson msg mp mn
+			call fail stinvalid
+		end
+	end
+	if qp
+		call fileread qp qn qraw as r
+	else
+		set "standard input" as qp
+		qn=14
+		call filereadfd 0 qraw as r
+	end
+	ifslt r 0
+		call about qp qn
+		call byadd msg "cannot read: "
+		call oserr r
+		call fail stio
+	end
+	if r!=dim*4
+		call about qp qn
+		call byadd msg "holds "
+		call byaddn msg r
+		call byadd msg " bytes, and a query of "
+		call byaddn msg dim
+		call byadd msg " dimensions is "
+		call byaddn msg dim*4
+		call fail stinvalid
+	end
+	alloc dim*8 as q
+	ifz q
+		call bycut msg 0
+		call byadd msg "aildb: out of memory"
+		call fail stio
+	end
+	load qraw as p
+	call normwide p q dim as r
+	if r
+		call about qp qn
+		if r==normnan
+			call byadd msg "the query has an element that is not finite"
+		else
+			call byadd msg "the query is all zeros"
+		end
+		call fail stinvalid
+	end
+	qvec=q
+end
+
+# aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
+fn search
+	call argc as n
+	if n<3
+		call usage
+	end
+	call options 3 "kqpli"
+	call opt 107 as kp kn
+	ifz kp
+		call usage
+	end
+	call textnum kp kn as k ok
+	if (ok==0)|(k-1>0xfffffffe)
+		call usage
+	end
+	call argv 2 as ip in
+	call opt 113 as qp qn
+	call opt 105 as mp mn
+	call query ip in qp qn mp mn
+	# the line about the snapshot
+	call bycut msg 0
+	call byadd msg "{\"source_revision\":"
+	load snap+80 as p
+	load snap+88 as n
+	if n
+		call fmtjson msg p n
+	else
+		call byadd msg "null"
+	end
+	call byadd msg ",\"model\":"
+	load snap+64 as p
+	load snap+72 as n
+	call fmtjson msg p n
+	call byadd msg "}\n"
+	call say
+	sys exit_group 0
+end
+
 # aildb check INDEX
 fn check
 	call argc as n
@@ -581,5 +689,9 @@ end
 call texteq cp cn "check" as is
 if is
 	call check
+end
+call texteq cp cn "search" as is
+if is
+	call search
 end
 call usage

@@ -1,0 +1,100 @@
+$ aildb search one.idx -k 10 -q q.bin
+--- stdout
+{"source_revision":"7dea612","model":"nomic-embed-text"}
+--- stderr
+--- status 0
+$ aildb search one.idx -k 10 < q.bin
+--- stdout
+{"source_revision":"7dea612","model":"nomic-embed-text"}
+--- stderr
+--- status 0
+$ aildb search none.idx -q q.bin -k 1
+--- stdout
+{"source_revision":null,"model":"m"}
+--- stderr
+--- status 0
+$ aildb search one.idx -k 4294967295 -q q.bin -i nomic-embed-text
+--- stdout
+{"source_revision":"7dea612","model":"nomic-embed-text"}
+--- stderr
+--- status 0
+$ aildb search one.idx -k 10 -q q.bin -i nomic
+--- stdout
+--- stderr
+aildb: one.idx: the model identifier of the snapshot is "nomic-embed-text", not "nomic"
+--- status 3
+$ aildb search one.idx -k 10 -q q.bin -i
+--- stdout
+--- stderr
+usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
+       aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
+       aildb check INDEX
+--- status 2
+$ aildb search one.idx -k 10 -q short.bin
+--- stdout
+--- stderr
+aildb: short.bin: holds 8 bytes, and a query of 3 dimensions is 12
+--- status 3
+$ aildb search one.idx -k 10 -q long.bin
+--- stdout
+--- stderr
+aildb: long.bin: holds 16 bytes, and a query of 3 dimensions is 12
+--- status 3
+$ aildb search one.idx -k 10 < long.bin
+--- stdout
+--- stderr
+aildb: standard input: holds 16 bytes, and a query of 3 dimensions is 12
+--- status 3
+$ aildb search one.idx -k 10
+--- stdout
+--- stderr
+aildb: standard input: holds 0 bytes, and a query of 3 dimensions is 12
+--- status 3
+$ aildb search one.idx -k 10 -q absent.bin
+--- stdout
+--- stderr
+aildb: absent.bin: cannot read: no such file or directory
+--- status 4
+$ aildb search one.idx -k 10 -q inf.bin
+--- stdout
+--- stderr
+aildb: inf.bin: the query has an element that is not finite
+--- status 3
+$ aildb search one.idx -k 10 -q nan.bin
+--- stdout
+--- stderr
+aildb: nan.bin: the query has an element that is not finite
+--- status 3
+$ aildb search one.idx -k 10 -q zero.bin
+--- stdout
+--- stderr
+aildb: zero.bin: the query is all zeros
+--- status 3
+$ aildb search absent.idx -k 10 -q q.bin
+--- stdout
+--- stderr
+aildb: absent.idx: cannot open: no such file or directory
+--- status 4
+$ aildb search q.bin -k 10 -q q.bin
+--- stdout
+--- stderr
+aildb: q.bin: not a snapshot: shorter than a header
+--- status 3
+$ aildb search cut.idx -k 10 -q q.bin
+--- stdout
+--- stderr
+aildb: cut.idx: invalid snapshot: truncated, or not of the size its header says
+--- status 3
+the rest is wrong usage
+aildb search: 2 0
+aildb search one.idx: 2 0
+aildb search one.idx -q q.bin: 2 0
+aildb search one.idx -k 0 -q q.bin: 2 0
+aildb search one.idx -k -1 -q q.bin: 2 0
+aildb search one.idx -k ten -q q.bin: 2 0
+aildb search one.idx -k 4294967296 -q q.bin: 2 0
+aildb search one.idx -k 1 -k 2 -q q.bin: 2 0
+aildb search one.idx -k 1 -x y: 2 0
+aildb search one.idx -k 1 -q: 2 0
+aildb search -k 1 one.idx: 2 0
+aildb search one.idx -k 1 q.bin: 2 0

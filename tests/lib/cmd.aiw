@@ -135,13 +135,32 @@ end
 # the program wrote to stdout and to stderr, and how it ended; the result
 # is that of cmdrun.
 fn cmdshow cmdp cmdn
+	tail cmdshowin cmdp cmdn ""
+end
+
+# The same with the file at the path of the cmdm bytes at cmdq as its
+# stdin, which the line printed says with a "<"; without a path, or with
+# one that cannot be opened, the stdin is /dev/null.
+fn cmdshowin cmdp cmdn cmdq cmdm
 	call print "$ "
 	call print cmdp cmdn
+	cmdin=-1
+	if cmdm
+		call print " < "
+		call print cmdq cmdm
+		call fileopen cmdq cmdm 0 0 as cmdin
+		ifslt cmdin 0
+			cmdin=-1
+		end
+	end
 	call print "\n"
 	cmds=-2000
 	call cmdargs cmdp cmdn as cmdav
 	if cmdav
-		call cmdrun cmdav -1 cmdso cmdse as cmds
+		call cmdrun cmdav cmdin cmdso cmdse as cmds
+	end
+	if cmdin!=-1
+		sys close cmdin
 	end
 	call print "--- stdout\n"
 	load cmdso as cmdq

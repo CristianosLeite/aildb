@@ -97,3 +97,9 @@ and `a5b4559`, 2026-11-21), not pushed; `make test` passed there.
   directory sync that failed.
 - [x] `docs/durability.md`: the filesystem and storage assumptions for a
   loss of power.
+
+## 7. `search`
+
+- [x] Read the query (file or stdin), reject a wrong dimension, a value
+  that is not finite, a zero vector, a limit that is not positive, a model
+  identifier that differs; normalize.
