@@ -1,0 +1,151 @@
+# src/lib/text.aiw -- bytes read as text: an unsigned number, the end of
+# a line or a field, a prefix, and whether bytes are a string a snapshot
+# may hold. Text is an address and a length, with no byte after it that
+# belongs to it. The functions read and never write, need no other file
+# and cannot fail: what they did not find is a result.
+#
+# Every name of this file starts with "text"; a program has no var of
+# such a name.
+
+# The textn bytes at textp as an unsigned decimal number: its value and
+# 1, or 0 and 0 if there is no byte, a byte that is no digit (a sign and
+# a space are none), or a value that does not fit in 64 bits. Zeros in
+# front are allowed.
+fn textnum textp textn
+	ifz textn
+		ret 0 0
+	end
+	textv=0
+	texti=0
+	while texti<textn
+		loadb textp+texti as textc
+		textc-=48
+		if textc>9
+			ret 0 0
+		end
+		if textv>(0xffffffffffffffff-textc)/10
+			ret 0 0
+		end
+		textv=textv*10+textc
+		texti+=1
+	end
+	ret textv 1
+end
+
+# the number of bytes before the first byte textc among the textn bytes
+# at textp, and 1; or textn and 0 if there is no such byte
+fn textfind textp textn textc
+	texti=0
+	while texti<textn
+		loadb textp+texti as textb
+		if textb==textc
+			ret texti 1
+		end
+		texti+=1
+	end
+	ret textn 0
+end
+
+# the length of the line that starts at textp, without its line feed, and
+# 1; or textn and 0 if the textn bytes have no line feed
+fn textline textp textn
+	tail textfind textp textn 10
+end
+
+# the length of the field that starts at textp, without its tab, and 1;
+# or textn and 0 if the textn bytes have no tab
+fn textfield textp textn
+	tail textfind textp textn 9
+end
+
+# 1 if the textn bytes at textp and the textm bytes at textq are the same
+# bytes
+fn texteq textp textn textq textm
+	if textn!=textm
+		ret 0
+	end
+	texti=0
+	while texti<textn
+		loadb textp+texti as textb
+		loadb textq+texti as textc
+		if textb!=textc
+			ret 0
+		end
+		texti+=1
+	end
+	ret 1
+end
+
+# 1 if the textn bytes at textp start with the textm bytes at textq; no
+# bytes are a prefix of everything
+fn textprefix textp textn textq textm
+	if textm>textn
+		ret 0
+	end
+	tail texteq textp textm textq textm
+end
+
+# 1 if the textn bytes at textp are a string as docs/format.md has it:
+# well-formed UTF-8 (no surrogate, no overlong form, nothing above
+# U+10FFFF) with no byte below 0x20 and no byte 0x7F. No bytes are one.
+fn textvalid textp textn
+	texti=0
+	while texti<textn
+		loadb textp+texti as textc
+		texti+=1
+		if textc<128
+			if (textc<32)|(textc==127)
+				ret 0
+			end
+		else
+			# the bytes that follow the first, and the range of the second,
+			# which is narrower where a shorter form or a surrogate would
+			# be written
+			textlo=128
+			texthi=191
+			if textc<0xc2
+				ret 0
+			end
+			textk=1
+			if textc>=0xe0
+				textk=2
+				if textc==0xe0
+					textlo=0xa0
+				end
+				if textc==0xed
+					texthi=0x9f
+				end
+			end
+			if textc>=0xf0
+				textk=3
+				if textc==0xf0
+					textlo=0x90
+				end
+				if textc==0xf4
+					texthi=0x8f
+				end
+				if textc>0xf4
+					ret 0
+				end
+			end
+			if texti+textk>textn
+				ret 0
+			end
+			loadb textp+texti as textc
+			if (textc<textlo)|(textc>texthi)
+				ret 0
+			end
+			texti+=1
+			textk-=1
+			while textk
+				loadb textp+texti as textc
+				if (textc<128)|(textc>191)
+					ret 0
+				end
+				texti+=1
+				textk-=1
+			end
+		end
+	end
+	ret 1
+end
