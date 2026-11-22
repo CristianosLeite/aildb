@@ -29,6 +29,9 @@ if r
 end
 call argv 2 as p n
 call fileread p n query as r
+ifslt r 0
+	call die "consumer: cannot read the query\n"
+end
 call searchdim snap as dim
 if r!=dim*4
 	call die "consumer: the query has not the dimension of the snapshot\n"

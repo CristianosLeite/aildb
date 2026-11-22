@@ -29,3 +29,8 @@ $ consumer m.tsv q.bin 2
 --- stderr
 consumer: cannot open the snapshot
 --- status 1
+$ consumer s.idx none.bin 2
+--- stdout
+--- stderr
+consumer: cannot read the query
+--- status 1
