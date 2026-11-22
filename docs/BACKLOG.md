@@ -185,3 +185,6 @@ mapped pages contribute to reported peak resident memory.
 - [x] `README.md`: how to build, the three commands on an index of
   three vectors with the output they print, the example, and the times of
   a query from `docs/performance.md`.
+- [x] The MIT notice of AIL for an executable that is passed on, since
+  the code of its library is compiled into `build/aildb`: the file
+  `NOTICE`, which goes with an executable beside `LICENSE`.

@@ -28,5 +28,3 @@ The statements are written and `ail.pin` names the revision that has them
 
 - [ ] `AGENTS.md` and the knowledge base brought up to date for the
   release (the section "State" was rewritten when step 8 was done).
-- [ ] If a release ships executables: the MIT notice of AIL goes with
-  them, since the code of its library is compiled into `build/aildb`.

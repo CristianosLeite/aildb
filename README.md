@@ -23,7 +23,7 @@ aildb needs x86-64 Linux, `make` and `git`, and nothing else: the compiler of AI
 
 ```
 make            # fetches AIL at the revision of ail.pin into ail/, builds its compiler, then build/aildb
-make test       # the tests: 24 programs and the indentation check
+make test       # the tests: 25 programs and the indentation check
 ```
 
 With a checkout of AIL already on the machine, `make AIL=../ail` links it and fetches nothing. `build/aildb` is one static executable that can be copied anywhere.
@@ -96,4 +96,4 @@ Measured on one machine (a Core i7-12700H, the file on an NVMe drive), for the t
 
 ## License
 
-[Apache License 2.0](LICENSE).
+[Apache License 2.0](LICENSE). An executable of aildb has code of the AIL library compiled into it, which is under the MIT License: [NOTICE](NOTICE) has that licence and goes with every copy of an executable, beside `LICENSE`.

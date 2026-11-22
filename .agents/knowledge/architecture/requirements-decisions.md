@@ -91,14 +91,19 @@ documented.
 ## Licence (user, 2026-11-21)
 - aildb is distributed under the Apache License 2.0. The file `LICENSE` is
   its text as the Apache Software Foundation publishes it, unchanged, and
-  `README.md` names it. There is no `NOTICE` file and no notice at the head
-  of a source: the user named no copyright holder, and the licence asks for
-  neither.
+  `README.md` names it. There is no notice at the head of a source and no
+  copyright line of aildb: the user named no copyright holder, and the
+  licence asks for neither.
 - AIL is under the MIT licence. An executable of aildb has the code of the
   AIL library that its sources `use` compiled in, which the MIT licence
   allows under its own condition, that its notice goes with a copy of that
-  code. Nothing of AIL is in this repository, so that is a matter for a
-  release that ships executables (step 11 of `docs/TODO.md`).
+  code. Nothing of AIL is in this repository. The file `NOTICE` (agent,
+  2026-11-21) says what an executable has of AIL and holds the MIT licence
+  of AIL whole; it goes with an executable, beside `LICENSE`, and section
+  4(d) of the Apache licence has whoever passes aildb on keep it.
+  `tests/notice_ail.aiw` checks that it has every byte of `ail/LICENSE`.
+  Rejected: a file of another name, which the Apache licence would not
+  carry along.
 
 ## Limits
 - The limits of the result count, the dimension and the record count are in
