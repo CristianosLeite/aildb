@@ -1,10 +1,11 @@
 # TODO
 
-The steps to version 1, in the order in which one unblocks the next.
-Version 1 was stated in a file `REQUIREMENTS.md`, which left the repository
-on 2026-11-21 (its last form is at the commit `ddc2b4d`); the two
-acceptance checks that are still open are quoted from it under their
-steps. The decisions behind these steps are in
+What is left of the steps to version 1. The steps that are done, 2 to 11,
+are in `BACKLOG.md` with every item they had. Version 1 was stated in a
+file `REQUIREMENTS.md`, which left the repository on 2026-11-21 (its last
+form is at the commit `ddc2b4d`); its four acceptance checks are met, and
+the words of the first and the fourth are in `BACKLOG.md` under their
+steps. The decisions behind the steps are in
 `.agents/knowledge/architecture/`, and the questions still to be
 decided in `.agents/knowledge/status/open-items.md`.
 
@@ -26,5 +27,6 @@ The statements are written and `ail.pin` names the revision that has them
 
 ## 11. Release
 
-- [ ] `AGENTS.md` and the knowledge base brought up to date for the
-  release (the section "State" was rewritten when step 8 was done).
+- [ ] The release itself, which is the user's: a tag and a version number,
+  after the remote is there; an executable that is passed on goes with
+  `LICENSE` and `NOTICE`.

@@ -12,6 +12,13 @@ compiles it, runs it under a deadline and compares. What a test needs beyond tha
 `build/aildb`, writing input files, reading results) is written in AIL, as
 `REQUIREMENTS.md` asks.
 
+`make test` also builds what some tests start and what is no part of the shipped
+executable: `build/aildb-stops` (the stop points), `build/chunk` (the chunker of the
+example) and the programs of the measurements (`build/bench-run`, `bench-gen`,
+`bench-scan`, `aildb-times`). As of the release of version 1 there are 25 test programs
+and the indentation check. `make example` and `make bench` are not tests of `make test`:
+the first needs Ollama and the second LanceDB.
+
 ## Decisions
 - **The runner is the one of AIL and ail-bench** (TODO step 2; written 2026-11-21):
   `name.aiw` with `name.out`, an optional `name.code`, or `name.err` when the compiler must

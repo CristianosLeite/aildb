@@ -6,7 +6,8 @@ reads a snapshot checks everything under [Validation](#validation) before it
 uses a byte of the records, the strings or the vectors.
 
 The format was fixed on 2026-11-21, before the reader and the writer were
-written; `docs/TODO.md` says which of them exist.
+written; both follow this page, and the tests build snapshots from it
+with no code of the engine.
 
 ## Layout
 

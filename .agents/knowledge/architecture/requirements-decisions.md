@@ -10,8 +10,8 @@ status: current
 the feasibility study: a read-only mapping, CRC-32, raw binary32 and TSV as inputs, JSON
 Lines as output, stop points only in a test executable, AIL pinned as ail-bench does, the
 AIL repository and a local model for the example, the Python binding of LanceDB. The
-details of each (field order, names of options) are still to be written where the format is
-documented.
+details of each (field order, names of options) are in `docs/format.md` and
+`docs/usage.md`, with their reasons on the pages of the format and of the interface.
 
 ## Decisions
 - **`search` reads the vectors through a read-only mapping** (user, 2026-11-21). The

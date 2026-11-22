@@ -137,11 +137,13 @@ A binary32 widens to a binary64 without rounding, so the only rounding of a scor
 of the 768 products and sums in binary64. An implementation that adds in the same order
 gets the same bits. One that adds in another order differs by at most about
 768 × 2^-53 × Σ|x·y| ≤ 8.6e-14 for vectors of norm 1; the documented tolerance for such a
-comparison is still to be fixed (open items). The stored vector is the normalized one
+comparison is 1e-12 (`docs/format.md`). The stored vector is the normalized one
 rounded to binary32, so its norm is 1 within about 1e-7, and so is the score against the
 cosine of the vectors as they were given.
 
 ## Not measured
-- LanceDB on the same inputs (acceptance check 4).
-- The loop inside the compiler: the simulated statement pays a `callp` for each vector.
+- Measured since, with the statement in the compiler and against LanceDB: see
+  [How a query is measured](../testing/measurement.md) and `docs/performance.md`. The
+  engine scans 100,000 vectors in 35.6 ms warm, where the prototype with the simulated
+  statement, which paid a `callp` for each vector, took 40.9 ms.
 - Power-loss behaviour; only the system calls were checked to be reachable.

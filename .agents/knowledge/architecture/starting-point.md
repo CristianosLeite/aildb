@@ -21,7 +21,8 @@ offers for the work, so that the first design conversation starts from the same 
 - **Exhaustive search first** (`REQUIREMENTS.md`): cosine similarity over every eligible
   record, as a dot product of normalized vectors, serial, with filters applied before
   scoring and ties broken by record ordinal. Approximate indexes and parallel scans are
-  decided by the measurement of acceptance check 4, not before.
+  decided by the measurement of acceptance check 4, not before. The measurement was made
+  on 2026-11-21 and version 1 has neither ([page](../testing/measurement.md)).
 - **Vectors are stored as little-endian binary32**, contiguous and of one dimension.
 - **Publication by atomic rename** of a temporary file in the destination directory,
   flushed and validated first, with the directory flushed after; one builder, readers

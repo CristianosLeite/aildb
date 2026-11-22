@@ -188,3 +188,6 @@ mapped pages contribute to reported peak resident memory.
 - [x] The MIT notice of AIL for an executable that is passed on, since
   the code of its library is compiled into `build/aildb`: the file
   `NOTICE`, which goes with an executable beside `LICENSE`.
+- [x] `AGENTS.md` and the knowledge base brought up to date for the
+  release: the section "State" says that version 1 is written and not
+  released, and the pages that spoke of work to come say what was done.
