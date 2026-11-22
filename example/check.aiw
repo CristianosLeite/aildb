@@ -164,11 +164,21 @@ moved=0
 while m
 	call textline q m as l ok
 	if l
+		# each field is looked for only after the tab before it was
+		# found: a length past the end of the line would be read else
 		call textfield q l as tn ok1
-		call textfield q+tn+1 l-tn-1 as pn ok2
+		pn=0
+		ok2=0
+		if ok1
+			call textfield q+tn+1 l-tn-1 as pn ok2
+		end
 		pp=q+tn+1
-		call textnum pp+pn+1 l-tn-pn-2 as line ok3
-		ifz ok1&ok2&ok3
+		line=0
+		ok3=0
+		if ok2
+			call textnum pp+pn+1 l-tn-pn-2 as line ok3
+		end
+		ifz ok3
 			call fail "a line of the queries is not a text, a path and a line number" ""
 		end
 		if (total+1)*dim4>vn

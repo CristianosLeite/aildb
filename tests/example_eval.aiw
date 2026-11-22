@@ -64,3 +64,22 @@ call print p n
 call print "status "
 call putn st
 call print "\n"
+# lines of the queries without a tab, and with one: refused, nothing
+# read past the line
+call filewrite "q.bin" q 48
+call filewrite "q.tsv" "no tab at all\n"
+call cmdrun av -1 cmdso cmdse as st
+load cmdse as p
+load cmdse+8 as n
+call print p n
+call print "status "
+call putn st
+call print "\n"
+call filewrite "q.tsv" "one tab\tf.aiw\n"
+call cmdrun av -1 cmdso cmdse as st
+load cmdse as p
+load cmdse+8 as n
+call print p n
+call print "status "
+call putn st
+call print "\n"

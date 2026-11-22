@@ -13,3 +13,7 @@ mean reciprocal rank: 0.2596
 status 0
 eval: the vectors are not one of a dimension for each query
 status 4
+eval: a line of the queries is not a text, a path and a line number
+status 4
+eval: a line of the queries is not a text, a path and a line number
+status 4
