@@ -1,0 +1,101 @@
+# src/run.aiw -- a command run for aildb-mcp, with what it reads and
+# writes in files in memory: the arguments are put together with arg,
+# run starts the command and waits for it, and so and se then hold what
+# it printed and what it said. A program that uses it uses
+# lib/std/io.aiw, lib/std/bytes.aiw, lib/std/file.aiw and
+# lib/std/proc.aiw first. It is a file of its own so that a test can
+# call run without the server around it (tests/run.aiw).
+
+const memfd 319
+const lseek 8
+buf zs 8192             # the arguments of the command, a NUL after each
+buf av 104              # their addresses
+buf so 24               # what the command printed
+buf se 24               # and what it said
+data mname "aildb\0"
+# zn: the bytes of zs that are taken, set to 0 before the first arg of
+# a command; ms: the milliseconds a command may take, 0 for no limit
+var zn ms
+
+# add the n bytes at p to the arguments of the command as number k
+fn arg k p n
+	call bycopy zs+zn p n
+	storeb zs+zn+n 0
+	store av+k*8 zs+zn
+	store av+k*8+8 0
+	zn+=n+1
+end
+
+# A descriptor of a file in memory with the n bytes at p, placed at its
+# start, or a negative number.
+fn memfile p n
+	sys memfd mname 1 as fd
+	ifslt fd 0
+		ret fd
+	end
+	if n
+		call fdwrite fd p n as ok
+		ifz ok
+			sys close fd
+			ret 0-5
+		end
+		sys lseek fd 0 0
+	end
+	ret fd
+end
+
+# Run the command of av with the n bytes at p as its stdin: its status
+# as procwait gives it, with so and se what it wrote; -1000 if it took
+# longer than ms, and -2000 if it could not be started.
+fn run p n
+	# nothing of the command before this one is left to be read as
+	# what this one said, should it not be started
+	call bycut so 0
+	call bycut se 0
+	call memfile p n as in
+	call memfile 0 0 as out
+	call memfile 0 0 as err
+	ifslt in|out|err 0
+		# the ones that were made are closed: the server goes on
+		ifsge in 0
+			sys close in
+		end
+		ifsge out 0
+			sys close out
+		end
+		ifsge err 0
+			sys close err
+		end
+		ret 0-2000
+	end
+	call procstart av in out err as pid
+	st=0-2000
+	ifsge pid 0
+		call procwait pid ms as st
+	end
+	sys lseek out 0 0
+	sys lseek err 0 0
+	call filereadfd out so
+	call filereadfd err se
+	sys close in
+	sys close out
+	sys close err
+	ret st
+end
+
+# the first line of what the command said, for a message: its address
+# and length
+fn said
+	load se as p
+	load se+8 as n
+	i=0
+	label more
+	if i<n
+		loadb p+i as c
+		if c!=10
+			i+=1
+			jmp more
+		end
+	end
+	ret p i
+end

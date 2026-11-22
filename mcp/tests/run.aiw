@@ -1,0 +1,82 @@
+# run, the function of src/run.aiw that starts a command for the server,
+# when the files in memory of a command cannot be made. A first command
+# prints a line and says one, and both are read. Then the process may
+# have two more descriptors than it has, so that two of the three files
+# are made and the third is not: run says that the command could not be
+# started, what the command before printed and said is gone, and the
+# two files are closed. With no descriptor to be had it is the same.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "src/run.aiw"
+const setrlimit 160
+buf lim 16
+# print what a run left: its result and the two buffers
+fn show st
+	call print "result "
+	ifslt st 0
+		call print "-"
+		st=0-st
+	end
+	call putn st
+	load so+8 as n
+	call print ", printed "
+	call putn n
+	load se+8 as n
+	call print " bytes, said "
+	call putn n
+	call said as p n
+	call print " bytes, the first line of them ["
+	call print p n
+	call print "]\n"
+end
+# how many files in memory can be made now, three at most; they are
+# closed again
+fn free
+	call memfile 0 0 as a
+	call memfile 0 0 as b
+	call memfile 0 0 as c
+	n=0
+	ifsge a 0
+		sys close a
+		n+=1
+	end
+	ifsge b 0
+		sys close b
+		n+=1
+	end
+	ifsge c 0
+		sys close c
+		n+=1
+	end
+	ret n
+end
+# the lowest descriptor that is free, which is how many this process
+# may have when it is to get no more
+call fileopen "/dev/null" 0 0 as first
+sys close first
+zn=0
+call arg 0 "/bin/sh"
+call arg 1 "-c"
+call arg 2 "echo printed; echo the command said this >&2; exit 3"
+call run "in" as st
+call show st
+store lim first+2
+store lim+8 first+2
+sys setrlimit 7 lim
+call print "# two descriptors to be had\n"
+call run "in" as st
+call show st
+call free as n
+call print "files that can be made afterwards: "
+call putn n
+call print "\n"
+call run "in" as st
+call show st
+store lim first
+store lim+8 first
+sys setrlimit 7 lim
+call print "# none to be had\n"
+call run "in" as st
+call show st

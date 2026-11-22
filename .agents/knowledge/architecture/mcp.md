@@ -61,6 +61,16 @@ pushed or merged.
   make two of its three files. The three calls of the test fail the same way; against
   the source before the fix the second failed for want of a descriptor for the
   connection to the model (error 24), the two files of the first still open.
+- **`run` is a file of its own, with a test** (the review of the pull request 11, Copilot,
+  2026-11-22). The fix that empties the buffers of a command's output before a run had
+  no test, and its commit said why: under a limit of descriptors the first search does
+  not run either. That is so for a test of the whole server, and the review named the
+  way round it, a test of `run` alone. `mcp/src/run.aiw` has `arg`, `memfile`, `run` and
+  `said`, and `mcp/tests/run.aiw` runs a command that prints and says a line, then
+  lowers the limit of its own process: with two descriptors to be had the result is
+  -2000, both buffers are empty, and two files can be made afterwards, so the two of
+  the failed run were closed; against `run` as it was before the fix the buffers still
+  held the 8 and 22 bytes of the first command.
 
 ## Unchecked
 - Codex as the client was validated by the user, who reported on 2026-11-22 that it
