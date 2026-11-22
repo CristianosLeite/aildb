@@ -72,35 +72,18 @@ The fixed queries, their places and the measures are done (`BACKLOG.md`,
 
 ## 16. MCP server for coding agents
 
-- [ ] Implement a local, read-only Model Context Protocol server for
-  Codex and Claude Code. Start with a separate `aildb-mcp` process over
-  [stdio](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports).
-  Consider the [official Python SDK](https://github.com/modelcontextprotocol/python-sdk)
-  for the adapter and keep ranking in AIL. Configure one snapshot path
-  and a local embedding endpoint at startup. Use stdout for MCP messages
-  and stderr for diagnostics.
+The server is written (`BACKLOG.md`, [mcp.md](mcp.md)).
 
-  Expose a `search` tool accepting query text, a bounded `k` and the
-  optional path-prefix and language filters. Generate the query vector
-  with the model and query prefix used by the indexed corpus. Check the
-  embedding dimension and pass the configured model identifier to
-  `aildb search`. Invoke the CLI without a shell and send binary32
-  query bytes on stdin. Return an object with the model, source revision
-  and ranked hits with paths, line ranges, scores and `score_bits`.
-  Define input and output schemas using the
-  [MCP tools contract](https://modelcontextprotocol.io/specification/2025-11-25/server/tools).
-
-  Keep snapshot publication in the `build` CLI. Keep the snapshot path,
-  model and embedding endpoint in server configuration. Apply timeouts
-  to embedding and search, and report snapshot, model and provider
-  failures as tool errors. A CLI call per query opens the current
-  snapshot after a rebuild. If measurements justify keeping a mapping
-  open, consider an AIL worker using `src/lib/search.aiw` and test its
-  reload behavior across atomic replacements.
-
-  Test discovery and calls over stdio with a deterministic embedding
-  provider and a fixture snapshot. Compare ranks, filters and score bits
-  with the CLI. Cover empty results, mismatched models, provider
-  failures and snapshot replacement. Document installation and verify
-  one search from Codex and Claude Code, including opening the returned
-  source lines at the reported revision.
+- [ ] Verify one search from Codex and from Claude Code, including
+  opening the returned source lines at the reported revision. It changes
+  the configuration of the two programs (`claude mcp add`, `codex mcp
+  add`), so it is done at the user's word.
+- [ ] Give the server SDK an address: `mcp/Ailfile` names the module
+  `mcp` of ail-extensions by its directory beside this repository,
+  since a dependency by address is a repository with the package at its
+  top. Until then `make mcp-test` is no part of `make test`. It also
+  needs a version of AIL that has the libraries (an item of the TODO of
+  AIL).
+- [ ] If the measurements of aildb-bench justify keeping a mapping open,
+  an AIL worker on `src/lib/search.aiw` in place of a command a query,
+  with a test of its reload across atomic replacements.

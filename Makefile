@@ -65,6 +65,14 @@ eval:
 	$(AIL) build example-eval
 	tools/eval.sh $(AIL) $(CORPORA)
 
+# The MCP server, mcp/ (docs/mcp.md), a package of its own: its test
+# and its indentation. It needs an AIL that has lib/std/json.aiw and
+# lib/net/http.aiw, and the module mcp of ail-extensions beside this
+# repository, so it is no part of make test.
+mcp-test:
+	$(AIL) build
+	cd mcp && $(AILCMD) test && $(AILCMD) fmt --check
+
 # The archive of a release (README.md, "The executable"): the
 # executable of the revision REV, by default the tag of the version in
 # Ailfile, built by this command of AIL from the sources that git has at
@@ -83,4 +91,4 @@ dist-check:
 clean:
 	$(AIL) clean
 
-.PHONY: all test example eval dist dist-check clean
+.PHONY: all test example eval mcp-test dist dist-check clean

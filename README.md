@@ -110,6 +110,10 @@ Measured on one machine (a Core i7-12700H, the file on an NVMe drive), for the t
 
 [docs/performance.md](docs/performance.md) has the method, every figure, the same searches in LanceDB, and why version 1 has no approximate index and scans on one thread.
 
+## For a coding agent
+
+`aildb-mcp`, in `mcp/`, is a server of the Model Context Protocol: Claude Code or Codex asks it in words, it gets the vector of the query from the embedding model and the locations from `aildb search`, and answers with paths, lines and the revision to open them at. [docs/mcp.md](docs/mcp.md) says how it is started and added to an agent.
+
 ## Documents
 
 - [docs/usage.md](docs/usage.md): the three commands, their inputs, their output and their exit statuses

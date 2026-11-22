@@ -262,3 +262,15 @@ mapped pages contribute to reported peak resident memory.
   `tools/eval.sh`, `tests/example_eval.aiw`); the report has the digest of
   the model and the limits of a chunk. `docs/evaluation.md` has the run
   of 2026-11-22. The example stays as it was.
+
+## 16. MCP server for coding agents
+
+- [x] `aildb-mcp`, in `mcp/`: a server of the Model Context Protocol
+  over stdio with the tool `search` (a query in words, `k` up to 50, a
+  path prefix and a language), written in AIL (user, 2026-11-22: no
+  Python; JSON, the decimal to double and HTTP are libraries of AIL, and
+  the MCP SDK a module of ail-extensions). It asks the model at an
+  endpoint for the vector, checks its dimension, and starts `aildb
+  search` with the vector on stdin; the result has the model, the
+  revision and the hits as the command printed them. `mcp/tests/search.aiw`
+  with an embedding service that answers from a table; `docs/mcp.md`.
