@@ -253,7 +253,11 @@ async fn search x p n r
 	# else keep this call, and every one after it, for as long as it
 	# likes.
 	call httpcall req resp as h
-	await httpwait h ms as st
+	call httplimit h ms as h
+	st=0-12
+	if h
+		await h as st
+	end
 	ifslt st 0
 		call bycut num 0
 		call byadd num "error "
