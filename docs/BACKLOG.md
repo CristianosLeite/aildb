@@ -300,3 +300,7 @@ mapped pages contribute to reported peak resident memory.
   full. A session of `codex exec` run by the agent had discovered the
   tool and been stopped at the approval of the call, which a session
   that is not interactive cannot give.
+- [x] The server SDK named by its address and a version:
+  ail-extensions is a package since 2026-11-22 and has the tag `v0.1.0`
+  (user, 2026-11-22); `ail add` with the address wrote the line `dep`
+  of `mcp/Ailfile` and `mcp/Ailfile.lock`, with the revision `4493f9d`.
