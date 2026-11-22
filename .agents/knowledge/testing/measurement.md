@@ -1,7 +1,7 @@
 ---
 title: How a query is measured
 last-verified: 2026-11-21
-sources: [conversation 2026-11-21, docs/performance.md, bench/run.aiw, bench/hook.aiw, bench/scan.aiw, tests/bench_tools.aiw]
+sources: [conversation 2026-11-21, docs/performance.md, bench/run.aiw, bench/hook.aiw, bench/scan.aiw, bench/bench.sh, bench/lance_make.py, bench/lance_query.py, tests/bench_tools.aiw]
 status: current
 ---
 # How a query is measured
@@ -37,6 +37,18 @@ time in a second one, `build/aildb-times`. `docs/performance.md` defines each ti
 - **The scan read in three ways is a program of its own** (agent, 2026-11-21),
   `bench/scan.aiw`: the engine has one way of reading and gets no second one for a
   measurement. It uses `fdot4` and `src/lib/topk.aiw` and validates nothing.
+- **LanceDB gets the vectors of the snapshot, not those given to `build`** (agent,
+  2026-11-21): `bench/lance_make.py` reads the normalized binary32 out of the snapshot,
+  so "the same stored vector values" holds bit for bit. With cosine as the metric the
+  ranking would be the same from the raw vectors, but not the bytes.
+- **LanceDB is measured on one processor and on all** (agent, 2026-11-21), since the
+  question of parallel scans is one of the things the figures decide.
+- **The fetch of the rows is in LanceDB's search time** (agent, 2026-11-21): `to_arrow`
+  runs the query and returns its rows, and nothing in the binding ends a search before
+  that. The document says so beside the boundary.
+- **The Python environment is outside the repository** (agent, 2026-11-21): a virtual
+  environment made with `uv` at `~/.cache/aildb-bench/venv` on the user's machine,
+  Python 3.12 with lancedb 0.41.0, named to `make bench` as `PY`.
 
 ## What is tested and what is not
 
@@ -46,3 +58,5 @@ computed in Python as well), that `aildb-times` prints what `aildb` prints and s
 moments in order, that the scan finds the records and bits of `search` in each way, and
 the names of the lines of the harness. No test checks a time, and none checks that
 `fadvise64` empties the cache: that is what the count of `mincore` in a report shows.
+The Python programs have no test in `make test`, which is to need no LanceDB; `make
+bench` stops unless `bench/lance_same.py` finds the same ten records from both engines.

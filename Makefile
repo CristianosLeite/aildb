@@ -104,7 +104,13 @@ $(B)/bench-scan: bench/scan.aiw bench/hook.aiw $(SRC) $(AILLIB) $(B)/ailc
 $(B)/aildb-times: bench/times.aiw bench/hook.aiw $(SRC) $(AILLIB) $(B)/ailc
 	$(call compile,$(B)/ailc)
 
+# The measurements of acceptance check 4, against the Python binding of
+# LanceDB. PY is a Python that has the package lancedb.
+PY ?= python3
+bench: all $(BENCH)
+	bench/bench.sh $(PY)
+
 clean:
 	rm -rf $(B)
 
-.PHONY: all test example clean FORCE
+.PHONY: all test example bench clean FORCE

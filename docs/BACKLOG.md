@@ -156,3 +156,10 @@ the file to another path and verify the same query results.
   that `build/aildb-times` says (startup, opening, search, output), the
   processor time and the peak resident memory; `bench-gen` makes the
   inputs and `bench-scan` reads the vectors in three ways.
+- [x] The same stored values, query and limit in LanceDB through its
+  Python binding: `bench/lance_make.py` copies the vectors of a snapshot
+  into a table, `bench/lance_query.py` searches it and says its moments,
+  `bench/lance_same.py` compares the answers, and `make bench` runs all
+  of it. `docs/performance.md` has the boundaries of each time, how the
+  cold cache is verified for the files of each engine, and how mapped
+  pages count in the peak resident memory.

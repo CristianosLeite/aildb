@@ -39,10 +39,6 @@ snapshot or table opening, search and result materialization; document
 how cold-cache conditions are verified for each engine's files and how
 mapped pages contribute to reported peak resident memory.
 
-- [ ] The same stored values, query and limit in LanceDB through its
-  Python binding; the boundaries of each time written down, how the cold
-  cache is verified for the files of each engine, and how mapped pages
-  count in the peak resident memory.
 - [ ] `docs/performance.md` with the figures at 10,000 and 100,000 vectors
   and the decision on approximate indexes and parallel scans.
 

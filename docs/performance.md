@@ -97,3 +97,84 @@ does, `p` adds `MAP_POPULATE`, and `r` reads 256 vectors at a time with
 `pread64` into one buffer. It validates nothing, so it is not `search`,
 and `tests/bench_tools.aiw` checks that it finds the records and the bits
 of `search` in each of the three ways.
+
+## The comparison with LanceDB
+
+LanceDB is measured through its Python binding, a process a query, by
+the same harness. `bench/lance_make.py` and `bench/lance_query.py` are
+the two programs; they need the packages `lancedb`, `pyarrow` and
+`numpy`.
+
+**The same stored values.** `lance_make.py SNAPSHOT DIRECTORY` reads the
+snapshot that `aildb build` made and writes a table with a row for each
+record, in order: the ordinal, the path, the two lines, and the vector as
+the snapshot stores it, the normalized binary32 bit for bit, in a column
+of fixed-size lists of `float32`. So both engines score the same numbers.
+No index is made; the plan of the query is `KNNVectorDistance` over a
+read of the whole column, an exact search.
+
+**The same query and limit.** `lance_query.py DIRECTORY QUERY 10` reads
+the file of the query that `aildb search -q` reads, and asks for the ten
+rows of the least cosine distance with the columns that `aildb` prints.
+It prints them as lines of JSON, the score as 1 less the distance.
+
+**The same answer.** Before anything is timed, `bench/lance_same.py`
+compares what the two printed: the same records in the same order, and
+no score further apart than 1e-5, the tolerance of
+[format.md](format.md#scores) for an engine that computes in binary32.
+
+The boundaries of the times, which `lance_query.py` writes as the engine
+with hooks does:
+
+| Time | From | To |
+|---|---|---|
+| wall | as for aildb | as for aildb |
+| to entry: process startup | the harness reads the clock | the first line of the program runs: the interpreter of Python has started |
+| to imported: startup as well | entry | `lancedb` and `numpy` are imported, which loads the native library of Lance and `pyarrow` |
+| to opened: table opening | imported | the database is connected, the table is open and the query is read from its file |
+| to searched: search | opened | the search has run and its ten rows are an Arrow table (`to_arrow`) |
+| to printed: result materialization | searched | the rows are Python values, formatted and written |
+| to the end | printed | the harness knows the child is gone: the interpreter and the threads of Lance end |
+
+The startup of LanceDB is "to entry" and "to imported" together; its
+search time apart from startup is "to searched". `to_arrow` both runs the
+search and brings back the rows, so the fetch of ten rows of four small
+columns is in "to searched" and not in "to printed".
+
+**Cold** for LanceDB is every file of the directory of the table: the
+data file, the manifest, the transaction file and the version hint. The
+harness finds them itself, puts each out of the cache and counts with
+`mincore` as for a snapshot.
+
+**Memory.** Lance reads its data file into memory of its own and does
+not map it, so the vectors it reads count in `RssAnon` and no page of the
+table in `RssFile`; what is in `RssFile` there is the libraries of Python
+and Lance. The two peaks are therefore not the same kind of memory: that
+of aildb is pages of the file cache that the kernel can take back, that
+of LanceDB is memory of the process.
+
+**One processor and all.** aildb scans on one thread. Lance has a pool
+of threads, so it is measured twice: bound to the one processor that
+aildb is bound to, and bound to none.
+
+**What this comparison is not.** A process a query is how aildb is
+meant to be used and the worst case for a library in an interpreter:
+most of the wall time of LanceDB below is the start of Python and the
+import, and a program that keeps a table open pays them once. The line
+"to searched" is the one to set against the search of aildb, and it too
+is the first search of a fresh process, with nothing of Lance's own
+caches filled. A search in a process that stays was not measured.
+
+## Running it
+
+```
+make bench PY=/path/to/python
+```
+
+`bench/bench.sh` makes the inputs, the snapshots and the tables at 10,000
+and 100,000 records of 768 dimensions below `build/bench/`, compares the
+answers and runs the harness for every case; the report is printed and
+kept as `build/bench/report.txt`. The run for the figures below took
+four minutes.
+The environment variables `CPU`, `WARM`, `COLD`, `LWARM`, `LCOLD` and
+`SIZES` change the processor, the rounds and the sizes.
