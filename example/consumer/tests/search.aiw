@@ -12,16 +12,24 @@ buf v 64
 buf line 24
 buf so 24
 buf se 24
+buf exe 24
 # run aildb with the arguments of n bytes at p and print what it wrote
-# to stdout and its status
+# to stdout and its status. The path of the executable is no part of
+# the line that is cut at its spaces: the checkout may be in a
+# directory with a space in its name.
 fn aildb p n
 	call bycut line 0
-	call byadd line cmdhome cmdhomen
-	call byadd line "/../../build/aildb "
+	call byadd line "aildb "
 	call byadd line p n
 	load line as q
 	load line+8 as m
 	call cmdargs q m as av
+	call bycut exe 0
+	call byadd exe cmdhome cmdhomen
+	call byadd exe "/../../build/aildb"
+	call byaddb exe 0
+	load exe as q
+	store av q
 	call cmdrun av -1 so se as st
 	call print "aildb "
 	call print p n
