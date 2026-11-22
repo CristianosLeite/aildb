@@ -59,16 +59,17 @@ Nothing is left of this step (`BACKLOG.md`).
 
 ## 15. Semantic retrieval evaluation
 
-- [ ] Create a fixed query set with expected source locations at a pinned
-  corpus revision. Start with all ten queries from the original example
-  run, including the four outside the top five, and add queries from other
-  repositories before tuning. Record the embedding model digest and
-  chunking settings. Record the rank of the first matching location for
-  each query and report hit rate at k and mean reciprocal rank. Use the
-  same queries to compare chunk sizes, overlap and embedding models.
-  Keep the existing example as a smoke test for the path from source
-  files to ranked locations and for snapshot copies. See the [original
-  example results](example.md#what-it-showed).
+The fixed queries, their places and the measures are done (`BACKLOG.md`,
+[evaluation.md](evaluation.md)).
+
+- [ ] Use the queries of `make eval` to compare chunk sizes, overlap,
+  the path as part of the embedded text and embedding models. The limits
+  of a chunk are constants of `example/chunk.aiw` and the model, its
+  dimension and its prefixes constants of `example/embed.py`; make them
+  arguments, run each variant on both corpora and add the measures to
+  `docs/evaluation.md`. Add queries on a repository of another author
+  first, in a language the chunker is taught, since both corpora are
+  AIL and Markdown.
 
 ## 16. MCP server for coding agents
 

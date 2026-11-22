@@ -10,11 +10,13 @@ ail 0.1.0
 bin aildb src/aildb.aiw
 
 # built for the tests: the commands with hooks that stop a build where a
-# test asks, the chunker of the example and its check, and the programs
+# test asks, the chunker of the example, its check and the evaluation
+# of docs/evaluation.md, and the programs
 # of the measurements
 testbin aildb-stops tests/lib/stops.aiw
 testbin chunk example/chunk.aiw
 testbin example-check example/check.aiw
+testbin example-eval example/eval.aiw
 testbin bench-run bench/run.aiw
 testbin bench-gen bench/gen.aiw
 testbin bench-scan bench/scan.aiw

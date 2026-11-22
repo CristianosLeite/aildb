@@ -1,0 +1,66 @@
+# the evaluation of example/eval.aiw on a snapshot whose places are
+# known: twelve records of the file f.aiw, ten lines each, of which the
+# record i has the vector (1-i/16, 0), so that the query (1, 0) gets
+# them in their order. Six queries ask for lines of the records 0, 4,
+# 5, 9 and 10 and for a file that is not there: the places 1, 5, 6, 10
+# and 11 and none, so 1, 2 and 4 of 6 are among the first 1, 5 and 10,
+# and the mean of 1/place is (1 + 1/5 + 1/6 + 1/10 + 1/11) / 6, which is
+# 0.2596 to four digits.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "tests/lib/cmd.aiw"
+use "tests/lib/mk.aiw"
+buf b 24
+buf v 8
+buf q 48
+call mknew 2 "m" "r"
+itof 16 as y
+i=0
+while i<12
+	itof 16-i as x
+	fdiv x y as x
+	f8to4 x as w
+	store4 v w
+	store4 v+4 0
+	call mkrec "f.aiw" "ail" i*10+1 i*10+10 v
+	i+=1
+end
+call mkdone b
+call mksave b -1 "f.idx"
+call filewrite "q.tsv" "the first\tf.aiw\t5\nthe fifth\tf.aiw\t45\nthe sixth\tf.aiw\t51\n\nthe tenth\tf.aiw\t100\nthe eleventh\tf.aiw\t101\nanother file\tg.aiw\t1\n"
+# six times the query (1, 0)
+i=0
+while i<6
+	store4 q+i*8 0x3f800000
+	store4 q+i*8+4 0
+	i+=1
+end
+call filewrite "q.bin" q 48
+call bycut b 0
+call byadd b "example-eval "
+call byadd b cmdhome cmdhomen
+call byadd b "/build/aildb f.idx q.tsv q.bin"
+load b as p
+load b+8 as n
+call cmdargs p n as av
+call cmdrun av -1 cmdso cmdse as st
+load cmdso as p
+load cmdso+8 as n
+call print p n
+load cmdse as p
+load cmdse+8 as n
+call print p n
+call print "status "
+call putn st
+call print "\n"
+# vectors that are not one for each query
+call filewrite "q.bin" q 44
+call cmdrun av -1 cmdso cmdse as st
+load cmdse as p
+load cmdse+8 as n
+call print p n
+call print "status "
+call putn st
+call print "\n"

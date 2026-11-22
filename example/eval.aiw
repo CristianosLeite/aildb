@@ -1,0 +1,275 @@
+# eval -- the place at which each query finds its lines, and the
+# measures of a set of queries (docs/evaluation.md).
+#
+#   eval AILDB INDEX QUERIES VECTORS
+#
+# QUERIES has a line for each query: its text, a path and a line number
+# of that path, with tabs between; VECTORS has the embedding of each, one
+# after the other, as example/embed.py writes them, all of one dimension.
+# For each query the program AILDB searches the snapshot INDEX for every
+# record, best first, and the place of the query is the rank of the first
+# result that is a record of the path whose lines have the line number.
+# A line is printed for each query, then how many have their place among
+# the first 1, 5 and 10 and the mean of 1/place, a query without a place
+# counted as 0. The status is 0, since this measures and does not check;
+# 2 for wrong usage and 4 for a file that cannot be read or written or a
+# search that failed. The files VECTORS.one and VECTORS.out are written
+# beside VECTORS.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "src/lib/text.aiw"
+use "src/lib/fmt.aiw"
+
+buf qs 24
+buf vs 24
+buf one 24      # the path VECTORS.one
+buf out 24      # the path VECTORS.out
+buf args 24     # the arguments of a search, a NUL after each
+buf av 80
+buf ra 24       # what the search wrote
+buf need 24
+buf num 24
+
+fn fail p n q m
+	call eprint "eval: "
+	call eprint p n
+	call eprint q m
+	call eprint "\n"
+	sys exit_group 4
+end
+
+# add the n bytes at p to args as an argument, number k
+fn arg k p n
+	load args+8 as o
+	call byadd args p n
+	call byaddb args 0
+	store av+k*8 o
+end
+
+# search the snapshot at ip in with the program at xp xn for the query in
+# the file of one, with a limit that no snapshot reaches, and make r
+# hold what it wrote
+fn search xp xn ip in r
+	call bycut args 0
+	call arg 0 xp xn
+	call arg 1 "search"
+	call arg 2 ip in
+	call arg 3 "-k"
+	call arg 4 "4294967295"
+	call arg 5 "-q"
+	load one as p
+	load one+8 as n
+	call arg 6 p n
+	# the offsets become addresses when args grows no more
+	load args as p
+	i=0
+	while i<7
+		load av+i*8 as o
+		store av+i*8 p+o
+		i+=1
+	end
+	store av+56 0
+	load out as p
+	load out+8 as n
+	call fileopen p n 0x241 420 as fd
+	call fileopen "/dev/null" 0 0 as nul
+	ifslt fd|nul 0
+		call fail "cannot write " p n
+	end
+	call procstart av nul fd 2 as pid
+	sys close fd
+	sys close nul
+	st=-1
+	ifsge pid 0
+		call procwait pid 0 as st
+	end
+	if st
+		call fail "the search failed on " ip in
+	end
+	call bycut r 0
+	call fileread p n r as st
+	ifslt st 0
+		call fail "cannot read " p n
+	end
+end
+
+# the place of the first result among the n bytes at p, the output of a
+# search, that is a record of the path pp pn with the line in its lines,
+# from 1; 0 if there is none
+fn place p n pp pn line
+	call bycut need 0
+	call byadd need "\"path\":"
+	call fmtjson need pp pn
+	call byadd need ",\"start_line\":"
+	load need as q
+	load need+8 as m
+	rank=0
+	while n
+		call textline p n as l ok
+		# the first line is about the snapshot
+		if rank
+			i=0
+			while i+m<l
+				call texteq p+i m q m as same
+				if same
+					call textfind p+i+m l-i-m 44 as d ok2
+					call textnum p+i+m d as first ok2
+					# ,"end_line": and the number up to the brace
+					j=i+m+d+12
+					call textnum p+j l-j-1 as last ok3
+					if ok2&ok3&(first<=line)&(line<=last)
+						ret rank
+					end
+					i=l
+				end
+				i+=1
+			end
+		end
+		rank+=1
+		p+=l+ok
+		n-=l+ok
+	end
+	ret 0
+end
+
+# print "in the first k: a of total (ratio)"
+fn within k a total
+	call print "in the first "
+	call putn k
+	call print ": "
+	call putn a
+	call print " of "
+	call putn total
+	itof a as x
+	itof total as y
+	fdiv x y as x
+	call bycut num 0
+	call fmtfix num x 3 as r
+	call print " ("
+	load num as p
+	load num+8 as n
+	call print p n
+	call print ")\n"
+end
+
+call argc as c
+if c!=5
+	call eprint "usage: eval AILDB INDEX QUERIES VECTORS\n"
+	sys exit_group 2
+end
+call argv 1 as xp xn
+call argv 2 as ip in
+call argv 3 as p n
+call fileread p n qs as r
+ifslt r 0
+	call fail "cannot read " p n
+end
+call argv 4 as p n
+call fileread p n vs as r
+ifslt r 0
+	call fail "cannot read " p n
+end
+call byadd one p n
+call byadd one ".one"
+call byadd out p n
+call byadd out ".out"
+load vs as v
+load vs+8 as vn
+# the queries are the lines that are not empty, and a vector is what
+# each of them has of the bytes
+load qs as q
+load qs+8 as m
+count=0
+while m
+	call textline q m as l ok
+	if l
+		count+=1
+	end
+	q+=l+ok
+	m-=l+ok
+end
+ifz count
+	call fail "no query" ""
+end
+dim4=vn/count
+if (dim4==0)|(dim4*count!=vn)|(dim4&3)
+	call fail "the vectors are not one of a dimension for each query" ""
+end
+load qs as q
+load qs+8 as m
+total=0
+h1=0
+h5=0
+h10=0
+none=0
+itof 0 as sum
+itof 1 as unit
+while m
+	call textline q m as l ok
+	if l
+		call textfield q l as tn ok1
+		call textfield q+tn+1 l-tn-1 as pn ok2
+		pp=q+tn+1
+		call textnum pp+pn+1 l-tn-pn-2 as line ok3
+		ifz ok1&ok2&ok3
+			call fail "a line of the queries is not a text, a path and a line number" ""
+		end
+		load one as p
+		load one+8 as n
+		call filewrite p n v+total*dim4 dim4 as r
+		ifslt r 0
+			call fail "cannot write " p n
+		end
+		call search xp xn ip in ra
+		load ra as a
+		load ra+8 as an
+		call place a an pp pn line as rank
+		total+=1
+		if rank
+			h1+=rank<=1
+			h5+=rank<=5
+			h10+=rank<=10
+			itof rank as x
+			fdiv unit x as x
+			fadd sum x as sum
+			call print "place "
+			call putn rank
+		else
+			none+=1
+			call print "no place"
+		end
+		call print "  "
+		call print pp pn
+		call print ":"
+		call putn line
+		call print "  "
+		call print q tn
+		call print "\n"
+	end
+	q+=l+ok
+	m-=l+ok
+end
+load one as p
+load one+8 as n
+call fileunlink p n
+load out as p
+load out+8 as n
+call fileunlink p n
+call putn total
+call print " queries\n"
+call within 1 h1 total
+call within 5 h5 total
+call within 10 h10 total
+call print "no place: "
+call putn none
+call print "\nmean reciprocal rank: "
+itof total as x
+fdiv sum x as x
+call bycut num 0
+call fmtfix num x 4 as r
+load num as p
+load num+8 as n
+call print p n
+call print "\n"

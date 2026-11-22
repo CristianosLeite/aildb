@@ -52,6 +52,19 @@ example:
 	cp $(E)/ail.idx $(E)/copy/moved.idx
 	$(B)/example-check $(B)/aildb $(E)/ail.idx $(E)/copy/moved.idx example/queries.tsv $(E)/queries.bin
 
+# The retrieval evaluation (docs/evaluation.md): for each corpus of
+# CORPORA, a repository and revision in example/eval/<corpus>.pin with
+# the queries of example/eval/<corpus>.tsv, the place at which each query
+# finds its lines, how many are among the first 1, 5 and 10, and the mean
+# reciprocal rank. It needs a running Ollama, as the example does, and
+# writes build/eval/report.txt.
+CORPORA ?= ail aildb
+eval:
+	$(AIL) build
+	$(AIL) build chunk
+	$(AIL) build example-eval
+	tools/eval.sh $(AIL) $(CORPORA)
+
 # The measurements of acceptance check 4 (docs/performance.md), against
 # the Python binding of LanceDB, with the programs of bench/: the
 # harness, the generator of the inputs, the scan with three ways of
@@ -81,4 +94,4 @@ dist-check:
 clean:
 	$(AIL) clean
 
-.PHONY: all test example bench dist dist-check clean
+.PHONY: all test example eval bench dist dist-check clean

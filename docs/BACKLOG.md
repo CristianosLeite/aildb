@@ -240,3 +240,15 @@ mapped pages contribute to reported peak resident memory.
   was there is reached. `tests/cli_fifo.aiw` gives `check`, `search` and
   `build -v` a pipe that has no writer and two seconds each. The metadata
   and the query are read, not mapped, and may be a pipe as before.
+
+## 15. Semantic retrieval evaluation
+
+- [x] The queries of the evaluation, written before they were embedded:
+  the ten of the first run of the example for AIL at `a5b4559`, and ten
+  new ones for aildb at `v0.1.0` (user, 2026-11-22: these two corpora).
+- [x] `make eval`: for each corpus the place of the first result that has
+  the expected lines, among all records, how many queries have it in the
+  first 1, 5 and 10, and the mean reciprocal rank (`example/eval.aiw`,
+  `tools/eval.sh`, `tests/example_eval.aiw`); the report has the digest of
+  the model and the limits of a chunk. `docs/evaluation.md` has the run
+  of 2026-11-22. The example stays as it was.
