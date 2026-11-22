@@ -27,6 +27,10 @@ completed, under the section it had there.
   2026-11-21).
 - [x] The limits of k, dimension and count: in `docs/format.md`, chosen by
   the agent when the format was written.
+- [x] Git: the repository was initialized on 2026-11-21, with a
+  `.gitignore`. Its remote is https://github.com/CristianosLeite/aildb,
+  public, under the name `aildb`, made and pushed to on 2026-11-21
+  (user).
 
 ## 1. binary32 in AIL (work in the AIL repository)
 

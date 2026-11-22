@@ -13,11 +13,6 @@ An item is a checkbox under the section of its step. One item is one
 commit, with its tests and its documents. When it is completed it is moved
 to `BACKLOG.md`, under the same section.
 
-## 0. Decisions before the first code
-
-- [ ] Git: the remote and the published name. The repository was
-  initialized on 2026-11-21, with a `.gitignore`.
-
 ## 1. binary32 in AIL (work in the AIL repository)
 
 The statements are written and `ail.pin` names the revision that has them
@@ -27,6 +22,6 @@ The statements are written and `ail.pin` names the revision that has them
 
 ## 11. Release
 
-- [ ] The release itself, which is the user's: a tag and a version number,
-  after the remote is there; an executable that is passed on goes with
+- [ ] The release itself, which is the user's: a tag and a version number;
+  an executable that is passed on goes with
   `LICENSE` and `NOTICE`.
