@@ -6,7 +6,8 @@
     embed.py model
 
 TEXT has a string of JSON on each line, as build/chunk writes it; QUERIES
-has lines of fields with tabs between, of which the first is a query.
+has lines of fields with tabs between, of which the first is a query; an
+empty line is passed over.
 VECTORS gets one vector for each line, in order: 768 binary32,
 little-endian, which is what "aildb build -v" and "aildb search -q" read.
 "embed.py model" prints the version of Ollama and which model it has under
@@ -41,7 +42,9 @@ def texts(kind, path):
         lines.pop()
     if kind == "document":
         return [json.loads(line) for line in lines]
-    return [line.split("\t")[0] for line in lines]
+    # an empty line is no query: build/example-check and
+    # build/example-eval pass over it too, and count a vector a query
+    return [line.split("\t")[0] for line in lines if line]
 
 
 def embed(host, batch):
