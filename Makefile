@@ -1,4 +1,4 @@
-# aildb is a package of AIL (ail.pkg), built and tested by the command
+# aildb is a package of AIL (Ailfile), built and tested by the command
 # ail: "ail build" compiles build/aildb from src/aildb.aiw, and
 # "ail test" runs the tests. The targets all, test and clean are those
 # commands, for whoever types make; example and bench are what the

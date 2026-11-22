@@ -1,7 +1,7 @@
 ---
 title: How the tests run
 last-verified: 2026-11-22
-sources: [Makefile, ail.pkg, docs/cli.md of AIL, tests/run.sh and tests/indent.sh as they were at 03f56e1]
+sources: [Makefile, Ailfile, docs/cli.md of AIL, tests/run.sh and tests/indent.sh as they were at 03f56e1]
 status: current
 ---
 # How the tests run

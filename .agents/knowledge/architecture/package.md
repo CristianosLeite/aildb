@@ -1,12 +1,12 @@
 ---
 title: aildb as a package
 last-verified: 2026-11-22
-sources: [conversation 2026-11-22, ail.pkg, Makefile, src/lib/search.aiw, example/consumer, docs/packages.md and docs/cli.md of AIL at its branch test-home]
+sources: [conversation 2026-11-22, Ailfile, Makefile, src/lib/search.aiw, example/consumer, docs/packages.md and docs/cli.md of AIL at its branch test-home]
 status: current
 ---
 # aildb as a package
 
-**Summary.** aildb is a package of AIL: `ail.pkg` has its name, its version, the AIL it
+**Summary.** aildb is a package of AIL: `Ailfile` has its name, its version, the AIL it
 needs and its executables, the command `ail` builds and tests it, and a program imports
 its search with `use "aildb:src/lib/search.aiw"`. The file `ail.pin`, the script that
 cloned AIL and the two test scripts are gone.
@@ -18,11 +18,15 @@ cloned AIL and the two test scripts are gone.
   npm, and as the proof a project that imports aildb. The mechanism is in the AIL
   repository (its `.agents/knowledge/architecture/packages.md` has its decisions); this
   page is what it changed here.
-- **`ail.pkg` replaces `ail.pin`** (agent, 2026-11-22, in the plan the user approved).
+- **`Ailfile` replaces `ail.pin`** (agent, 2026-11-22, in the plan the user approved).
   aildb asks for a version of AIL, `ail 0.1.0`, and is built by the AIL that is installed
   or named with `make AIL=`. What is lost: the exact revision of AIL that a clone was
   built and tested against. A version of AIL is a tag once the user gives one; until
   then 0.1.0 is whatever its branch has.
+- **The manifest is called `Ailfile`** and a lock `Ailfile.lock` (user, 2026-11-22;
+  pull request 26 of AIL). It was `ail.pkg` until the same day: `.pkg` is the installer
+  package of macOS and of other systems, and a tool that goes by the extension takes
+  the manifest for one. AIL's knowledge base has what was rejected.
 - **The Makefile stays, as three lines over the command** (agent): `make` and `make test`
   are habit, and `example` and `bench` are steps the command has no word for. The
   executables that only tests, the example and the measurements need are `testbin`

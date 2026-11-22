@@ -21,7 +21,7 @@ The statements are written and in `main` of AIL (`docs/BACKLOG.md`).
 
 ## 12. aildb as a package
 
-AIL is getting packages (a manifest `ail.pkg`, `use "name:path"`, the
+AIL is getting packages (a manifest `Ailfile`, `use "name:path"`, the
 command `ail`; its pull requests 17 to 23 of 2026-11-22). aildb is to be
 one, and a program is to import it.
 
@@ -31,6 +31,6 @@ one, and a program is to import it.
 ## 11. Release
 
 - [ ] The release itself, which is the user's: the tag `v<version>` of
-  the version in `ail.pkg`, 0.1.0 as it stands, after the packages are
+  the version in `Ailfile`, 0.1.0 as it stands, after the packages are
   in `main` of AIL and AIL has its own tag; an executable that is passed
   on goes with `LICENSE` and `NOTICE`.

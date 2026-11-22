@@ -1,6 +1,6 @@
 # aildb in a program
 
-aildb is a package of AIL (`ail.pkg`): besides the command, a program
+aildb is a package of AIL (`Ailfile`): besides the command, a program
 written in AIL can search a snapshot itself, with the functions the
 command is made of. This page is how a program gets them and what they
 are. `example/consumer` is such a program, with a test that compares its

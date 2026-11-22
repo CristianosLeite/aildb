@@ -196,8 +196,8 @@ mapped pages contribute to reported peak resident memory.
   release: the section "State" says that version 1 is written and not
   released, and the pages that spoke of work to come say what was done.
 - [x] A mechanism of versions that AIL and everything derived from it
-  share (user, 2026-11-22): the manifest `ail.pkg` and the command `ail`
-  of AIL, its pull requests 17 to 25.
+  share (user, 2026-11-22): the manifest `Ailfile` and the command `ail`
+  of AIL, its pull requests 17 to 26.
 
 ## 12. aildb as a package
 
@@ -205,7 +205,7 @@ mapped pages contribute to reported peak resident memory.
   `searchrun`, `searchcount` and `searchhit`, taken out of `query`,
   `scan` and `results` of `src/main.aiw`, which now calls them; the files
   of `src/lib/` name what they need with `use`. `tests/lib_search.aiw`.
-- [x] aildb as a package: `ail.pkg` with its executables, built and
+- [x] aildb as a package: `Ailfile` with its executables, built and
   tested by `ail`; `ail.pin`, `tools/ail.sh`, `tests/run.sh` and
   `tests/indent.sh` are gone, the Makefile is the command and the two
   targets it has no word for, and the corpus of the example has its own
