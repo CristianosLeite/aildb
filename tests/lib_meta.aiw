@@ -1,9 +1,8 @@
 # metaparse reads lines of path, first line, last line and language into
 # records and strings, writes a path or language once when the record
 # before has it, and names the line and the reason for text it refuses
+# the file is used alone: it names what it needs itself
 use "lib/std/io.aiw"
-use "lib/std/bytes.aiw"
-use "src/lib/text.aiw"
 use "src/lib/meta.aiw"
 buf recs 24
 buf strs 24

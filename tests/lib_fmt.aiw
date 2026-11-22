@@ -2,8 +2,8 @@
 # decimal nearest to the exact value with a tie to the even digit; the
 # doubles are given by their bits, and the expected lines were printed by
 # Python from the same bits. fmthex writes the bits, fmtjson a string.
+# the file is used alone: it names what it needs itself
 use "lib/std/io.aiw"
-use "lib/std/bytes.aiw"
 use "src/lib/fmt.aiw"
 buf b 24
 fn fix x k
