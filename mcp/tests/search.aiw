@@ -236,6 +236,14 @@ call print "\n# a limit of 300 ms and an answer after two seconds\n"
 call snapshot "rev1" 1 "s.idx"
 call start "-s s.idx -i m -t 300" as pid
 call ask "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"slow\"}}}"
+# an answer that comes a byte every 100 ms: no read waits 300 ms, and
+# the whole does
+call procnow as t0
+call ask "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"drip\"}}}"
+call procnow as t1
+call print "answered within a second: "
+call putn t1-t0<1000000000
+call print "\n"
 call ask "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"alpha\",\"k\":1}}}"
 call finish pid
 

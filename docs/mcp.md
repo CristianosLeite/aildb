@@ -28,8 +28,9 @@ aildb-mcp -s SNAPSHOT -i MODEL -e ENDPOINT [-a AILDB] [-p PREFIX] [-t MS]
   the model, for a model that is told what a text is for. For
   nomic-embed-text, as [the example](example.md) indexes with it, this is
   `"search_query: "`. None if it is not given.
-- `-t MS`: the milliseconds the model may take for an answer, and the
-  search for its results; 30000 if it is not given.
+- `-t MS`: the milliseconds the model may take for an answer, from the
+  connection to the last byte of it, and the search for its results;
+  30000 if it is not given.
 
 When it starts, the server runs `aildb check SNAPSHOT` once and ends
 with status 3 if the snapshot is invalid, cannot be

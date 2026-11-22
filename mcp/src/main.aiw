@@ -9,7 +9,8 @@
 # localhost, a port and a path, "/api/embed" if there is none, which is
 # asked as Ollama is. AILDB is the command of aildb (default "aildb", on
 # PATH), PREFIX what the model wants before the text of a query (none),
-# and MS the milliseconds the model and the search may each take (30000).
+# and MS the milliseconds the model and the search may each take, from
+# the first byte sent to the last received (30000).
 #
 # The one tool, search, takes a query in words, a number of results and
 # the two filters of "aildb search". The text is given to the model, the
@@ -247,7 +248,12 @@ async fn search x p n r
 	store req+64 "application/json"
 	store req+72 16
 	store req+96 ms
-	await httpcall req resp as st
+	# The limit holds for the request as a whole, besides each step of
+	# it: a model that sends a little before each read runs out would
+	# else keep this call, and every one after it, for as long as it
+	# likes.
+	call httpcall req resp as h
+	await httpwait h ms as st
 	ifslt st 0
 		call bycut num 0
 		call byadd num "error "
