@@ -76,7 +76,8 @@ pushed or merged.
 - The cost of `aildb check` at the start on a large snapshot.
 
 ## Open, for the user
-- The SDK has no address a package can name: a dependency by address is a repository
-  with the package at its top, and the SDK is a directory of ail-extensions. `mcp/Ailfile`
-  names it by `../../ail-extensions/mcp`, which holds on the user's machine only.
+- The SDK has an address since 2026-11-22, when ail-extensions became a package with the
+  SDK in it (the user: it still carried `ail.pin` and had no `Ailfile`); the first form, a
+  package in its directory `mcp/`, had none. `mcp/Ailfile` names the package by
+  `../../ail-extensions` until it has a tag, which is the user's to give.
 - AIL needs a version after 0.1.0 for `mcp/Ailfile` to ask for.

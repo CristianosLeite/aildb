@@ -1,7 +1,7 @@
 # aildb-mcp: a Model Context Protocol server that searches a snapshot of
 # aildb for a coding agent (docs/mcp.md of aildb). The server SDK is the
-# module mcp of the repository ail-extensions, named here by its
-# directory beside this repository until it has an address of its own.
+# module mcp of the package ail-extensions, named here by its directory
+# beside this repository until that package has a version to name it by.
 name aildb-mcp
 version 0.1.0
 ail 0.1.0
@@ -12,4 +12,4 @@ testbin embed-fake tests/lib/fake.aiw
 # and a command run with a limit of open descriptors
 testbin nofile tests/lib/nofile.aiw
 dep aildb ..
-dep mcp ../../ail-extensions/mcp
+dep ail-extensions ../../ail-extensions

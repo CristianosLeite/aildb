@@ -85,9 +85,9 @@ a query, which [performance.md](performance.md) measures.
 `mcp/` is a package of AIL of its own. It needs an AIL that has
 `lib/std/json.aiw`, `lib/std/num.aiw` and `lib/net/http.aiw`, which came
 after the version 0.1.0 of AIL, and the server SDK, the module `mcp` of
-the repository [ail-extensions](https://github.com/CristianosLeite/ail-extensions),
+the package [ail-extensions](https://github.com/CristianosLeite/ail-extensions),
 which `mcp/Ailfile` names by its directory beside this repository,
-`../../ail-extensions/mcp`:
+`../../ail-extensions`, until that package has a released version:
 
 ```
 make                  # build/aildb
