@@ -179,3 +179,9 @@ mapped pages contribute to reported peak resident memory.
 - [x] `docs/performance.md` with the figures at 10,000 and 100,000 vectors
   of `make bench` on 2026-11-21, and the decisions: the read-only mapping
   stays, and version 1 has no approximate index and no parallel scan.
+
+## 11. Release
+
+- [x] `README.md`: how to build, the three commands on an index of
+  three vectors with the output they print, the example, and the times of
+  a query from `docs/performance.md`.

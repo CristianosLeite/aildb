@@ -6,7 +6,7 @@ The first application is semantic search over a source repository: given the emb
 
 ## Status
 
-Being written. The three commands work and are tested, against an independent implementation and under interruption among others; an end-to-end example indexes the AIL repository ([docs/example.md](docs/example.md)); the measurements, also against LanceDB, are in [docs/performance.md](docs/performance.md): [docs/TODO.md](docs/TODO.md) has the steps that are left, with what each must show, and the questions still open are listed in [.agents/knowledge/status/open-items.md](.agents/knowledge/status/open-items.md).
+Version 1 is written: the three commands, the snapshot format, the way a snapshot is published, and the four acceptance checks it was to meet, each shown by a test, by the example or by the measurements. Nothing is released yet; [docs/TODO.md](docs/TODO.md) has what is left, and the choices that still wait for a review are in [.agents/knowledge/status/open-items.md](.agents/knowledge/status/open-items.md).
 
 ## Version 1 in short
 
@@ -16,6 +16,73 @@ Being written. The three commands work and are tested, against an independent im
 - Embeddings are generated outside the engine.
 
 SQL, approximate indexes, incremental writes and a network service are outside version 1.
+
+## Building
+
+aildb needs x86-64 Linux, `make` and `git`, and nothing else: the compiler of AIL builds itself from a seed that is in its repository.
+
+```
+make            # fetches AIL at the revision of ail.pin into ail/, builds its compiler, then build/aildb
+make test       # the tests: 24 programs and the indentation check
+```
+
+With a checkout of AIL already on the machine, `make AIL=../ail` links it and fetches nothing. `build/aildb` is one static executable that can be copied anywhere.
+
+## Using it
+
+An index is made from two files that another program wrote: the vectors as raw binary32, one after the other, and a line of metadata for each, with tabs between the path, the first line, the last line and the language. Three vectors of two dimensions and a query, made here with Python for the sake of something to run:
+
+```
+python3 -c "
+import struct
+open('vectors.bin','wb').write(struct.pack('<6f', 1,0, 0,1, 1,1))
+open('query.bin','wb').write(struct.pack('<2f', 2,1))"
+printf 'src/a.aiw\t1\t20\tail\nsrc/a.aiw\t21\t48\tail\ndocs/b.md\t1\t9\tmarkdown\n' > metadata.tsv
+```
+
+`build` makes the index, a snapshot, and says what is in it:
+
+```
+$ build/aildb build -o index.aildb -v vectors.bin -m metadata.tsv -d 2 -i my-model -r 4f2a91c
+{"records":3,"dimension":2,"model":"my-model","source_revision":"4f2a91c"}
+```
+
+`search` prints a line about the snapshot and the best records for a query, as JSON Lines; `-p` keeps the records whose path starts with a prefix, and `-l` those of a language:
+
+```
+$ build/aildb search index.aildb -k 2 -q query.bin
+{"source_revision":"4f2a91c","model":"my-model"}
+{"rank":1,"score":0.948683,"score_bits":"3fee5b9d0ab4f74e","path":"docs/b.md","start_line":1,"end_line":9}
+{"rank":2,"score":0.894427,"score_bits":"3fec9f25c5bfedd9","path":"src/a.aiw","start_line":1,"end_line":20}
+$ build/aildb search index.aildb -k 2 -q query.bin -p src/
+{"source_revision":"4f2a91c","model":"my-model"}
+{"rank":1,"score":0.894427,"score_bits":"3fec9f25c5bfedd9","path":"src/a.aiw","start_line":1,"end_line":20}
+{"rank":2,"score":0.447214,"score_bits":"3fdc9f25c5bfedd9","path":"src/a.aiw","start_line":21,"end_line":48}
+```
+
+`check` validates a snapshot, the checksum of its vectors included, which `search` does not read:
+
+```
+$ build/aildb check index.aildb
+{"records":3,"dimension":2,"model":"my-model","source_revision":"4f2a91c"}
+```
+
+The exit status is 0 for success, 2 for wrong usage, 3 for an invalid snapshot or input, 4 for an I/O failure, 5 when another build is running for the same index and 6 when a snapshot was published without its durability confirmed. A build leaves the file `index.aildb.lock` beside the index, which is its lock and stays. [docs/usage.md](docs/usage.md) has every option, input and line of output.
+
+## The example
+
+`make example` indexes the AIL repository itself, at the revision of `ail.pin`: an AIL program cuts its sources into chunks, a function or a section each, the embedding model nomic-embed-text makes the vectors, run on the same machine by [Ollama](https://ollama.com), and `search` is asked questions in words whose lines in the sources are known. It needs Ollama running with the model pulled, and Python 3. [docs/example.md](docs/example.md) describes the steps and what a run showed, including the queries that did not find their lines.
+
+## How fast
+
+Measured on one machine (a Core i7-12700H, the file on an NVMe drive), for the ten best of vectors of 768 dimensions, a process a query, as the median of the rounds:
+
+| Records | File | In the file cache | Read from the drive |
+|---:|---:|---:|---:|
+| 10,000 | 31 MB | 4 ms | 18 ms |
+| 100,000 | 310 MB | 38 ms | 182 ms |
+
+[docs/performance.md](docs/performance.md) has the method, every figure, the same searches in LanceDB, and why version 1 has no approximate index and scans on one thread.
 
 ## Documents
 
