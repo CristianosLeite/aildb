@@ -5,8 +5,14 @@ measured, and what was decided from it. This is acceptance check 4.
 
 ## How it is measured
 
-The programs are in `bench/` and are AIL, built by `make test` into
-`build/`:
+The programs are AIL. They were in `bench/` of this repository when the
+figures below were made, at the revision `4a21a3e`, and are in a
+repository of their own since 2026-11-22, **aildb-bench**, which names
+aildb as a dependency and builds them into its `build/`. A run made
+there says in its report which revisions of aildb, of aildb-bench and of
+AIL made it, and its figures are in the `docs/performance.md` of that
+repository; the figures of this page are those of the run of 2026-11-21
+and are not changed.
 
 | Program | Is |
 |---|---|
@@ -166,6 +172,8 @@ is the first search of a fresh process, with nothing of Lance's own
 caches filled. A search in a process that stays was not measured.
 
 ## Running it
+
+In a checkout of aildb-bench:
 
 ```
 make bench PY=/path/to/python

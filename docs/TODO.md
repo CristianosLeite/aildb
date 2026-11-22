@@ -37,15 +37,14 @@ Version 0.1.0 is tagged (`BACKLOG.md`).
 
 ## 13. The measurements in a repository of their own
 
-- [ ] Move `bench/` to a repository `aildb-bench` (user, 2026-11-22), as
-  the benchmarks of AIL are in ail-bench: the programs of the
-  measurements, `make bench` and their tests leave this repository, and
-  `docs/performance.md` says where its figures come from.
-  Record the engine, harness and compiler revisions alongside the commands
-  and environment for each run. Keep the original report tied to the
-  revisions used to produce it.
+The programs are in the repository aildb-bench (`BACKLOG.md`), which
+is on the user's machine and not published.
 
-- [ ] Extend the benchmark to cover filtered queries, larger corpora and
+- [ ] Publish aildb-bench: a repository for it and its first push are
+  the user's to make or to ask for. Then `docs/performance.md` and
+  `README.md` link to it.
+
+- [ ] In aildb-bench: extend the benchmark to cover filtered queries, larger corpora and
   repeated queries in a process with an open snapshot or table. Keep the
   same stored vectors, queries and result limits across engines. Report
   startup and open time separately from query latency. Measure warm and

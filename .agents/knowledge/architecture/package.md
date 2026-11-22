@@ -70,7 +70,8 @@ cloned AIL and the two test scripts are gone.
   0.1.0 wrote the lock with `467b91b`; with `deps/` and `build/` removed, `ail test`
   cloned the tag and passed, and so did `make test`.
 - A copy of the files git tracks, in an empty directory, passes `make test` the same.
-  On a tmpfs it does not: `tests/bench_tools.aiw` expects mapped pages of a file to count
+  On a tmpfs it did not while the measurements were here (they are in aildb-bench since
+  2026-11-22): `tests/bench_tools.aiw` expects mapped pages of a file to count
   as `RssFile`, and the kernel counts those of a tmpfs as shared memory. The test is about
   the measurements, which are not made on a tmpfs; it was so before the package.
 

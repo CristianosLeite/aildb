@@ -1,7 +1,7 @@
 # aildb is a package of AIL (Ailfile), built and tested by the command
 # ail: "ail build" compiles build/aildb from src/aildb.aiw, and
 # "ail test" runs the tests. The targets all, test and clean are those
-# commands, for whoever types make; example and bench are what the
+# commands, for whoever types make; the others are what the
 # command does not do. AIL names the command, if it is not on PATH:
 #   make AIL=../ail/build/ail
 AIL ?= ail
@@ -65,17 +65,6 @@ eval:
 	$(AIL) build example-eval
 	tools/eval.sh $(AIL) $(CORPORA)
 
-# The measurements of acceptance check 4 (docs/performance.md), against
-# the Python binding of LanceDB, with the programs of bench/: the
-# harness, the generator of the inputs, the scan with three ways of
-# reading, and the engine with hooks that say the times of its parts.
-# PY is a Python that has the package lancedb.
-PY ?= python3
-bench:
-	$(AIL) build
-	for p in bench-run bench-gen bench-scan aildb-times; do $(AIL) build $$p || exit 1; done
-	AIL=$(AIL) bench/bench.sh $(PY)
-
 # The archive of a release (README.md, "The executable"): the
 # executable of the revision REV, by default the tag of the version in
 # Ailfile, built by this command of AIL from the sources that git has at
@@ -94,4 +83,4 @@ dist-check:
 clean:
 	$(AIL) clean
 
-.PHONY: all test example eval bench dist dist-check clean
+.PHONY: all test example eval dist dist-check clean

@@ -160,9 +160,26 @@ details of each (field order, names of options) are in `docs/format.md` and
   decided: whether the `hookmark` moments of `search` and
   `build/aildb-times`, which the measurements need of the engine, stay
   here, and how `docs/performance.md` names the revision of aildb-bench
-  its figures come from.
-- Both are items of `docs/TODO.md` (the release, and a step 13) and were
-  left for a later conversation.
+  its figures come from. Done on 2026-11-22 (agent, for the user to
+  review): the repository is a package of AIL at `../aildb-bench`, made on
+  the user's machine and not published, that names aildb 0.1.0 as a
+  dependency. **The `hookmark` moments stay in the engine** and
+  `aildb-times` leaves: aildb-bench compiles `aildb:src/main.aiw` with its
+  own file of hooks, as `tests/lib/stops.aiw` does here, so the engine
+  that is measured is the source of a tag and the shipped executable still
+  has no code of the measurements. Its `build/aildb` for 0.1.0 is byte for
+  byte the executable of `make dist`. `tests/lib/cmd.aiw` is used by its
+  tests through the package, so a version of aildb keeps it where it is.
+  **`docs/performance.md` here keeps the figures of 2026-11-21**, which
+  were made here at `4a21a3e`, and says that later runs are in the
+  document of aildb-bench, whose report names the revisions of aildb, of
+  aildb-bench and of AIL and the command of each measurement. The report
+  file of the run of 2026-11-21 was not kept: a later run overwrote
+  `build/bench/report.txt`, so the document is what is left of it.
+  Rejected: aildb-bench with a copy of the engine, which could differ from
+  a release; and the measurements as a nested package here, which is not
+  what was asked.
+- Both were items of `docs/TODO.md` (the release, and a step 13).
 
 ## Limits
 - The limits of the result count, the dimension and the record count are in

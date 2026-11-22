@@ -21,10 +21,11 @@ compiles it, runs it under a deadline and compares. What a test needs beyond tha
 
 `make test` also builds what some tests start and what is no part of the shipped
 executable: `build/aildb-stops` (the stop points), `build/chunk` (the chunker of the
-example) and the programs of the measurements (`build/bench-run`, `bench-gen`,
-`bench-scan`, `aildb-times`). As of the release of version 1 there are 25 test programs
-and the indentation check. `make example` and `make bench` are not tests of `make test`:
-the first needs Ollama and the second LanceDB.
+example), `build/example-check` and `build/example-eval`. As of the release of version 1
+there were 25 test programs and the indentation check, two of them the tests of the
+programs of the measurements, which left with those programs for the repository
+aildb-bench on 2026-11-22; there are 26 since. `make example` and `make eval` are not
+tests of `make test`: they need Ollama.
 
 ## Decisions
 - **The runner is the one of AIL and ail-bench** (TODO step 2; written 2026-11-21):

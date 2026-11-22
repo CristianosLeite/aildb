@@ -231,6 +231,16 @@ mapped pages contribute to reported peak resident memory.
   0.1.0, in place of its directory: `ail add` with the address wrote the
   line `dep` and `Ailfile.lock`, with the revision of the tag `v0.1.0`.
 
+## 13. The measurements in a repository of their own
+
+- [x] `bench/`, `make bench` and the tests `bench_stat` and `bench_tools`
+  moved to the repository aildb-bench (user, 2026-11-22), a package of
+  AIL that names aildb as a dependency; `src/hook.aiw` and the moments of
+  `search` stay. Its report names the revisions of the engine, of the
+  harness and of the compiler and the command of each measurement.
+  `docs/performance.md` keeps the figures of 2026-11-21, made here at
+  `4a21a3e`.
+
 ## 14. Snapshot input handling
 
 - [x] A named pipe given as a snapshot or as the vectors of `build` is
