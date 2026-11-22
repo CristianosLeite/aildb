@@ -1,0 +1,132 @@
+# src/lib/search.aiw, the search as a program that uses aildb calls it:
+# a query made a vector of the norm 1, the records scored with and
+# without the filters, the results read back, and what it returns for a
+# query and for a vector that cannot be scored. The command search is
+# run on the same snapshot and query, to show the same bits of each
+# score. The file is used alone, with what a test needs to print and to
+# start the command.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "tests/lib/cmd.aiw"
+use "tests/lib/mk.aiw"
+use "src/lib/fmt.aiw"
+use "src/lib/search.aiw"
+buf v 64
+buf snap 104
+buf sel 24
+buf q 16
+buf line 24
+buf b 24
+# search for the k best with the prefix and the language given, 0 for
+# none, and print what searchrun returned and each result
+fn show k pp pn lp ln
+	call searchrun snap sel q k pp pn lp ln as r o
+	call print "searchrun "
+	call putn r
+	call print " "
+	call putn o
+	if r
+		# the selection is not to be read
+		call print "\n"
+		call topkfree sel
+		ret 0
+	end
+	call print ", results "
+	call searchcount sel as c
+	call putn c
+	call print "\n"
+	i=0
+	while i<c
+		call searchhit snap sel i as s p n first last ok
+		call bycut line 0
+		call byaddn line i+1
+		call byaddb line 32
+		call fmthex line s
+		call byaddb line 32
+		call byadd line p n
+		call byaddb line 32
+		call byaddn line first
+		call byaddb line 45
+		call byaddn line last
+		call byaddb line 10
+		load line as p
+		load line+8 as n
+		call print p n
+		i+=1
+	end
+	call topkfree sel
+	ret 0
+end
+# four records of two dimensions: (1,0), (0,1), (1,1), (-1,0)
+store4 v 0x3f800000
+store4 v+4 0
+store4 v+8 0
+store4 v+12 0x3f800000
+store4 v+16 0x3f800000
+store4 v+20 0x3f800000
+store4 v+24 0xbf800000
+store4 v+28 0
+call filewrite "v.bin" v 32
+call filewrite "m.tsv" "src/a.aiw\t1\t9\tail\nsrc/b.aiw\t10\t20\tail\ndocs/c.md\t1\t5\tmarkdown\nsrc/d.aiw\t3\t4\tail\n"
+call cmdshow "aildb build -o s.idx -v v.bin -m m.tsv -d 2 -i m"
+call snapopen snap "s.idx" as r
+call print "snapopen "
+call putn r
+call print ", dimension "
+call searchdim snap as d
+call putn d
+call print "\n"
+# the query (1, 0.5)
+store4 v 0x3f800000
+store4 v+4 0x3f000000
+call filewrite "q.bin" v 8
+call searchquery snap v q as r
+call print "searchquery "
+call putn r
+call print "\n# every record, the best two, and more than there are\n"
+call show 4 0 0 0 0
+call show 2 0 0 0 0
+call show 9 0 0 0 0
+call print "# a prefix, a language, both, and a prefix of no path\n"
+call show 4 "src/" 0 0
+call show 4 0 0 "markdown"
+call show 4 "src/" "ail"
+call show 1 "docs/" "markdown"
+call show 4 "lib/" 0 0
+call print "# a result that is not there\n"
+call searchrun snap sel q 2 0 0 0 0 as r o
+call searchhit snap sel 2 as s p n first last ok
+call putn s|p|n|first|last|ok
+call print "\n"
+call topkfree sel
+call print "# the command on the same snapshot and query\n"
+call cmdshow "aildb search s.idx -k 4 -q q.bin"
+call print "# a query that is no vector\n"
+store4 v 0
+store4 v+4 0
+call searchquery snap v q as r
+call putn r==normzero
+store4 v+4 0x7f800000
+call searchquery snap v q as r
+call putn r==normnan
+call print "\n# a vector with an infinity, in the record 1, both checksums made right\n"
+call snapclose snap
+call fileread "s.idx" b
+load b as p
+load b+8 as n
+store4 p+4108 0x7f800000
+call mkcrc 0 p+4096 32 as c
+store4 p+96 c
+call mkseal p n
+call mksave b -1 "t.idx"
+call snapopen snap "t.idx" as r
+call putn r
+call print "\n"
+store4 v 0x3f800000
+store4 v+4 0x3f000000
+call searchquery snap v q as r
+call show 4 0 0 0 0
+# a filter that leaves the record out leaves its vector unread
+call show 4 "docs/" 0 0

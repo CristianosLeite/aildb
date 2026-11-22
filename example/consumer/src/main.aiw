@@ -1,0 +1,93 @@
+# consumer -- a program that uses aildb as a package: it searches a
+# snapshot with the library of aildb and prints a line for each result.
+#
+#   consumer INDEX QUERY LIMIT
+#
+# INDEX is a snapshot that "aildb build" wrote, QUERY a file of as many
+# binary32 as its dimension, and LIMIT the number of results. Each line
+# is the rank, the score with six decimals and as its 64 bits, and the
+# place: the path and the first and last line. The status is 0, or 1
+# with a line on stderr, also when a result cannot be written.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "aildb:src/lib/search.aiw"
+use "aildb:src/lib/fmt.aiw"
+buf snap 104
+buf sel 24
+buf query 24
+buf line 24
+buf sigact 32
+
+# A pipe that nobody reads is to be an error of the write, which has a
+# line and the status 1, and not the signal SIGPIPE, which would end
+# the program without either.
+store sigact 1
+sys rt_sigaction 13 sigact 0 8
+call argc as c
+if c!=4
+	call die "usage: consumer INDEX QUERY LIMIT\n"
+end
+call argv 1 as p n
+call snapopen snap p n as r
+if r
+	call die "consumer: cannot open the snapshot\n"
+end
+call argv 2 as p n
+call fileread p n query as r
+ifslt r 0
+	call die "consumer: cannot read the query\n"
+end
+call searchdim snap as dim
+if r!=dim*4
+	call die "consumer: the query has not the dimension of the snapshot\n"
+end
+load query as p
+alloc dim*8 as q
+ifz q
+	call die "consumer: out of memory\n"
+end
+call searchquery snap p q as r
+if r
+	call die "consumer: the query is no vector\n"
+end
+call argv 3 as p n
+call textnum p n as k ok
+ifz ok
+	call die "consumer: the limit is no number\n"
+end
+call searchrun snap sel q k 0 0 0 0 as r o
+if r
+	call die "consumer: the snapshot cannot be searched\n"
+end
+call searchcount sel as c
+i=0
+while i<c
+	call searchhit snap sel i as s p n first last ok
+	call bycut line 0
+	# a line is below 4400 bytes, the path at most 4095 of them, so
+	# nothing below is added to a buffer that cannot take it
+	call byneed line 4400 as ok
+	ifz ok
+		call die "consumer: out of memory\n"
+	end
+	call byaddn line i+1
+	call byaddb line 32
+	call fmtfix line s 6
+	call byaddb line 32
+	call fmthex line s
+	call byaddb line 32
+	call byadd line p n
+	call byaddb line 58
+	call byaddn line first
+	call byaddb line 45
+	call byaddn line last
+	call byaddb line 10
+	load line as p
+	load line+8 as n
+	call print p n as ok
+	ifz ok
+		call die "consumer: cannot write the results\n"
+	end
+	i+=1
+end

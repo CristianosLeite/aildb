@@ -15,17 +15,22 @@ to `BACKLOG.md`, under the same section.
 
 ## 1. binary32 in AIL (work in the AIL repository)
 
-The statements are written and `ail.pin` names the revision that has them
-(`docs/BACKLOG.md`).
+The statements are written and in `main` of AIL (`docs/BACKLOG.md`).
 
 - [ ] Float literals (user's proposal): not needed for version 1.
 
+## 12. aildb as a package
+
+AIL has packages (a manifest `Ailfile`, `use "name:path"`, the command
+`ail`; its pull requests 17 to 26, in its `main` since 2026-11-22). aildb
+is one, and `example/consumer` imports it.
+
+- [ ] `example/consumer` names aildb by its address and a version, in
+  place of its directory, once a version is tagged (the release below).
+
 ## 11. Release
 
-- [ ] A mechanism of versions that AIL and everything derived from it
-  share, as `Cargo.toml` is for Rust (user, 2026-11-22): to be designed,
-  and work for the AIL repository first. aildb gets its version number
-  from it.
-- [ ] The release itself, which is the user's: a tag and a version number,
-  once the mechanism above says how a number is given; an executable that
-  is passed on goes with `LICENSE` and `NOTICE`.
+- [ ] The release itself, which is the user's: the tag `v<version>` of
+  the version in `Ailfile`, 0.1.0 as it stands, after the packages are
+  in `main` of AIL and AIL has its own tag; an executable that is passed
+  on goes with `LICENSE` and `NOTICE`.

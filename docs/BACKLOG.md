@@ -195,3 +195,22 @@ mapped pages contribute to reported peak resident memory.
 - [x] `AGENTS.md` and the knowledge base brought up to date for the
   release: the section "State" says that version 1 is written and not
   released, and the pages that spoke of work to come say what was done.
+- [x] A mechanism of versions that AIL and everything derived from it
+  share (user, 2026-11-22): the manifest `Ailfile` and the command `ail`
+  of AIL, its pull requests 17 to 26.
+
+## 12. aildb as a package
+
+- [x] The search as a library, `src/lib/search.aiw`: `searchquery`,
+  `searchrun`, `searchcount` and `searchhit`, taken out of `query`,
+  `scan` and `results` of `src/main.aiw`, which now calls them; the files
+  of `src/lib/` name what they need with `use`. `tests/lib_search.aiw`.
+- [x] aildb as a package: `Ailfile` with its executables, built and
+  tested by `ail`; `ail.pin`, `tools/ail.sh`, `tests/run.sh` and
+  `tests/indent.sh` are gone, the Makefile is the command and the two
+  targets it has no word for, and the corpus of the example has its own
+  pin.
+- [x] A project that imports aildb, `example/consumer`: made with
+  `ail new` and `ail add --path`, it searches a snapshot through
+  `use "aildb:src/lib/search.aiw"`, and its test shows the bits of the
+  scores that the command prints. `docs/library.md`.

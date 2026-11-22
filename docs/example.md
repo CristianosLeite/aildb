@@ -1,7 +1,7 @@
 # The example
 
 The example indexes a real repository, the one of AIL at the revision of
-`ail.pin`, and queries the index end to end: `make example`, which is
+`example/corpus.pin`, and queries the index end to end: `make example`, which is
 acceptance check 1. This page describes its steps and what it showed.
 The engine takes no part in making an embedding: it reads vectors that
 another program wrote.
@@ -127,9 +127,9 @@ make example
 It works in `build/example/` and does this, each step a command that it
 prints:
 
-1. `git archive` puts the files of AIL at the revision of `ail.pin` into
-   `src/`, and `git ls-tree` lists them, whatever the checkout at `ail/`
-   has in its working tree.
+1. `git clone` fetches the repository that `example/corpus.pin` names
+   into `repo/`, `git archive` puts its files at the revision of that
+   file into `src/`, and `git ls-tree` lists them.
 2. `build/chunk` writes `meta.tsv` and `text.jsonl`.
 3. `example/embed.py` writes `vectors.bin` for the chunks and
    `queries.bin` for the queries of `example/queries.tsv`.

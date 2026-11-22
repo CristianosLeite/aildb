@@ -17,6 +17,7 @@ use "src/lib/meta.aiw"
 use "src/lib/norm.aiw"
 use "src/lib/pack.aiw"
 use "src/lib/topk.aiw"
+use "src/lib/search.aiw"
 
 const stusage 2         # wrong usage
 const stinvalid 3       # an invalid snapshot or invalid input
@@ -720,7 +721,7 @@ fn query ip in qp qn mp mn
 		call byaddn msg need
 		call fail stinvalid
 	end
-	call normwide p q dim as r
+	call searchquery snap p q as r
 	if r
 		call about qp qn
 		if r==normnan
@@ -734,73 +735,24 @@ fn query ip in qp qn mp mn
 end
 
 # search: score every record of the snapshot that passes the filters
-# against qvec and keep the best k in sel, in order. pp pn is the prefix
-# a path must start with, if pp is not 0, and lp ln the language a
-# record must have, if lp is not 0. Nothing is allocated for a record:
-# sel has its pairs, as many as the limit or the records, from the
-# start. A score that is not finite ends the program before a result is
-# printed: the query is finite, so the vector has an element that is
-# not, which check would have found; ip in is the path for that line.
+# against qvec and keep the best k in sel, in order, as searchrun of
+# src/lib/search.aiw does it. pp pn is the prefix a path must start
+# with, if pp is not 0, and lp ln the language a record must have, if
+# lp is not 0. A score that is not finite ends the program before a
+# result is printed: the query is finite, so the vector has an element
+# that is not, which check would have found; ip in is the path for that
+# line.
 fn scan k pp pn lp ln ip in
-	load snap+16 as count
-	load snap+24 as dim
-	load snap+32 as r
-	load snap+40 as st
-	load snap+56 as v
-	if k>count
-		k=count
-	end
-	call topkinit sel k as ok
-	ifz ok
+	call searchrun snap sel qvec k pp pn lp ln as r i
+	if r==searchnomem
 		call bycut msg 0
 		call byadd msg "aildb: out of memory"
 		call fail stio
 	end
-	q=qvec
-	step=dim*4
-	# a string that the record before named was compared there
-	po=-1
-	pl=0
-	pr=0
-	lo=-1
-	ll=0
-	lr=0
-	i=0
-	while i<count
-		ok=1
-		if pp
-			load4 r as o
-			load4 r+4 as l
-			if (o!=po)|(l!=pl)
-				call textprefix st+o l pp pn as pr
-				po=o
-				pl=l
-			end
-			ok=pr
-		end
-		if ok&(lp!=0)
-			load4 r+8 as o
-			load4 r+12 as l
-			if (o!=lo)|(l!=ll)
-				call texteq st+o l lp ln as lr
-				lo=o
-				ll=l
-			end
-			ok=lr
-		end
-		if ok
-			fdot4 0 v q dim as s
-			if ((s>>52)&2047)==2047
-				store snap+96 i
-				call badsnap ip in snapvalue
-			end
-			call topkadd sel s i
-		end
-		r+=24
-		v+=step
-		i+=1
+	if r
+		store snap+96 i
+		call badsnap ip in snapvalue
 	end
-	call topksort sel
 end
 
 # search: print the line about the snapshot and a line for each record
@@ -827,13 +779,10 @@ fn results
 	load snap+72 as n
 	call fmtjson msg p n
 	call byadd msg "}\n"
-	load snap+32 as recs
-	load snap+40 as st
-	load sel+16 as count
+	call searchcount sel as count
 	i=0
 	while i<count
-		call topkget sel i as s o ok
-		r=recs+o*24
+		call searchhit snap sel i as s p n first last ok
 		call byadd msg "{\"rank\":"
 		call byaddn msg i+1
 		call byadd msg ",\"score\":"
@@ -841,15 +790,11 @@ fn results
 		call byadd msg ",\"score_bits\":\""
 		call fmthex msg s
 		call byadd msg "\",\"path\":"
-		load4 r as p
-		load4 r+4 as n
-		call fmtjson msg st+p n
+		call fmtjson msg p n
 		call byadd msg ",\"start_line\":"
-		load4 r+16 as n
-		call byaddn msg n
+		call byaddn msg first
 		call byadd msg ",\"end_line\":"
-		load4 r+20 as n
-		call byaddn msg n
+		call byaddn msg last
 		call byadd msg "}\n"
 		load msg+8 as n
 		if n>60000

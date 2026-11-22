@@ -1,10 +1,11 @@
 # src/lib/fmt.aiw -- values as the text of a result: a double in decimal
 # and as its bits, and a string of JSON. Each function adds to a buffer of
-# lib/std/bytes.aiw, which a program uses first, and returns 1, or 0 when
-# it added nothing: without memory, or for a value it cannot write.
+# lib/std/bytes.aiw, which the use line below brings, and returns 1, or 0
+# when it added nothing: without memory, or for a value it cannot write.
 #
 # Every name of this file starts with "fmt"; a program has no var of such
 # a name.
+use "lib/std/bytes.aiw"
 
 # A whole number of up to 1280 bits is fmtlimbs words of 8 bytes, each
 # holding 32 bits, the lowest first.

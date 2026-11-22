@@ -1,8 +1,0 @@
-# The repository of AIL, which has the compiler and the libraries that
-# aildb is built with: where it is published, and the revision this
-# repository was last built and tested against.
-#
-#   url revision
-#
-# tools/ail.sh clones it into ail/, which git ignores, at that revision.
-https://github.com/CristianosLeite/ail.git a5b4559c2cffbef49538a668579a3820d5e16da5

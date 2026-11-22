@@ -1,0 +1,54 @@
+$ aildb build -o s.idx -v v.bin -m m.tsv -d 2 -i m
+--- stdout
+{"records":4,"dimension":2,"model":"m","source_revision":null}
+--- stderr
+--- status 0
+snapopen 0, dimension 2
+searchquery 0
+# every record, the best two, and more than there are
+searchrun 0 0, results 4
+1 3fee5b9d0ab4f74e docs/c.md 1-5
+2 3fec9f25c5bfedd9 src/a.aiw 1-9
+3 3fdc9f25c5bfedd9 src/b.aiw 10-20
+4 bfec9f25c5bfedd9 src/d.aiw 3-4
+searchrun 0 0, results 2
+1 3fee5b9d0ab4f74e docs/c.md 1-5
+2 3fec9f25c5bfedd9 src/a.aiw 1-9
+searchrun 0 0, results 4
+1 3fee5b9d0ab4f74e docs/c.md 1-5
+2 3fec9f25c5bfedd9 src/a.aiw 1-9
+3 3fdc9f25c5bfedd9 src/b.aiw 10-20
+4 bfec9f25c5bfedd9 src/d.aiw 3-4
+# a prefix, a language, both, and a prefix of no path
+searchrun 0 0, results 3
+1 3fec9f25c5bfedd9 src/a.aiw 1-9
+2 3fdc9f25c5bfedd9 src/b.aiw 10-20
+3 bfec9f25c5bfedd9 src/d.aiw 3-4
+searchrun 0 0, results 1
+1 3fee5b9d0ab4f74e docs/c.md 1-5
+searchrun 0 0, results 3
+1 3fec9f25c5bfedd9 src/a.aiw 1-9
+2 3fdc9f25c5bfedd9 src/b.aiw 10-20
+3 bfec9f25c5bfedd9 src/d.aiw 3-4
+searchrun 0 0, results 1
+1 3fee5b9d0ab4f74e docs/c.md 1-5
+searchrun 0 0, results 0
+# a result that is not there
+0
+# the command on the same snapshot and query
+$ aildb search s.idx -k 4 -q q.bin
+--- stdout
+{"source_revision":null,"model":"m"}
+{"rank":1,"score":0.948683,"score_bits":"3fee5b9d0ab4f74e","path":"docs/c.md","start_line":1,"end_line":5}
+{"rank":2,"score":0.894427,"score_bits":"3fec9f25c5bfedd9","path":"src/a.aiw","start_line":1,"end_line":9}
+{"rank":3,"score":0.447214,"score_bits":"3fdc9f25c5bfedd9","path":"src/b.aiw","start_line":10,"end_line":20}
+{"rank":4,"score":-0.894427,"score_bits":"bfec9f25c5bfedd9","path":"src/d.aiw","start_line":3,"end_line":4}
+--- stderr
+--- status 0
+# a query that is no vector
+11
+# a vector with an infinity, in the record 1, both checksums made right
+0
+searchrun 2 1
+searchrun 0 0, results 1
+1 3fee5b9d0ab4f74e docs/c.md 1-5

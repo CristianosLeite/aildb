@@ -2,11 +2,13 @@
 # records and the strings of a snapshot. The text is one line a record,
 # each ended by a line feed, with four fields and a tab between them: the
 # path, the first line, the last line and the language (docs/usage.md).
-# A program that uses it uses lib/std/bytes.aiw and src/lib/text.aiw
-# first.
+# It uses lib/std/bytes.aiw and src/lib/text.aiw, with the use lines
+# below.
 #
 # Every name of this file starts with "meta"; a program has no var of
 # such a name.
+use "lib/std/bytes.aiw"
+use "src/lib/text.aiw"
 
 const metanoend 1       # the text ends without a line feed
 const metafields 2      # a line that has not four fields

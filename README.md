@@ -19,14 +19,14 @@ SQL, approximate indexes, incremental writes and a network service are outside v
 
 ## Building
 
-aildb needs x86-64 Linux, `make` and `git`, and nothing else: the compiler of AIL builds itself from a seed that is in its repository.
+aildb is a package of AIL and is built by its command, `ail` ([AIL](https://github.com/CristianosLeite/ail): `make install PREFIX=$HOME/.local` there puts the command, the compiler and the library in place). It needs x86-64 Linux and nothing else.
 
 ```
-make            # fetches AIL at the revision of ail.pin into ail/, builds its compiler, then build/aildb
-make test       # the tests: 25 programs and the indentation check
+ail build       # build/aildb
+ail test        # the tests: 26 programs
 ```
 
-With a checkout of AIL already on the machine, `make AIL=../ail` links it and fetches nothing. `build/aildb` is one static executable that can be copied anywhere.
+`make` and `make test` do the same, and `make test` also checks the indentation and runs the package of `example/consumer`; `make AIL=../ail/build/ail` uses the command of a checkout of AIL that is not installed. `build/aildb` is one static executable that can be copied anywhere.
 
 ## Using it
 
@@ -69,9 +69,23 @@ $ build/aildb check index.aildb
 
 The exit status is 0 for success, 2 for wrong usage, 3 for an invalid snapshot or input, 4 for an I/O failure, 5 when another build is running for the same index and 6 when a snapshot was published without its durability confirmed. A build leaves the file `index.aildb.lock` beside the index, which is its lock and stays. [docs/usage.md](docs/usage.md) has every option, input and line of output.
 
+## In a program
+
+A program written in AIL searches a snapshot itself, with the library the command is made of: aildb is a dependency in its manifest, and one line brings the search.
+
+```
+ail add --path ../aildb
+```
+
+```
+use "aildb:src/lib/search.aiw"
+```
+
+[docs/library.md](docs/library.md) has the functions, and `example/consumer` is a program that uses them, tested against the command.
+
 ## The example
 
-`make example` indexes the AIL repository itself, at the revision of `ail.pin`: an AIL program cuts its sources into chunks, a function or a section each, the embedding model nomic-embed-text makes the vectors, run on the same machine by [Ollama](https://ollama.com), and `search` is asked questions in words whose lines in the sources are known. It needs Ollama running with the model pulled, and Python 3. [docs/example.md](docs/example.md) describes the steps and what a run showed, including the queries that did not find their lines.
+`make example` indexes the AIL repository itself, at the revision of `example/corpus.pin`: an AIL program cuts its sources into chunks, a function or a section each, the embedding model nomic-embed-text makes the vectors, run on the same machine by [Ollama](https://ollama.com), and `search` is asked questions in words whose lines in the sources are known. It needs Ollama running with the model pulled, and Python 3. [docs/example.md](docs/example.md) describes the steps and what a run showed, including the queries that did not find their lines.
 
 ## How fast
 

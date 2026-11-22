@@ -1,8 +1,8 @@
 # src/lib/pack.aiw -- the part of a snapshot that lies before its
 # vectors, put together in memory as docs/format.md has it: the header,
 # the records, the strings and the zeros up to the next multiple of 4096.
-# A program that uses it uses lib/std/bytes.aiw and src/lib/crc.aiw
-# first.
+# It uses lib/std/bytes.aiw and src/lib/crc.aiw, with the use lines
+# below.
 #
 # The writer of a snapshot makes that block with packmeta, writes it and
 # then the vectors, whose CRC-32 it computes on the way, and at last
@@ -11,6 +11,8 @@
 #
 # Every name of this file starts with "pack"; a program has no var of
 # such a name.
+use "lib/std/bytes.aiw"
+use "src/lib/crc.aiw"
 
 data packzero 0 0 0 0
 

@@ -47,7 +47,8 @@ details of each (field order, names of options) are in `docs/format.md` and
   with a constant that compiles the stop points in, and the released one has none; the
   user confirmed that reading the same day. Kills from outside at varying moments run
   against the released executable as well.
-- **AIL is obtained as in ail-bench** (user, 2026-11-21): a file `ail.pin` with the URL and
+- **AIL is obtained as in ail-bench** (user, 2026-11-21; replaced on 2026-11-22 by the
+  package, see [the package](package.md)): a file `ail.pin` with the URL and
   the revision, a script `tools/ail.sh` that clones it or links a local checkout, and the
   link `lib -> ail/lib`. Rejected: a git submodule.
 - **The example indexes the AIL repository at the pinned revision with an open model of
@@ -125,7 +126,8 @@ details of each (field order, names of options) are in `docs/format.md` and
   aildb each name a revision of AIL in a file `ail.pin` and have no version
   of their own, apart from the `version` in the `package.json` of the
   VS Code extension. No number is given to aildb, and no tag made, before
-  the mechanism is decided.
+  the mechanism is decided. It was decided and built the same day:
+  [the package](package.md).
 
 ## Limits
 - The limits of the result count, the dimension and the record count are in
