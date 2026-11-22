@@ -21,8 +21,8 @@ cloned AIL and the two test scripts are gone.
 - **`Ailfile` replaces `ail.pin`** (agent, 2026-11-22, in the plan the user approved).
   aildb asks for a version of AIL, `ail 0.1.0`, and is built by the AIL that is installed
   or named with `make AIL=`. What is lost: the exact revision of AIL that a clone was
-  built and tested against. A version of AIL is a tag once the user gives one; until
-  then 0.1.0 is whatever its branch has.
+  built and tested against. A version of AIL is a tag: `v0.1.0` is its `9b94a9b`
+  (2026-11-22), and `v0.1.0` of aildb is `467b91b`, built and tested with it.
 - **The manifest is called `Ailfile`** and a lock `Ailfile.lock` (user, 2026-11-22;
   pull request 26 of AIL). It was `ail.pkg` until the same day: `.pkg` is the installer
   package of macOS and of other systems, and a tool that goes by the extension takes
@@ -41,8 +41,13 @@ cloned AIL and the two test scripts are gone.
   for the user to review): a package of its own, made with `ail new` and
   `ail add --path ../..`, whose test compares its results with those of the command and
   which `make test` runs. In the repository it is tested with every change; the plan had
-  left open where it lives. It names aildb by its directory: by its address and a version
-  it needs a tag `v0.1.0`, which is the user's release.
+  left open where it lives. It named aildb by its directory until the tag `v0.1.0` was
+  there; since 2026-11-22 by its address and the version 0.1.0, with `Ailfile.lock` (user:
+  "update the consumer"). What that costs: the test of the consumer runs the library of
+  the tag against the command of the checkout, so a change of `src/lib/` is not seen by
+  it (`tests/lib_search.aiw` and the tests of the command see it), and the first
+  `make test` of a new checkout clones the tag from the network. Rejected: keeping the
+  directory, which never shows the way a user of the package takes.
 - **The corpus of the example has its own pin**, `example/corpus.pin`, the address and
   the revision `a5b4559` that `ail.pin` had: the queries expect the lines of that
   revision, whatever AIL builds aildb.
@@ -60,6 +65,10 @@ cloned AIL and the two test scripts are gone.
 - With the command of `main` of AIL at `9b94a9b`, after its pull requests 17 to 27 were
   merged: `make test` passes, 26 programs, the indentation and the test of
   `example/consumer`. `make example` was not run again.
+- aildb fetched as a dependency from its repository (2026-11-22, `ail` of AIL at
+  `9b94a9b`): in `example/consumer`, `ail remove aildb` and `ail add` with the address and
+  0.1.0 wrote the lock with `467b91b`; with `deps/` and `build/` removed, `ail test`
+  cloned the tag and passed, and so did `make test`.
 - A copy of the files git tracks, in an empty directory, passes `make test` the same.
   On a tmpfs it does not: `tests/bench_tools.aiw` expects mapped pages of a file to count
   as `RssFile`, and the kernel counts those of a tmpfs as shared memory. The test is about
@@ -68,4 +77,3 @@ cloned AIL and the two test scripts are gone.
 ## Not checked
 - A build with an installed AIL (`make install` there) in place of the checkout: the
   tests of AIL do that with a new package, not with aildb.
-- aildb fetched as a dependency from its repository, which needs a tag.

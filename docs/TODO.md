@@ -25,12 +25,11 @@ AIL has packages (a manifest `Ailfile`, `use "name:path"`, the command
 `ail`; its pull requests 17 to 26, in its `main` since 2026-11-22). aildb
 is one, and `example/consumer` imports it.
 
-- [ ] `example/consumer` names aildb by its address and a version, in
-  place of its directory, once a version is tagged (the release below).
+Nothing is left of this step (`BACKLOG.md`).
 
 ## 11. Release
 
-- [ ] The release itself, which is the user's: the tag `v<version>` of
-  the version in `Ailfile`, 0.1.0 as it stands, after the packages are
-  in `main` of AIL and AIL has its own tag; an executable that is passed
-  on goes with `LICENSE` and `NOTICE`.
+Version 0.1.0 is tagged (`BACKLOG.md`).
+
+- [ ] Whether an executable is published with a release (user's
+  decision): one that is passed on goes with `LICENSE` and `NOTICE`.

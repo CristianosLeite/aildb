@@ -6,7 +6,7 @@ The first application is semantic search over a source repository: given the emb
 
 ## Status
 
-Version 1 is written: the three commands, the snapshot format, the way a snapshot is published, and the four acceptance checks it was to meet, each shown by a test, by the example or by the measurements. No version is tagged yet, and work reaches `main` through pull requests; [docs/TODO.md](docs/TODO.md) has what is left, and the choices that still wait for a review are in [.agents/knowledge/status/open-items.md](.agents/knowledge/status/open-items.md).
+Version 1 is written: the three commands, the snapshot format, the way a snapshot is published, and the four acceptance checks it was to meet, each shown by a test, by the example or by the measurements. Version 0.1.0 is the tag `v0.1.0`, and work reaches `main` through pull requests; [docs/TODO.md](docs/TODO.md) has what is left, and the choices that still wait for a review are in [.agents/knowledge/status/open-items.md](.agents/knowledge/status/open-items.md).
 
 ## Version 1 in short
 

@@ -198,6 +198,10 @@ mapped pages contribute to reported peak resident memory.
 - [x] A mechanism of versions that AIL and everything derived from it
   share (user, 2026-11-22): the manifest `Ailfile` and the command `ail`
   of AIL, its pull requests 17 to 26.
+- [x] The release: the tag `v0.1.0`, the version in `Ailfile`, at
+  `467b91b` (2026-11-22, at the user's word), after the packages were in
+  `main` of AIL and AIL had its own tag `v0.1.0`, at its `9b94a9b`. No
+  executable is published.
 
 ## 12. aildb as a package
 
@@ -214,3 +218,6 @@ mapped pages contribute to reported peak resident memory.
   `ail new` and `ail add --path`, it searches a snapshot through
   `use "aildb:src/lib/search.aiw"`, and its test shows the bits of the
   scores that the command prints. `docs/library.md`.
+- [x] `example/consumer` names aildb by its address and the version
+  0.1.0, in place of its directory: `ail add` with the address wrote the
+  line `dep` and `Ailfile.lock`, with the revision of the tag `v0.1.0`.
