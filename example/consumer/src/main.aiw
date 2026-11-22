@@ -59,6 +59,12 @@ i=0
 while i<c
 	call searchhit snap sel i as s p n first last ok
 	call bycut line 0
+	# a line is below 4400 bytes, the path at most 4095 of them, so
+	# nothing below is added to a buffer that cannot take it
+	call byneed line 4400 as ok
+	ifz ok
+		call die "consumer: out of memory\n"
+	end
 	call byaddn line i+1
 	call byaddb line 32
 	call fmtfix line s 6
