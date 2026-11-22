@@ -129,6 +129,24 @@ details of each (field order, names of options) are in `docs/format.md` and
   the mechanism is decided. It was decided and built the same day:
   [the package](package.md).
 
+## After the release 0.1.0 (user, 2026-11-22)
+- **An executable is published with a release.** Until then a release was
+  the tag alone (`v0.1.0`, at `467b91b`, has no executable). What is
+  published is `build/aildb` of the tagged revision, one static executable,
+  with `LICENSE` and `NOTICE`, since the code of the library of AIL is in
+  it. Not decided: where it is published (a release of GitHub is the way
+  AIL publishes its seeds), whether `v0.1.0` gets one afterwards, and what
+  makes it (AIL has `make dist` for its own).
+- **The measurements move to a repository `aildb-bench`**, as the
+  benchmarks of AIL are in ail-bench. Not done: `bench/`, `make bench` and
+  `tests/bench_stat.aiw` and `tests/bench_tools.aiw` are still here. Not
+  decided: whether the `hookmark` moments of `search` and
+  `build/aildb-times`, which the measurements need of the engine, stay
+  here, and how `docs/performance.md` names the revision of aildb-bench
+  its figures come from.
+- Both are items of `docs/TODO.md` (the release, and a step 13) and were
+  left for a later conversation.
+
 ## Limits
 - The limits of the result count, the dimension and the record count are in
   `docs/format.md`; the [format page](format.md) has the reasons.
