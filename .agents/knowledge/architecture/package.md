@@ -1,7 +1,7 @@
 ---
 title: aildb as a package
 last-verified: 2026-11-22
-sources: [conversation 2026-11-22, Ailfile, Makefile, src/lib/search.aiw, example/consumer, docs/packages.md and docs/cli.md of AIL at its branch test-home]
+sources: [conversation 2026-11-22, Ailfile, Makefile, src/lib/search.aiw, example/consumer, docs/packages.md and docs/cli.md of AIL at 9b94a9b]
 status: current
 ---
 # aildb as a package
@@ -57,6 +57,9 @@ cloned AIL and the two test scripts are gone.
 - `make example` against the running Ollama: 3266 records, 6 of 6 queries with the
   expected lines in the first 5 results.
 
+- With the command of `main` of AIL at `9b94a9b`, after its pull requests 17 to 27 were
+  merged: `make test` passes, 26 programs, the indentation and the test of
+  `example/consumer`. `make example` was not run again.
 - A copy of the files git tracks, in an empty directory, passes `make test` the same.
   On a tmpfs it does not: `tests/bench_tools.aiw` expects mapped pages of a file to count
   as `RssFile`, and the kernel counts those of a tmpfs as shared memory. The test is about

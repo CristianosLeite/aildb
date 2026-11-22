@@ -21,9 +21,9 @@ The statements are written and in `main` of AIL (`docs/BACKLOG.md`).
 
 ## 12. aildb as a package
 
-AIL is getting packages (a manifest `Ailfile`, `use "name:path"`, the
-command `ail`; its pull requests 17 to 23 of 2026-11-22). aildb is to be
-one, and a program is to import it.
+AIL has packages (a manifest `Ailfile`, `use "name:path"`, the command
+`ail`; its pull requests 17 to 26, in its `main` since 2026-11-22). aildb
+is one, and `example/consumer` imports it.
 
 - [ ] `example/consumer` names aildb by its address and a version, in
   place of its directory, once a version is tagged (the release below).
