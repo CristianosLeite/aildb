@@ -251,6 +251,8 @@ mapped pages contribute to reported peak resident memory.
   number, and the reader of `/proc/self/status`, `hooknumber`, says no
   number for a line that is absent or has no digit, with a test of its
   own.
+- [x] aildb-bench published (2026-11-22, at the user's word): https://github.com/CristianosLeite/aildb-bench,
+  public, its `main` pushed as it was.
 
 ## 14. Snapshot input handling
 

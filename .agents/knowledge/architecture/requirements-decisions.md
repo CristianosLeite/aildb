@@ -161,9 +161,10 @@ details of each (field order, names of options) are in `docs/format.md` and
   `build/aildb-times`, which the measurements need of the engine, stay
   here, and how `docs/performance.md` names the revision of aildb-bench
   its figures come from. Done on 2026-11-22 (agent, for the user to
-  review): the repository is a package of AIL at `../aildb-bench`, made on
-  the user's machine and not published, that names aildb 0.1.0 as a
-  dependency. **The `hookmark` moments stay in the engine** and
+  review): the repository is a package of AIL, made on the user's machine
+  and published the same day at the user's word
+  (https://github.com/CristianosLeite/aildb-bench, public), that names aildb 0.1.0
+  as a dependency. **The `hookmark` moments stay in the engine** and
   `aildb-times` leaves: aildb-bench compiles `aildb:src/main.aiw` with its
   own file of hooks, as `tests/lib/stops.aiw` does here, so the engine
   that is measured is the source of a tag and the shipped executable still

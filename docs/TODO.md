@@ -37,12 +37,8 @@ Version 0.1.0 is tagged (`BACKLOG.md`).
 
 ## 13. The measurements in a repository of their own
 
-The programs are in the repository aildb-bench (`BACKLOG.md`), which
-is on the user's machine and not published.
-
-- [ ] Publish aildb-bench: a repository for it and its first push are
-  the user's to make or to ask for. Then `docs/performance.md` and
-  `README.md` link to it.
+The programs are in the repository
+[aildb-bench](https://github.com/CristianosLeite/aildb-bench) (`BACKLOG.md`).
 
 - [ ] The measurements of filters, of a process that stays and of
   1,000,000 records are made (`BACKLOG.md`; the figures are in
