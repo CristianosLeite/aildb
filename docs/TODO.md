@@ -31,5 +31,12 @@ Nothing is left of this step (`BACKLOG.md`).
 
 Version 0.1.0 is tagged (`BACKLOG.md`).
 
-- [ ] Whether an executable is published with a release (user's
-  decision): one that is passed on goes with `LICENSE` and `NOTICE`.
+- [ ] An executable published with a release (user, 2026-11-22):
+  `build/aildb` of the tagged revision, with `LICENSE` and `NOTICE`.
+
+## 13. The measurements in a repository of their own
+
+- [ ] Move `bench/` to a repository `aildb-bench` (user, 2026-11-22), as
+  the benchmarks of AIL are in ail-bench: the programs of the
+  measurements, `make bench` and their tests leave this repository, and
+  `docs/performance.md` says where its figures come from.
