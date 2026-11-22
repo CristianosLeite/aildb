@@ -84,6 +84,15 @@ answered within a second: 1
 < {"jsonrpc":"2.0","id":2,"result":{"content":[{"type":"text","text":"{\"model\":\"m\",\"source_revision\":\"rev1\",\"hits\":[{\"rank\":1,\"score\":1.000000,\"score_bits\":\"3ff0000000000000\",\"path\":\"a.aiw\",\"start_line\":1,\"end_line\":10}]}"}],"structuredContent":{"model":"m","source_revision":"rev1","hits":[{"rank":1,"score":1.000000,"score_bits":"3ff0000000000000","path":"a.aiw","start_line":1,"end_line":10}]},"isError":false}}
 the server ended with status 0
 
+# six descriptors at most
+> {"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"search","arguments":{"query":"alpha"}}}
+< {"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"the command of aildb could not be run"}],"isError":true}}
+> {"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"search","arguments":{"query":"alpha"}}}
+< {"jsonrpc":"2.0","id":2,"result":{"content":[{"type":"text","text":"the command of aildb could not be run"}],"isError":true}}
+> {"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"search","arguments":{"query":"alpha"}}}
+< {"jsonrpc":"2.0","id":3,"result":{"content":[{"type":"text","text":"the command of aildb could not be run"}],"isError":true}}
+the server ended with status 0
+
 # nobody runs the model
 > {"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"search","arguments":{"query":"alpha"}}}
 < {"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"the embedding model could not be asked: error 111, nobody listens at the endpoint"}],"isError":true}}

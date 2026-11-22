@@ -1,0 +1,28 @@
+# nofile N COMMAND ARGUMENT... -- run a command that may have no more
+# than N descriptors open (RLIMIT_NOFILE), for a test of what a program
+# does when one cannot be made. The command is a path, and gets the
+# arguments and the environment of this program; the status is its own,
+# or 127 if it cannot be started.
+const setrlimit 160
+const execve 59
+buf lim 16
+args as a
+load a as c
+if c<3
+	sys exit_group 2
+end
+load a+16 as p
+n=0
+label digit
+loadb p as d
+if d
+	n=n*10+d-48
+	p+=1
+	jmp digit
+end
+store lim n
+store lim+8 n
+sys setrlimit 7 lim
+load a+24 as prog
+sys execve prog a+24 a+16+c*8
+sys exit_group 127

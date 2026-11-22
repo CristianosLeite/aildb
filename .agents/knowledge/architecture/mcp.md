@@ -54,6 +54,13 @@ pushed or merged.
 - **A failure of the tool is a result with `isError`** (the specification), wrong
   arguments included; only an unknown tool and arguments that are no object are errors
   of the protocol, which the SDK writes.
+- **The tests of what cannot be made** (2026-11-22): the commit that closes the files
+  in memory of a failed start said that such a failure was not made to happen in a
+  test. It can be: `mcp/tests/lib/nofile.aiw` runs a command with a limit of open
+  descriptors (`RLIMIT_NOFILE`), and with six of them the server starts and a call can
+  make two of its three files. The three calls of the test fail the same way; against
+  the source before the fix the second failed for want of a descriptor for the
+  connection to the model (error 24), the two files of the first still open.
 
 ## Unchecked
 - Codex as the client was validated by the user, who reported on 2026-11-22 that it

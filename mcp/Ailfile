@@ -9,5 +9,7 @@ ail 0.1.0
 bin aildb-mcp src/main.aiw
 # built for the tests: an embedding service that answers from a table
 testbin embed-fake tests/lib/fake.aiw
+# and a command run with a limit of open descriptors
+testbin nofile tests/lib/nofile.aiw
 dep aildb ..
 dep mcp ../../ail-extensions/mcp

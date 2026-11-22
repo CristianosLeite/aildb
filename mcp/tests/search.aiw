@@ -247,6 +247,31 @@ call print "\n"
 call ask "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"alpha\",\"k\":1}}}"
 call finish pid
 
+# With no more than six descriptors the server starts, and a call can
+# make two of the three files in memory that a command needs: the call
+# fails, the two are closed, and the next call fails the same way and
+# not for want of a descriptor for the connection to the model.
+call print "\n# six descriptors at most\n"
+call bycut line 0
+call byadd line "nofile 6 "
+call byadd line cmdhome cmdhomen
+call byadd line "/build/aildb-mcp -a "
+call byadd line cmdhome cmdhomen
+call byadd line "/../build/aildb -e http://127.0.0.1:"
+call byaddn line port
+call byadd line " -s s.idx -i m"
+sys pipe2 pend 0x80000
+load4 pend as rd
+load line as q
+load line+8 as m
+call cmdspawnin q m rd "mcp.out" as pid
+sys close rd
+seen=0
+call ask "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"alpha\"}}}"
+call ask "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"alpha\"}}}"
+call ask "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"alpha\"}}}"
+call finish pid
+
 call print "\n# nobody runs the model\n"
 sys kill fake 9
 call procwait fake 0 as r
