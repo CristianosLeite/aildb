@@ -304,3 +304,6 @@ mapped pages contribute to reported peak resident memory.
   ail-extensions is a package since 2026-11-22 and has the tag `v0.1.0`
   (user, 2026-11-22); `ail add` with the address wrote the line `dep`
   of `mcp/Ailfile` and `mcp/Ailfile.lock`, with the revision `4493f9d`.
+- [x] aildb asks for AIL 0.1.1 (user, 2026-11-22), the first version
+  with the libraries of the MCP server, in `Ailfile` and `mcp/Ailfile`;
+  the test of `mcp/` is a part of `make test`.

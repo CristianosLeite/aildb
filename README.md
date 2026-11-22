@@ -26,7 +26,7 @@ ail build       # build/aildb
 ail test        # the tests: 26 programs
 ```
 
-`make` and `make test` do the same, and `make test` also checks the indentation and runs the package of `example/consumer`; `make AIL=../ail/build/ail` uses the command of a checkout of AIL that is not installed. `build/aildb` is one static executable that can be copied anywhere.
+`make` and `make test` do the same, and `make test` also checks the indentation and runs the packages of `example/consumer` and of `mcp`, the MCP server; AIL is to be 0.1.1 or later; `make AIL=../ail/build/ail` uses the command of a checkout of AIL that is not installed. `build/aildb` is one static executable that can be copied anywhere.
 
 ## The executable
 

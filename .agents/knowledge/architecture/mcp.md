@@ -81,4 +81,4 @@ pushed or merged.
   package in its directory `mcp/`, had none. The user had the package merged and tagged
   `v0.1.0` the same day, and `mcp/Ailfile` names it by its address and that version, the
   revision `4493f9d` in `mcp/Ailfile.lock`.
-- AIL needs a version after 0.1.0 for `mcp/Ailfile` to ask for.
+- (Settled on 2026-11-22: AIL has the version 0.1.1 for the libraries, at the user's word, and `Ailfile` and `mcp/Ailfile` ask for it; `make test` runs the test of `mcp/`.)

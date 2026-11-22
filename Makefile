@@ -12,15 +12,18 @@ B := build
 all:
 	$(AIL) build
 
-# Every test, the indentation of every source, and the tests of the
-# package in example/consumer, a program that uses aildb as a package
-# (docs/library.md); or with T the tests named there:
+# Every test, the indentation of every source, and the tests of the two
+# packages that are in directories of this one: example/consumer, a
+# program that uses aildb as a package (docs/library.md), and mcp, the
+# MCP server (docs/mcp.md), which is started with the build/aildb that
+# the first line made. Or with T the tests named there:
 # make test T="name name".
 test:
 ifeq ($(T),)
 	$(AIL) test
 	$(AIL) fmt --check
 	cd example/consumer && $(AILCMD) test
+	cd mcp && $(AILCMD) test && $(AILCMD) fmt --check
 else
 	$(AIL) test $(T)
 endif
@@ -65,10 +68,8 @@ eval:
 	$(AIL) build example-eval
 	tools/eval.sh $(AIL) $(CORPORA)
 
-# The MCP server, mcp/ (docs/mcp.md), a package of its own: its test
-# and its indentation. It needs an AIL that has lib/std/json.aiw and
-# lib/net/http.aiw, and the module mcp of ail-extensions beside this
-# repository, so it is no part of make test.
+# The MCP server alone, mcp/ (docs/mcp.md), a package of its own: its
+# test and its indentation, which make test runs too.
 mcp-test:
 	$(AIL) build
 	cd mcp && $(AILCMD) test && $(AILCMD) fmt --check
