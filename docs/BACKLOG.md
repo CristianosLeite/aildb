@@ -202,6 +202,15 @@ mapped pages contribute to reported peak resident memory.
   `467b91b` (2026-11-22, at the user's word), after the packages were in
   `main` of AIL and AIL had its own tag `v0.1.0`, at its `9b94a9b`. No
   executable is published.
+- [x] The archive of a release: `make dist` (`tools/dist.sh`) takes the
+  sources of a tag out of git, builds them with the command of AIL and
+  packs `aildb`, `LICENSE`, `NOTICE` and `BUILD`, which names the
+  revisions of aildb and of AIL, into
+  `build/dist/aildb-<version>-x86_64-linux.tar.gz`, with its `.sha256`;
+  `make dist-check` (`tools/dist-check.sh`) runs `build`, `check` and
+  `search` of the unpacked executable in a Docker container without AIL.
+  The archive is for `v0.1.0` (user, 2026-11-22). Attaching it to the
+  release is left in `TODO.md`.
 
 ## 12. aildb as a package
 

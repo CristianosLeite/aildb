@@ -63,7 +63,22 @@ bench:
 	for p in bench-run bench-gen bench-scan aildb-times; do $(AIL) build $$p || exit 1; done
 	AIL=$(AIL) bench/bench.sh $(PY)
 
+# The archive of a release (README.md, "The executable"): the
+# executable of the revision REV, by default the tag of the version in
+# Ailfile, built by this command of AIL from the sources that git has at
+# that revision, with LICENSE, NOTICE and a file BUILD that names the
+# two revisions: build/dist/aildb-<version>-x86_64-linux.tar.gz and its
+# .sha256. dist-check unpacks it in a container that has no AIL, of the
+# image IMAGE, and runs build, check and search there; it needs Docker.
+REV ?= v$(shell sed -n 's/^version //p' Ailfile)
+IMAGE ?= debian:stable-slim
+dist:
+	tools/dist.sh $(REV) $(AIL)
+
+dist-check:
+	tools/dist-check.sh $(IMAGE)
+
 clean:
 	$(AIL) clean
 
-.PHONY: all test example bench clean
+.PHONY: all test example bench dist dist-check clean

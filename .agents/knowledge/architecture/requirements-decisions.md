@@ -136,7 +136,24 @@ details of each (field order, names of options) are in `docs/format.md` and
   with `LICENSE` and `NOTICE`, since the code of the library of AIL is in
   it. Not decided: where it is published (a release of GitHub is the way
   AIL publishes its seeds), whether `v0.1.0` gets one afterwards, and what
-  makes it (AIL has `make dist` for its own).
+  makes it (AIL has `make dist` for its own). Decided and made on
+  2026-11-22: `v0.1.0` gets one (user), as a file of its release on GitHub,
+  where a draft without files is; `make dist` makes it and `make dist-check`
+  tries it (agent). The archive is built from the sources that git has at
+  the tag, not from the working tree, so it has the `NOTICE` of the tag;
+  the revision of AIL is the one of the checkout the command is in, which
+  must have no changes, or `AILREV=` for an installed AIL, and both
+  revisions are in the file `BUILD` of the archive. The modes, owner and
+  times are fixed, so the archive is the same bytes each time: `make
+  AIL=../ail-packages/build/ail dist` on 2026-11-22, on a Core i7-12700H
+  with Linux 7.0, with AIL at `9b94a9b`, printed
+  `618f98babd39b9c4f8f884d0b01a471ddca0313ee58712a882ebafe264d8f49a` twice,
+  the second time under another umask. `make dist-check` unpacked it in
+  `debian:stable-slim`, without a network, and `build`, `check` and
+  `search` printed there what `docs/usage.md` says of two records whose
+  cosines with the query are exactly 1 and 0. Not done: the upload, which
+  is the user's to ask for. Rejected: a workflow of GitHub that builds on
+  a tag, since no executable of AIL is published for it to use.
 - **The measurements move to a repository `aildb-bench`**, as the
   benchmarks of AIL are in ail-bench. Not done: `bench/`, `make bench` and
   `tests/bench_stat.aiw` and `tests/bench_tools.aiw` are still here. Not

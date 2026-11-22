@@ -28,6 +28,18 @@ ail test        # the tests: 27 programs
 
 `make` and `make test` do the same, and `make test` also checks the indentation and runs the package of `example/consumer`; `make AIL=../ail/build/ail` uses the command of a checkout of AIL that is not installed. `build/aildb` is one static executable that can be copied anywhere.
 
+## The executable
+
+A release has the executable for x86-64 Linux as an archive, `aildb-<version>-x86_64-linux.tar.gz`, and the SHA-256 of the archive in a file beside it. It needs no AIL and nothing installed:
+
+```
+sha256sum -c aildb-0.1.0-x86_64-linux.tar.gz.sha256
+tar -xzf aildb-0.1.0-x86_64-linux.tar.gz
+aildb-0.1.0-x86_64-linux/aildb check an.idx
+```
+
+The directory has `aildb`, `LICENSE`, `NOTICE`, which goes with the executable to whoever gets it, and `BUILD`, which names the revision of aildb and the revision of AIL that made it. `make dist` makes the archive from the tag of the version in `Ailfile` (`REV=` names another revision) and gives the same bytes each time; `make dist-check` unpacks it in a Docker container that has no AIL and runs the three commands there.
+
 ## Using it
 
 An index is made from two files that another program wrote: the vectors as raw binary32, one after the other, and a line of metadata for each, with tabs between the path, the first line, the last line and the language. Three vectors of two dimensions and a query, made here with Python for the sake of something to run:

@@ -30,13 +30,10 @@ Nothing is left of this step (`BACKLOG.md`).
 
 Version 0.1.0 is tagged (`BACKLOG.md`).
 
-- [ ] An executable published with a release (user, 2026-11-22):
-  `build/aildb` of the tagged revision, with `LICENSE` and `NOTICE`.
-  Build from the release tag with an identified AIL revision and attach
-  a Linux x86-64 archive and its SHA-256 checksum to the release.
-  Smoke-test the extracted executable's `build`, `check` and `search`
-  on a clean Linux x86-64 environment without AIL installed. Decide
-  whether to add an archive to `v0.1.0` or start with the next release.
+- [ ] Attach the archive of `make dist` and its `.sha256` to the release
+  `v0.1.0` (user, 2026-11-22: the archive is for `v0.1.0`), which is a
+  draft without files; it is done at the user's word. The archive is
+  made and tried (`BACKLOG.md`).
 
 ## 13. The measurements in a repository of their own
 
