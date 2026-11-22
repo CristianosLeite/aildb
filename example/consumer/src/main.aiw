@@ -7,7 +7,7 @@
 # binary32 as its dimension, and LIMIT the number of results. Each line
 # is the rank, the score with six decimals and as its 64 bits, and the
 # place: the path and the first and last line. The status is 0, or 1
-# with a line on stderr.
+# with a line on stderr, also when a result cannot be written.
 use "lib/std/io.aiw"
 use "lib/std/bytes.aiw"
 use "lib/std/file.aiw"
@@ -73,6 +73,9 @@ while i<c
 	call byaddb line 10
 	load line as p
 	load line+8 as n
-	call print p n
+	call print p n as ok
+	ifz ok
+		call die "consumer: cannot write the results\n"
+	end
 	i+=1
 end

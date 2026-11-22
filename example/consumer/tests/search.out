@@ -34,3 +34,5 @@ $ consumer s.idx none.bin 2
 --- stderr
 consumer: cannot read the query
 --- status 1
+to /dev/full: status 1
+consumer: cannot write the results

@@ -52,3 +52,15 @@ call cmdshow "consumer s.idx q.bin 9"
 call cmdshow "consumer s.idx v.bin 2"
 call cmdshow "consumer m.tsv q.bin 2"
 call cmdshow "consumer s.idx none.bin 2"
+# with an output that takes nothing: the results are not lost in silence
+call fileopen "/dev/null" 0 0 as in
+call cmdspawnin "consumer s.idx q.bin 2" in "/dev/full" as pid
+call procwait pid 0 as st
+call print "to /dev/full: status "
+call putn st
+call print "\n"
+call bycut so 0
+call fileread "bg.err" so
+load so as q
+load so+8 as m
+call print q m
