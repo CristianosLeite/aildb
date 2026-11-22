@@ -246,6 +246,11 @@ mapped pages contribute to reported peak resident memory.
   from a search, warm and cold for both, and 1,000,000 records. Run on
   2026-11-22 for aildb 0.1.0; no target and no decision (user,
   2026-11-22).
+- [x] In aildb-bench, `bench_tools` takes a memory line of 0 as a
+  measurement (its commit `119c533`): a line `=` is to be there with a
+  number, and the reader of `/proc/self/status`, `hooknumber`, says no
+  number for a line that is absent or has no digit, with a test of its
+  own.
 
 ## 14. Snapshot input handling
 
@@ -280,3 +285,10 @@ mapped pages contribute to reported peak resident memory.
   search` with the vector on stdin; the result has the model, the
   revision and the hits as the command printed them. `mcp/tests/search.aiw`
   with an embedding service that answers from a table; `docs/mcp.md`.
+- [x] A snapshot replaced by one of another dimension and the same
+  model is searched from the next call on: the server compared the
+  length of a vector with the dimension it had read when it started, and
+  now leaves that to `aildb search`, which compares it with the snapshot
+  it opens. `mcp/tests/search.aiw` replaces a snapshot of two dimensions
+  by one of three in a session: the vector of three is taken and the one
+  of two refused.

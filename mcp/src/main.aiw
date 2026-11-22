@@ -51,7 +51,7 @@ buf req 128
 buf num 24
 buf one 8              # one binary32
 data mname "aildb\0"
-var snapp snapn modelp modeln aildbp aildbn prep pren ms dim
+var snapp snapn modelp modeln aildbp aildbn prep pren ms
 var ip port pathp pathn zn
 
 data inschema "{\"type\":\"object\",\"properties\":{"
@@ -287,16 +287,13 @@ async fn search x p n r
 		count+=1
 		jmp elem
 	end
-	if count!=dim
-		call bycut num 0
-		call byaddn num count
-		call byadd num " dimensions, and the snapshot has "
-		call byaddn num dim
-		load num as tp
-		load num+8 as tn
-		call failed r "the vector of the model has " tp tn
+	ifz count
+		call failed r "the embedding model answered without a vector" ""
 		ret 0
 	end
+	# Its length is not compared here: the command compares it with the
+	# snapshot it opens for this call, which may be another than the one
+	# that was there when the server started.
 	# aildb search SNAPSHOT -k K -i MODEL [-p PREFIX] [-l LANGUAGE]
 	zn=0
 	call arg 0 aildbp aildbn
@@ -474,7 +471,7 @@ ifz pathn
 	pathp=defpath
 	pathn=10
 end
-# the snapshot as it is now: its dimension and its model
+# the snapshot as it is now: valid, and of the model
 zn=0
 call arg 0 aildbp aildbn
 call arg 1 "check"
@@ -491,10 +488,9 @@ load so as p
 load so+8 as n
 call jsonvalue p n as a an k
 call jsonget a an "dimension" as v vn vk
-call numint v vn as dim ok
 call jsonget a an "model" as v vn vk
 call jsoneq v vn modelp modeln as same
-if (k!=7)|(ok==0)
+if (k!=7)|(vk!=5)
 	call fail 4 "the command of aildb printed what is no check: " aildbp aildbn
 end
 ifz same

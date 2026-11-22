@@ -53,11 +53,17 @@ $ aildb search s.idx -k 10 -p lib/ -l ail
 > {"jsonrpc":"2.0","id":15,"method":"tools/call","params":{"name":"search","arguments":{"query":"junk"}}}
 < {"jsonrpc":"2.0","id":15,"result":{"content":[{"type":"text","text":"the embedding model answered without a vector"}],"isError":true}}
 > {"jsonrpc":"2.0","id":16,"method":"tools/call","params":{"name":"search","arguments":{"query":"three"}}}
-< {"jsonrpc":"2.0","id":16,"result":{"content":[{"type":"text","text":"the vector of the model has 3 dimensions, and the snapshot has 2"}],"isError":true}}
+< {"jsonrpc":"2.0","id":16,"result":{"content":[{"type":"text","text":"the search failed: aildb: standard input: holds more than 8 bytes, and a query of 2 dimensions is 8"}],"isError":true}}
 
 # the snapshot is replaced: another revision, two records
 > {"jsonrpc":"2.0","id":17,"method":"tools/call","params":{"name":"search","arguments":{"query":"both"}}}
 < {"jsonrpc":"2.0","id":17,"result":{"content":[{"type":"text","text":"{\"model\":\"m\",\"source_revision\":\"rev2\",\"hits\":[{\"rank\":1,\"score\":0.800000,\"score_bits\":\"3fe9999995c28f5d\",\"path\":\"docs/b.md\",\"start_line\":5,\"end_line\":9},{\"rank\":2,\"score\":0.600000,\"score_bits\":\"3fe333333851eb82\",\"path\":\"a.aiw\",\"start_line\":1,\"end_line\":10}]}"}],"structuredContent":{"model":"m","source_revision":"rev2","hits":[{"rank":1,"score":0.800000,"score_bits":"3fe9999995c28f5d","path":"docs/b.md","start_line":5,"end_line":9},{"rank":2,"score":0.600000,"score_bits":"3fe333333851eb82","path":"a.aiw","start_line":1,"end_line":10}]},"isError":false}}
+
+# replaced again, by one of three dimensions and the same model
+> {"jsonrpc":"2.0","id":19,"method":"tools/call","params":{"name":"search","arguments":{"query":"three"}}}
+< {"jsonrpc":"2.0","id":19,"result":{"content":[{"type":"text","text":"{\"model\":\"m\",\"source_revision\":\"rev3\",\"hits\":[{\"rank\":1,\"score\":0.801784,\"score_bits\":\"3fe9a8365810363f\",\"path\":\"wide.aiw\",\"start_line\":1,\"end_line\":2},{\"rank\":2,\"score\":0.267261,\"score_bits\":\"3fd11acee560242a\",\"path\":\"x.aiw\",\"start_line\":3,\"end_line\":4}]}"}],"structuredContent":{"model":"m","source_revision":"rev3","hits":[{"rank":1,"score":0.801784,"score_bits":"3fe9a8365810363f","path":"wide.aiw","start_line":1,"end_line":2},{"rank":2,"score":0.267261,"score_bits":"3fd11acee560242a","path":"x.aiw","start_line":3,"end_line":4}]},"isError":false}}
+> {"jsonrpc":"2.0","id":20,"method":"tools/call","params":{"name":"search","arguments":{"query":"alpha"}}}
+< {"jsonrpc":"2.0","id":20,"result":{"content":[{"type":"text","text":"the search failed: aildb: standard input: holds 8 bytes, and a query of 3 dimensions is 12"}],"isError":true}}
 
 # the snapshot is gone
 > {"jsonrpc":"2.0","id":18,"method":"tools/call","params":{"name":"search","arguments":{"query":"alpha"}}}

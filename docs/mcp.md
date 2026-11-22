@@ -31,8 +31,8 @@ aildb-mcp -s SNAPSHOT -i MODEL -e ENDPOINT [-a AILDB] [-p PREFIX] [-t MS]
 - `-t MS`: the milliseconds the model may take for an answer, and the
   search for its results; 30000 if it is not given.
 
-When it starts, the server runs `aildb check SNAPSHOT` once, for the
-dimension, and ends with status 3 if the snapshot is invalid, cannot be
+When it starts, the server runs `aildb check SNAPSHOT` once and ends
+with status 3 if the snapshot is invalid, cannot be
 read or is of another model than `MODEL`, with status 2 for wrong usage
 and 4 if the command of aildb cannot be run, each with a line on standard
 error. It then answers until its input ends, status 0. Standard output
@@ -47,9 +47,8 @@ has the messages of the protocol and nothing else.
 | `path_prefix` | only records whose path starts with these bytes, the `-p` of `aildb search` |
 | `language` | only records of this language, its `-l` |
 
-For a call the server sends `PREFIX` and the query to the model, checks
-that the answer is as many numbers as the snapshot has dimensions, rounds
-each to the nearest binary32 and starts `aildb search SNAPSHOT -k K -i
+For a call the server sends `PREFIX` and the query to the model, rounds
+each number of the answer to the nearest binary32 and starts `aildb search SNAPSHOT -k K -i
 MODEL`, with the filters if they are given, without a shell and with the
 vector on its standard input. The result is an object, sent as
 `structuredContent` and as text:
@@ -66,14 +65,18 @@ takes no record gives `"hits":[]`.
 
 A failure is a result with `isError` and a sentence, not an error of the
 protocol: an argument of the wrong kind or out of range, a model that
-cannot be reached, refuses or answers with no vector or one of another
-dimension, an answer or a search that takes longer than `MS`, and
-whatever `aildb search` said when it did not end with status 0, as a
-snapshot that is gone or damaged.
+cannot be reached, refuses or answers with no vector, an answer or a
+search that takes longer than `MS`, and whatever `aildb search` said when
+it did not end with status 0: a snapshot that is gone or damaged, and a
+vector that is not of the dimension of the snapshot.
 
 **A call starts the command anew**, so each search opens the snapshot
 that is at the path then: after `aildb build` has published another one,
-the next call searches it, with nothing to reload. The cost is a process
+the next call searches it, with nothing to reload. The server keeps
+nothing of the snapshot it started with, also not its dimension: the
+length of a vector is compared by `aildb search` with the snapshot it
+opens, so a snapshot of the same model and another dimension is searched
+with vectors of that dimension from the next call on. The cost is a process
 a query, which [performance.md](performance.md) measures.
 
 ## Building it
@@ -116,8 +119,9 @@ records: the discovery of the tool, calls whose hits are the lines that
 `aildb search` prints for the same vectors (ranks, both filters and
 `score_bits`), no result, wrong arguments, a model that refuses, answers
 with what is no vector or one of three dimensions, answers too late or is
-not there, a snapshot replaced between two calls and one that is gone,
-and starts that fail.
+not there, a snapshot replaced between two calls, then replaced by one of
+three dimensions, for which the vector of three is taken and the one of
+two refused, a snapshot that is gone, and starts that fail.
 
 Against the model itself, on 2026-11-22 (Ollama 0.40.17, nomic-embed-text,
 the index of AIL at `a5b4559` that `make eval` built): the three hits of

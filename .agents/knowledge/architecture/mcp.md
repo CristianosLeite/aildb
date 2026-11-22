@@ -31,10 +31,14 @@ pushed or merged.
   in memory (`memfd_create`): a pipe would have to be read while the child runs, and a
   vector above the room of a pipe would block the write. No file is made on a disk.
   The worker that keeps a mapping open is left to the measurements.
-- **`aildb check` once at the start** (agent), for the dimension and the model: a
-  snapshot of another model is status 3 before any client is answered. It reads the
-  whole file once. A snapshot rebuilt with another dimension is found by `aildb search`
-  itself, whose line becomes the failure of the call.
+- **`aildb check` once at the start** (agent), for the model: a snapshot of another
+  model is status 3 before any client is answered. It reads the whole file once.
+- **The server keeps no dimension** (user's item of 2026-11-22, after a local test of
+  the user's: a snapshot of two dimensions replaced by one of three, and a query of
+  three refused until a restart). The first form read the dimension at the start and
+  compared every vector with it, which contradicted "each call opens the snapshot that
+  is there". The length is now compared by `aildb search` alone, with the snapshot of
+  that call, and its line is the failure of the call.
 - **The hits are the lines of the command, not written anew** (agent): `score` and
   `score_bits` are the bytes `aildb search` printed, so nothing rounds a second time
   and the comparison with the command is of bytes. This is also why the JSON library
