@@ -221,3 +221,13 @@ mapped pages contribute to reported peak resident memory.
 - [x] `example/consumer` names aildb by its address and the version
   0.1.0, in place of its directory: `ail add` with the address wrote the
   line `dep` and `Ailfile.lock`, with the revision of the tag `v0.1.0`.
+
+## 14. Snapshot input handling
+
+- [x] A named pipe given as a snapshot or as the vectors of `build` is
+  refused at once. `snapopen` and `mapfile` opened the path before they
+  asked for its kind, and the open of a named pipe waits for a writer;
+  they open with `O_NONBLOCK` now, so the check of a regular file that
+  was there is reached. `tests/cli_fifo.aiw` gives `check`, `search` and
+  `build -v` a pipe that has no writer and two seconds each. The metadata
+  and the query are read, not mapped, and may be a pipe as before.

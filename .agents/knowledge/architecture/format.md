@@ -1,6 +1,6 @@
 ---
 title: The snapshot format, version 1
-last-verified: 2026-11-21
+last-verified: 2026-11-22
 sources: [docs/format.md, REQUIREMENTS.md, architecture/requirements-decisions.md, architecture/feasibility.md]
 status: current
 ---
@@ -80,6 +80,16 @@ written, before any reader existed, and are the user's to change until a release
   the vectors still start at the same multiple of 4096. The format allows bytes that
   nothing names, so this is no fault; "one form" holds for the layout, not for the
   contents of the strings.
+- **A snapshot is opened without blocking** (`O_NONBLOCK`; item 14 of `docs/TODO.md`, a
+  review the user added on 2026-11-22; fixed by the agent the same day): the reader asked
+  for the kind of the file after the open, and the open of a named pipe that has no writer
+  waits, so `check` and `search` hung before the check of a regular file. The flag changes
+  nothing for a regular file, and the mapping does not use it. `mapfile` of `build -v` had
+  the same order and has the same fix. Rejected: `stat` of the path before the open, which
+  asks about a name that may be another file by the time it is opened. Left as it is: `-m`
+  and `-q`, which are read and not mapped and may be a pipe; a pipe that never gets a
+  writer is waited for there, as any reader of one waits (`build` holds its lock then).
+  `tests/cli_fifo.aiw`.
 
 ## Unchecked
 - Nothing of the engine writes the format yet. The reader is checked against files that

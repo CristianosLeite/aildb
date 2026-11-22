@@ -135,8 +135,11 @@ someone made to pass the checks passes them.
 
 ## Validation
 
-A reader opens a regular file only; a directory or a device is a file that
-cannot be opened, an I/O failure and not an invalid snapshot. It takes the
+A reader opens a regular file only; a directory, a device or a named pipe
+is a file that cannot be opened, an I/O failure and not an invalid
+snapshot. The path is opened without blocking and the kind of the file is
+asked of the descriptor, so a named pipe that has no writer is refused at
+once and not waited for. It takes the
 size of the file from the kernel and rejects the file unless all of the
 following hold. They are checked in this order, so that
 each number is known to be in range before it is used in a product or a sum,

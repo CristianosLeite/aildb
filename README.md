@@ -23,7 +23,7 @@ aildb is a package of AIL and is built by its command, `ail` ([AIL](https://gith
 
 ```
 ail build       # build/aildb
-ail test        # the tests: 26 programs
+ail test        # the tests: 27 programs
 ```
 
 `make` and `make test` do the same, and `make test` also checks the indentation and runs the package of `example/consumer`; `make AIL=../ail/build/ail` uses the command of a checkout of AIL that is not installed. `build/aildb` is one static executable that can be copied anywhere.

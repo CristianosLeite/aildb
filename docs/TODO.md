@@ -58,13 +58,7 @@ Version 0.1.0 is tagged (`BACKLOG.md`).
 
 ## 14. Snapshot input handling
 
-- [ ] Reject a named pipe passed as a snapshot promptly. `snapopen`
-  opens the path before `fstat`, so `check` and `search` can wait for a
-  FIFO writer before reaching the regular-file check. Open the path with
-  `O_NONBLOCK` and validate the type on the returned descriptor before
-  mapping. Review the same pattern in `build -v`, which also expects a
-  regular file. Add timeout-bounded regression tests for a FIFO without a
-  writer and verify that regular files still work.
+Nothing is left of this step (`BACKLOG.md`).
 
 ## 15. Semantic retrieval evaluation
 
