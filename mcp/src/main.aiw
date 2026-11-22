@@ -120,6 +120,10 @@ end
 # as procwait gives it, with so and se what it wrote; -1000 if it took
 # longer than ms, and -2000 if it could not be started.
 fn run p n
+	# nothing of the command before this one is left to be read as
+	# what this one said, should it not be started
+	call bycut so 0
+	call bycut se 0
 	call memfile p n as in
 	call memfile 0 0 as out
 	call memfile 0 0 as err
@@ -141,8 +145,6 @@ fn run p n
 	ifsge pid 0
 		call procwait pid ms as st
 	end
-	call bycut so 0
-	call bycut se 0
 	sys lseek out 0 0
 	sys lseek err 0 0
 	call filereadfd out so
