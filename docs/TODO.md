@@ -69,13 +69,10 @@ The fixed queries, their places and the measures are done (`BACKLOG.md`,
 
 The server is written (`BACKLOG.md`, [mcp.md](mcp.md)).
 
-- [ ] Name the server SDK by its address and a version: ail-extensions
-  is a package since 2026-11-22, with the SDK as
-  `ail-extensions:mcp/src/mcp.aiw`, and `mcp/Ailfile` still names it by
-  its directory beside this repository, since it has no tag yet (the
-  user's to give). Until then `make mcp-test` is no part of `make test`.
-  It also needs a version of AIL that has the libraries (an item of the
-  TODO of AIL).
+- [ ] Make `make mcp-test` a part of `make test`. The SDK is named by
+  its address and a version (`BACKLOG.md`); what is left is a version of
+  AIL that has the libraries the server needs (an item of the TODO of
+  AIL), for `mcp/Ailfile` to ask for.
 - [ ] If the measurements of aildb-bench justify keeping a mapping open,
   an AIL worker on `src/lib/search.aiw` in place of a command a query,
   with a test of its reload across atomic replacements.

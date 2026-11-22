@@ -78,6 +78,7 @@ pushed or merged.
 ## Open, for the user
 - The SDK has an address since 2026-11-22, when ail-extensions became a package with the
   SDK in it (the user: it still carried `ail.pin` and had no `Ailfile`); the first form, a
-  package in its directory `mcp/`, had none. `mcp/Ailfile` names the package by
-  `../../ail-extensions` until it has a tag, which is the user's to give.
+  package in its directory `mcp/`, had none. The user had the package merged and tagged
+  `v0.1.0` the same day, and `mcp/Ailfile` names it by its address and that version, the
+  revision `4493f9d` in `mcp/Ailfile.lock`.
 - AIL needs a version after 0.1.0 for `mcp/Ailfile` to ask for.
