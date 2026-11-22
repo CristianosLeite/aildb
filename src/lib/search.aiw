@@ -1,0 +1,143 @@
+# src/lib/search.aiw -- a search of an open snapshot: the query made a
+# vector of the norm 1, every record that passes the filters scored
+# against it as docs/format.md defines a score, the best kept in order,
+# and a result read back. It is what the command search does between
+# reading its arguments and printing, and what a program that uses aildb
+# as a package calls:
+#
+#     use "aildb:src/lib/search.aiw"
+#
+# The line brings the files this one needs, of aildb and of the library
+# of AIL; a program uses lib/std/io.aiw itself if it prints. The
+# snapshot is one that snapopen of src/lib/snap.aiw opened, and the
+# selection 24 bytes for src/lib/topk.aiw, which the caller owns and
+# ends with topkfree.
+#
+# The functions return what they found and print nothing. Every name of
+# this file starts with "search"; a program has no var of such a name.
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "src/lib/crc.aiw"
+use "src/lib/text.aiw"
+use "src/lib/snap.aiw"
+use "src/lib/norm.aiw"
+use "src/lib/topk.aiw"
+
+const searchnomem 1     # no memory for the selection
+const searchvalue 2     # a vector with an element that is not finite
+
+# the dimension of the snapshot searchs: the number of binary32 of a
+# query, and of doubles that searchquery writes
+fn searchdim searchs
+	load searchs+24 as searchn
+	ret searchn
+end
+
+# Make the doubles at searchq the query of binary32 at searchp, as many
+# as the dimension of the snapshot, divided by its norm: 0, or normnan
+# or normzero of src/lib/norm.aiw, after which the doubles are not to be
+# used. The two runs do not overlap.
+fn searchquery searchs searchp searchq
+	load searchs+24 as searchn
+	tail normwide searchp searchq searchn
+end
+
+# Score every record of the snapshot searchs that passes the filters
+# against the doubles at searchq, a query that searchquery made, and
+# keep the best searchk in the selection searcht, in order, the best
+# first; fewer if fewer records pass. The searchpn bytes at searchpp are
+# the prefix a path must start with, if searchpp is not 0, and the
+# searchln bytes at searchlp the language a record must have, if
+# searchlp is not 0. The selection is one that holds no memory: all
+# zero, or after topkfree.
+#
+# The results are 0 and 0; searchnomem and 0; or searchvalue and the
+# ordinal of a record whose score is not finite, which is the case
+# exactly when its vector has an element that is not, so that the file
+# is no valid snapshot (the check of the vectors, snapcheck, would have
+# found it). After an error the selection is not to be read. Nothing is
+# allocated for a record: the selection has its pairs from the start.
+fn searchrun searchs searcht searchq searchk searchpp searchpn searchlp searchln
+	load searchs+16 as searchc
+	load searchs+24 as searchd
+	load searchs+32 as searchr
+	load searchs+40 as searchst
+	load searchs+56 as searchv
+	if searchk>searchc
+		searchk=searchc
+	end
+	call topkinit searcht searchk as searchok
+	ifz searchok
+		ret searchnomem 0
+	end
+	searchstep=searchd*4
+	# a string that the record before named was compared there
+	searchpo=-1
+	searchpl=0
+	searchpr=0
+	searchlo=-1
+	searchll=0
+	searchlr=0
+	searchi=0
+	while searchi<searchc
+		searchok=1
+		if searchpp
+			load4 searchr as searcho
+			load4 searchr+4 as searchl
+			if (searcho!=searchpo)|(searchl!=searchpl)
+				call textprefix searchst+searcho searchl searchpp searchpn as searchpr
+				searchpo=searcho
+				searchpl=searchl
+			end
+			searchok=searchpr
+		end
+		if searchok&(searchlp!=0)
+			load4 searchr+8 as searcho
+			load4 searchr+12 as searchl
+			if (searcho!=searchlo)|(searchl!=searchll)
+				call texteq searchst+searcho searchl searchlp searchln as searchlr
+				searchlo=searcho
+				searchll=searchl
+			end
+			searchok=searchlr
+		end
+		if searchok
+			fdot4 0 searchv searchq searchd as searchs2
+			if ((searchs2>>52)&2047)==2047
+				ret searchvalue searchi
+			end
+			call topkadd searcht searchs2 searchi
+		end
+		searchr+=24
+		searchv+=searchstep
+		searchi+=1
+	end
+	call topksort searcht
+	ret 0 0
+end
+
+# the number of results the selection searcht holds after searchrun
+fn searchcount searcht
+	load searcht+16 as searchn
+	ret searchn
+end
+
+# The result at the rank searchi, counted from 0, of the selection
+# searcht over the snapshot searchs: its score, the address and the
+# length of its path, its first and its last line, and 1; or six zeros
+# if the selection holds no such result. The path is bytes of the
+# mapped file, good while the snapshot is open.
+fn searchhit searchs searcht searchi
+	call topkget searcht searchi as searchx searcho searchok
+	ifz searchok
+		ret 0 0 0 0 0 0
+	end
+	load searchs+32 as searchr
+	load searchs+40 as searchst
+	searchr+=searcho*24
+	load4 searchr as searchp
+	load4 searchr+4 as searchn
+	load4 searchr+16 as searcha
+	load4 searchr+20 as searchb
+	ret searchx searchst+searchp searchn searcha searchb 1
+end

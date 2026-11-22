@@ -20,6 +20,18 @@ The statements are written and `ail.pin` names the revision that has them
 
 - [ ] Float literals (user's proposal): not needed for version 1.
 
+## 12. aildb as a package
+
+AIL is getting packages (a manifest `ail.pkg`, `use "name:path"`, the
+command `ail`; its pull requests 17 to 23 of 2026-11-22). aildb is to be
+one, and a program is to import it.
+
+- [ ] aildb as a package: `ail.pkg`, built and tested with `ail`;
+  `ail.pin`, `tools/ail.sh` and `tests/run.sh` go. Waits for the
+  packages to be merged into `main` of AIL.
+- [ ] A project that imports aildb and searches a snapshot through
+  `use "aildb:src/lib/search.aiw"`, as the proof.
+
 ## 11. Release
 
 - [ ] A mechanism of versions that AIL and everything derived from it

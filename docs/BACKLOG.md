@@ -195,3 +195,10 @@ mapped pages contribute to reported peak resident memory.
 - [x] `AGENTS.md` and the knowledge base brought up to date for the
   release: the section "State" says that version 1 is written and not
   released, and the pages that spoke of work to come say what was done.
+
+## 12. aildb as a package
+
+- [x] The search as a library, `src/lib/search.aiw`: `searchquery`,
+  `searchrun`, `searchcount` and `searchhit`, taken out of `query`,
+  `scan` and `results` of `src/main.aiw`, which now calls them; the files
+  of `src/lib/` name what they need with `use`. `tests/lib_search.aiw`.

@@ -1,8 +1,8 @@
 # src/lib/snap.aiw -- a snapshot opened for reading: the file mapped
 # read-only and validated as docs/format.md says, before any of its
-# records, strings or vectors is used. A program that uses it uses
-# lib/std/bytes.aiw, lib/std/file.aiw, src/lib/crc.aiw and
-# src/lib/text.aiw first.
+# records, strings or vectors is used. It uses lib/std/bytes.aiw,
+# lib/std/file.aiw, src/lib/crc.aiw and src/lib/text.aiw, with the use
+# lines below, so a program names this file alone.
 #
 # An open snapshot is 104 bytes that the caller owns, in a buf or a
 # local, which snapopen fills:
@@ -35,6 +35,10 @@
 #
 # Every name of this file starts with "snap"; a program has no var of
 # such a name.
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "src/lib/crc.aiw"
+use "src/lib/text.aiw"
 
 const snapshort 1       # shorter than a header
 const snapmagic 2       # not the magic of a snapshot
