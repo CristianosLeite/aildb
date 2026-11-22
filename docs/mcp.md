@@ -125,5 +125,19 @@ the query "print an unsigned number in decimal" were the three lines, with
 the same `score_bits`, that `aildb search` printed for the vector
 `example/embed.py` made of the same query.
 
-Not yet checked: a search asked by Claude Code and by Codex themselves,
-with the lines opened at the revision; it is left in [TODO.md](TODO.md).
+From Claude Code, on 2026-11-22 (the version that `claude --version`
+printed is in the commit that added this paragraph): `claude mcp add`
+with the line above put the server in the configuration of the project,
+`claude mcp get aildb` said "Connected", and a session asked to search
+for "wait for a child process to end and kill it after a time limit" with
+`k` 3 called the tool and got `tests/lib_proc_timeout.aiw` 1 to 22,
+`lib/std/proc.aiw` 203 to 242, the record that `make eval` has at the
+place 2 for this query, and `docs/language.md` 1432 to 1433, with
+`source_revision` `a5b4559c2cffbef49538a668579a3820d5e16da5`; it then
+opened the first with `git show <revision>:<path>` in a checkout of AIL
+and printed its lines. Claude Code warns that the argument `"search_query:
+"` ends in a blank, which it does on purpose: the model is given the
+prefix as it stands.
+
+Not yet checked: a search asked by Codex; it is left in
+[TODO.md](TODO.md).

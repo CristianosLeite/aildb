@@ -52,8 +52,12 @@ pushed or merged.
   of the protocol, which the SDK writes.
 
 ## Unchecked
-- Claude Code and Codex as the clients: it changes their configuration and waits for
-  the user's word. The session of the test is written from the specification.
+- Codex as the client: it changes its configuration and waits for the user's word.
+  Claude Code was the client on 2026-11-22, at the user's word: `claude mcp add` in the
+  local configuration of this project, "Connected", and a session that called `search`
+  and opened the first hit at the revision (`docs/mcp.md`). The server is still in that
+  configuration, with the index of `build/eval/`, which `make eval` makes anew and
+  `make clean` removes.
 - Another embedding service than Ollama, and an endpoint by name or with TLS, which the
   HTTP client of AIL has not.
 - The cost of `aildb check` at the start on a large snapshot.

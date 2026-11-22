@@ -73,10 +73,10 @@ The fixed queries, their places and the measures are done (`BACKLOG.md`,
 
 The server is written (`BACKLOG.md`, [mcp.md](mcp.md)).
 
-- [ ] Verify one search from Codex and from Claude Code, including
-  opening the returned source lines at the reported revision. It changes
-  the configuration of the two programs (`claude mcp add`, `codex mcp
-  add`), so it is done at the user's word.
+- [ ] Verify one search from Codex, including opening the returned
+  source lines at the reported revision, as was done from Claude Code on
+  2026-11-22 ([mcp.md](mcp.md#what-was-checked)). `codex mcp add` changes
+  the configuration of the program, so it is done at the user's word.
 - [ ] Give the server SDK an address: `mcp/Ailfile` names the module
   `mcp` of ail-extensions by its directory beside this repository,
   since a dependency by address is a repository with the package at its
