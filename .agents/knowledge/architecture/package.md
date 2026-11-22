@@ -45,7 +45,7 @@ cloned AIL and the two test scripts are gone.
 - **A test finds AIL in `AIL_HOME`**, which `ail test` sets: `tests/notice_ail.aiw` reads
   the licence of the AIL whose library is compiled in, where it read `ail/LICENSE`.
 
-## Checked on 2026-11-22, with the command of the AIL branch `test-home`
+## Checked on 2026-11-22, with the command of the AIL branch `test-home`, and again with that of `packages-review`
 - `build/aildb` is the same bytes as the compiler gives for `src/aildb.aiw` without
   packages, the way `make` built it before (`cmp`).
 - `make test`: 26 programs, the indentation, and the test of `example/consumer`, whose

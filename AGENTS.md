@@ -52,7 +52,7 @@ The rules for commits, pull requests and written text are those of the AIL repos
 
 ## AIL
 
-The language, its compiler and its libraries are in the AIL repository; its `AGENTS.md` and `docs/language.md` describe them, and they are read before AIL is written here. A checkout is usually beside this repository (`../ailang` on the user's machine; the published name is `ail`). Nothing of it is copied here. Until 2026-11-22 this repository got it as ail-bench does, a file `ail.pin` with a revision and a script that cloned it; since then it is a package (user, 2026-11-22), built by the command `ail` of an AIL that is installed or checked out, whose version the line `ail` of `ail.pkg` asks for. The packages are the pull requests 17 to 24 of the AIL repository; until they are merged there, the command is the one of their branch.
+The language, its compiler and its libraries are in the AIL repository; its `AGENTS.md` and `docs/language.md` describe them, and they are read before AIL is written here. A checkout is usually beside this repository (`../ailang` on the user's machine; the published name is `ail`). Nothing of it is copied here. Until 2026-11-22 this repository got it as ail-bench does, a file `ail.pin` with a revision and a script that cloned it; since then it is a package (user, 2026-11-22), built by the command `ail` of an AIL that is installed or checked out, whose version the line `ail` of `ail.pkg` asks for. The packages are the pull requests 17 to 25 of the AIL repository; until they are merged there, the command is the one of their branch.
 
 What AIL gives this project, as of its version 0.1.0 (2026-11-22):
 

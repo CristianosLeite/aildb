@@ -197,7 +197,7 @@ mapped pages contribute to reported peak resident memory.
   released, and the pages that spoke of work to come say what was done.
 - [x] A mechanism of versions that AIL and everything derived from it
   share (user, 2026-11-22): the manifest `ail.pkg` and the command `ail`
-  of AIL, its pull requests 17 to 24.
+  of AIL, its pull requests 17 to 25.
 
 ## 12. aildb as a package
 
