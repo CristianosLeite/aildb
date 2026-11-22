@@ -56,7 +56,9 @@ pushed or merged.
   of the protocol, which the SDK writes.
 
 ## Unchecked
-- Codex as the client: it changes its configuration and waits for the user's word.
+- Codex as the client was validated by the user, who reported on 2026-11-22 that it
+  passed in full; the agent saw only a session of `codex exec` that listed the tool and
+  was stopped at the approval of the call, and did not see the user's session.
   Claude Code was the client on 2026-11-22, at the user's word: `claude mcp add` in the
   local configuration of this project, "Connected", and a session that called `search`
   and opened the first hit at the revision (`docs/mcp.md`). The server is still in that

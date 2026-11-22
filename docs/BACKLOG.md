@@ -292,3 +292,9 @@ mapped pages contribute to reported peak resident memory.
   it opens. `mcp/tests/search.aiw` replaces a snapshot of two dimensions
   by one of three in a session: the vector of three is taken and the one
   of two refused.
+- [x] A search asked by an agent: from Claude Code on 2026-11-22, the
+  lines of the first hit opened at the revision (`docs/mcp.md`), and from
+  Codex, which the user validated the same day and reported as passed in
+  full. A session of `codex exec` run by the agent had discovered the
+  tool and been stopped at the approval of the call, which a session
+  that is not interactive cannot give.

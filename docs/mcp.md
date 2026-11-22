@@ -143,5 +143,10 @@ and printed its lines. Claude Code warns that the argument `"search_query:
 "` ends in a blank, which it does on purpose: the model is given the
 prefix as it stands.
 
-Not yet checked: a search asked by Codex; it is left in
-[TODO.md](TODO.md).
+From Codex (0.171.0), on 2026-11-22: a direct call through its app
+server, with a temporary configuration and the local Ollama, gave the
+three hits of the command with the same `score_bits`, the first checked
+against the source at the returned revision; and the user validated a
+session of Codex itself and reported that it passed in full. A session
+of `codex exec` that is not interactive lists the tool and does not call
+it, since a call of an MCP tool needs an approval there.
