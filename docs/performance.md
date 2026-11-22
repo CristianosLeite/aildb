@@ -384,6 +384,16 @@ review:
 
 ## What was not measured
 
+Filtered searches, a process that stays and 1,000,000 records, which
+this section lists, were measured on 2026-11-22 with the programs in
+aildb-bench, for aildb 0.1.0: its `docs/performance.md` has the figures
+(430 ms warm and 2.2 s cold for a search of a million records, a process
+a query; a search in a process that keeps the snapshot open takes the
+time of the scan, 383 ms). Nothing was decided from them: the run was
+made on a machine that was in use, and no target of latency is set.
+
+When the figures of this page were made:
+
 - Sizes above 100,000 records, other dimensions, a limit other than 10,
   and searches with a filter, which score fewer records.
 - LanceDB in a process that stays, with a table already open, and LanceDB

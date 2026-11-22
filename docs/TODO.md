@@ -44,13 +44,12 @@ is on the user's machine and not published.
   the user's to make or to ask for. Then `docs/performance.md` and
   `README.md` link to it.
 
-- [ ] In aildb-bench: extend the benchmark to cover filtered queries, larger corpora and
-  repeated queries in a process with an open snapshot or table. Keep the
-  same stored vectors, queries and result limits across engines. Report
-  startup and open time separately from query latency. Measure warm and
-  cold file-cache runs for both process models. Use the results and a
-  stated latency target to decide whether to prototype a parallel scan
-  or an approximate index.
+- [ ] The measurements of filters, of a process that stays and of
+  1,000,000 records are made (`BACKLOG.md`; the figures are in
+  `docs/performance.md` of aildb-bench). Left: make the run again on a
+  machine that is left alone, state a latency target, and decide with
+  both whether to prototype a parallel scan or an approximate index
+  (user, 2026-11-22: measure only, for now).
 
 ## 14. Snapshot input handling
 

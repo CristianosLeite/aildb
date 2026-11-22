@@ -240,6 +240,12 @@ mapped pages contribute to reported peak resident memory.
   harness and of the compiler and the command of each measurement.
   `docs/performance.md` keeps the figures of 2026-11-21, made here at
   `4a21a3e`.
+- [x] In aildb-bench, the measurements extended: the two filters, a
+  process that keeps the snapshot or the table open (`bench-stay`, on
+  `src/lib/search.aiw`; `LANCE_STAY` for LanceDB), with the opening apart
+  from a search, warm and cold for both, and 1,000,000 records. Run on
+  2026-11-22 for aildb 0.1.0; no target and no decision (user,
+  2026-11-22).
 
 ## 14. Snapshot input handling
 
