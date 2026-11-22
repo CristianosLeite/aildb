@@ -123,6 +123,16 @@ fn run p n
 	call memfile 0 0 as out
 	call memfile 0 0 as err
 	ifslt in|out|err 0
+		# the ones that were made are closed: the server goes on
+		ifsge in 0
+			sys close in
+		end
+		ifsge out 0
+			sys close out
+		end
+		ifsge err 0
+			sys close err
+		end
 		ret 0-2000
 	end
 	call procstart av in out err as pid
@@ -157,6 +167,20 @@ fn said
 		end
 	end
 	ret p i
+end
+
+# 1 if one of the n bytes at p is 0: an argument of a command ends at
+# such a byte, so a filter with one would be another filter
+fn hasnul p n
+	i=0
+	while i<n
+		loadb p+i as c
+		ifz c
+			ret 1
+		end
+		i+=1
+	end
+	ret 0
 end
 
 # make the result r the failure "p n: q m"
@@ -317,6 +341,11 @@ async fn search x p n r
 			call mcpfail r "path_prefix is too long"
 			ret 0
 		end
+		call hasnul tp tn as bad
+		if bad
+			call mcpfail r "path_prefix has a NUL byte, which no argument of a command can hold"
+			ret 0
+		end
 		call arg c "-p"
 		call arg c+1 tp tn
 		c+=2
@@ -328,6 +357,11 @@ async fn search x p n r
 		load num+8 as tn
 		if tn>255
 			call mcpfail r "language is too long"
+			ret 0
+		end
+		call hasnul tp tn as bad
+		if bad
+			call mcpfail r "language has a NUL byte, which no argument of a command can hold"
 			ret 0
 		end
 		call arg c "-l"
