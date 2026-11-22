@@ -36,3 +36,5 @@ consumer: cannot read the query
 --- status 1
 to /dev/full: status 1
 consumer: cannot write the results
+to a closed pipe: status 1
+consumer: cannot write the results

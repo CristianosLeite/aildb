@@ -13,6 +13,7 @@ buf line 24
 buf so 24
 buf se 24
 buf exe 24
+buf fds 8
 # run aildb with the arguments of n bytes at p and print what it wrote
 # to stdout and its status. The path of the executable is no part of
 # the line that is cut at its spaces: the checkout may be in a
@@ -69,6 +70,25 @@ call putn st
 call print "\n"
 call bycut so 0
 call fileread "bg.err" so
+load so as q
+load so+8 as m
+call print q m
+# and into a pipe that nobody reads: the same, and no signal
+sys pipe fds
+load4 fds as r
+load4 fds+4 as w
+sys close r
+call cmdargs "consumer s.idx q.bin 2" as av
+call fileopen "/dev/null" 0 0 as in
+call fileopen "pipe.err" 0x241 420 as err
+call procstart av in w err as pid
+sys close w
+call procwait pid 0 as st
+call print "to a closed pipe: status "
+call putn st
+call print "\n"
+call bycut so 0
+call fileread "pipe.err" so
 load so as q
 load so+8 as m
 call print q m
