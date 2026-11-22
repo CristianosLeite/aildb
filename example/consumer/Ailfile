@@ -3,4 +3,4 @@ version 0.1.0
 ail 0.1.0
 
 bin consumer src/main.aiw
-dep aildb ../..
+dep aildb 0.1.0 https://github.com/CristianosLeite/aildb.git

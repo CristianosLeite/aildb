@@ -25,8 +25,7 @@ AIL has packages (a manifest `Ailfile`, `use "name:path"`, the command
 `ail`; its pull requests 17 to 26, in its `main` since 2026-11-22). aildb
 is one, and `example/consumer` imports it.
 
-- [ ] `example/consumer` names aildb by its address and a version, in
-  place of its directory, once a version is tagged (the release below).
+Nothing is left of this step (`BACKLOG.md`).
 
 ## 11. Release
 

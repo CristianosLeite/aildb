@@ -218,3 +218,6 @@ mapped pages contribute to reported peak resident memory.
   `ail new` and `ail add --path`, it searches a snapshot through
   `use "aildb:src/lib/search.aiw"`, and its test shows the bits of the
   scores that the command prints. `docs/library.md`.
+- [x] `example/consumer` names aildb by its address and the version
+  0.1.0, in place of its directory: `ail add` with the address wrote the
+  line `dep` and `Ailfile.lock`, with the revision of the tag `v0.1.0`.
