@@ -1,7 +1,7 @@
 ---
 title: Requirement decisions for version 1
-last-verified: 2026-11-21
-sources: [conversation 2026-11-21, REQUIREMENTS.md, architecture/feasibility.md]
+last-verified: 2026-11-22
+sources: [conversation 2026-11-21, conversation 2026-11-22, REQUIREMENTS.md, architecture/feasibility.md]
 status: current
 ---
 # Requirement decisions for version 1
@@ -105,6 +105,27 @@ details of each (field order, names of options) are in `docs/format.md` and
   `tests/notice_ail.aiw` checks that it has every byte of `ail/LICENSE`.
   Rejected: a file of another name, which the Apache licence would not
   carry along.
+
+## Pull requests and versions (user, 2026-11-22)
+- **Work reaches `main` through a pull request.** A branch is checked out
+  from `main` for the work, pushed, and a pull request to `main` is opened;
+  the user merges it. Nothing is pushed to `main` any more. This is how the
+  AIL repository works, whose pull requests are merged with a merge commit
+  that keeps the commits of the branch (its `e8acf57`, for one). It replaces
+  the note of 2026-11-21 that a push needs the user's word each time: a
+  branch of a pull request is pushed as part of opening it. The first one
+  is the branch `pull-requests`, which carries this decision and the commit
+  `53ce980`, made on `main` on 2026-11-21 and never pushed there.
+- **The version number of aildb is to come from a mechanism that AIL and
+  everything derived from it share**, as `Cargo.toml` is for Rust: one way
+  to say what a repository is called, which version it is and which AIL it
+  needs. It is not designed. What there is on 2026-11-22: AIL has no version
+  number, only the seeds of its compiler, numbered 1 to 5 in
+  `seed/MANIFEST` and tagged `seed-<n>`; ail-bench, ail-extensions and
+  aildb each name a revision of AIL in a file `ail.pin` and have no version
+  of their own, apart from the `version` in the `package.json` of the
+  VS Code extension. No number is given to aildb, and no tag made, before
+  the mechanism is decided.
 
 ## Limits
 - The limits of the result count, the dimension and the record count are in

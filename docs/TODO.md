@@ -22,6 +22,10 @@ The statements are written and `ail.pin` names the revision that has them
 
 ## 11. Release
 
-- [ ] The release itself, which is the user's: a tag and a version number;
-  an executable that is passed on goes with
-  `LICENSE` and `NOTICE`.
+- [ ] A mechanism of versions that AIL and everything derived from it
+  share, as `Cargo.toml` is for Rust (user, 2026-11-22): to be designed,
+  and work for the AIL repository first. aildb gets its version number
+  from it.
+- [ ] The release itself, which is the user's: a tag and a version number,
+  once the mechanism above says how a number is given; an executable that
+  is passed on goes with `LICENSE` and `NOTICE`.
