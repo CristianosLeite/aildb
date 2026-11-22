@@ -30,7 +30,7 @@ run=$b/bench-run
 report() {
     echo "# The measurements of aildb, $(date -u +%Y-%m-%d)"
     echo "aildb: $(git rev-parse --short HEAD 2> /dev/null || echo unknown)$(git diff --quiet 2> /dev/null || echo ' with changes')"
-    echo "AIL: $(git -C ail rev-parse --short HEAD 2> /dev/null || echo unknown) as the compiler, $(awk '!/^#/ && NF {print substr($2,1,7)}' ail.pin) pinned"
+    echo "AIL: $(${AIL:-ail} version 2> /dev/null || echo unknown), the version of the command that built the programs"
     echo "LanceDB: $($py -c 'import lancedb, pyarrow, sys; print("lancedb", lancedb.__version__ + ", pyarrow", pyarrow.__version__ + ", Python", sys.version.split()[0])')"
     echo "machine: $(sed -n 's/^model name[^:]*: //p' /proc/cpuinfo | head -n 1), $(nproc) processors, $(awk '/MemTotal/ {printf "%d MiB", $2/1024}' /proc/meminfo), Linux $(uname -r)"
     echo "files: $(df -T $d | awk 'NR==2 {print $2 " on " $1}')"

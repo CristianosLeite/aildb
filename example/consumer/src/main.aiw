@@ -1,0 +1,72 @@
+# consumer -- a program that uses aildb as a package: it searches a
+# snapshot with the library of aildb and prints a line for each result.
+#
+#   consumer INDEX QUERY LIMIT
+#
+# INDEX is a snapshot that "aildb build" wrote, QUERY a file of as many
+# binary32 as its dimension, and LIMIT the number of results. Each line
+# is the rank, the score with six decimals and as its 64 bits, and the
+# place: the path and the first and last line. The status is 0, or 1
+# with a line on stderr.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "aildb:src/lib/search.aiw"
+use "aildb:src/lib/fmt.aiw"
+buf snap 104
+buf sel 24
+buf query 24
+buf line 24
+
+call argc as c
+if c!=4
+	call die "usage: consumer INDEX QUERY LIMIT\n"
+end
+call argv 1 as p n
+call snapopen snap p n as r
+if r
+	call die "consumer: cannot open the snapshot\n"
+end
+call argv 2 as p n
+call fileread p n query as r
+call searchdim snap as dim
+if r!=dim*4
+	call die "consumer: the query has not the dimension of the snapshot\n"
+end
+load query as p
+alloc dim*8 as q
+call searchquery snap p q as r
+if r
+	call die "consumer: the query is no vector\n"
+end
+call argv 3 as p n
+call textnum p n as k ok
+ifz ok
+	call die "consumer: the limit is no number\n"
+end
+call searchrun snap sel q k 0 0 0 0 as r o
+if r
+	call die "consumer: the snapshot cannot be searched\n"
+end
+call searchcount sel as c
+i=0
+while i<c
+	call searchhit snap sel i as s p n first last ok
+	call bycut line 0
+	call byaddn line i+1
+	call byaddb line 32
+	call fmtfix line s 6
+	call byaddb line 32
+	call fmthex line s
+	call byaddb line 32
+	call byadd line p n
+	call byaddb line 58
+	call byaddn line first
+	call byaddb line 45
+	call byaddn line last
+	call byaddb line 10
+	load line as p
+	load line+8 as n
+	call print p n
+	i+=1
+end

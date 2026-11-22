@@ -1,0 +1,6 @@
+# The repository that make example indexes, and the revision of it: the
+# sources of AIL as the queries of example/queries.tsv expect them, with
+# the lines each is to find.
+#
+#   url revision
+https://github.com/CristianosLeite/ail.git a5b4559c2cffbef49538a668579a3820d5e16da5

@@ -1,4 +1,3 @@
 build/
-# links into the AIL repository, made by make
-/ail
-/lib
+# the packages that ail fetches, if aildb comes to use one
+deps/

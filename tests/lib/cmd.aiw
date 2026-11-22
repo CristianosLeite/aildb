@@ -1,12 +1,12 @@
 # tests/lib/cmd.aiw -- start a program for a test and show what it did.
 # A test that uses it uses lib/std/io.aiw, lib/std/bytes.aiw,
-# lib/std/file.aiw and lib/std/proc.aiw first, and runs under
-# tests/run.sh, which starts it at the top of the repository and names a
-# directory for its files in AILDB_TMP.
+# lib/std/file.aiw and lib/std/proc.aiw first, and runs under "ail
+# test", which starts it at the top of the package and names a directory
+# for its files in AIL_TMP.
 #
 # The lines below run where the use stands: they note the directory the
 # test was started in, where build/ is, and make the directory of
-# AILDB_TMP the current one. A test therefore names the files it makes
+# AIL_TMP the current one. A test therefore names the files it makes
 # without a directory, and a program by its name alone: "aildb check x"
 # starts build/aildb of the repository.
 #
@@ -17,7 +17,7 @@ const cmdgetcwd 79
 const cmdchdir 80
 buf cmdhome 4096        # the directory the test was started in
 buf cmdexe 8192         # the path of the program of the last cmdargs
-buf cmdtmp 4096         # AILDB_TMP with a NUL byte
+buf cmdtmp 4096         # AIL_TMP with a NUL byte
 buf cmdso 24            # what cmdshow read of the two outputs
 buf cmdse 24
 buf cmdline 4096        # the arguments of cmdargs, a NUL after each
@@ -30,14 +30,14 @@ ifsle cmdr 0
 	call die "cmd: no current directory\n"
 end
 cmdhomen=cmdr-1
-call procvar "AILDB_TMP" as cmdp cmdn
+call procvar "AIL_TMP" as cmdp cmdn
 if (cmdp==0)|(cmdn>4095)
-	call die "cmd: AILDB_TMP is not set\n"
+	call die "cmd: AIL_TMP is not set\n"
 end
 call bycopy cmdtmp cmdp cmdn
 sys cmdchdir cmdtmp as cmdr
 if cmdr
-	call die "cmd: cannot enter AILDB_TMP\n"
+	call die "cmd: cannot enter AIL_TMP\n"
 end
 
 # Run the program whose arguments are at cmdav, as procstart takes them,

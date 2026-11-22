@@ -7,7 +7,7 @@ status: current
 # The example
 
 **Summary.** The example of acceptance check 1 indexes the AIL repository at the
-revision of `ail.pin` with nomic-embed-text. Its chunker is an AIL program,
+revision of `example/corpus.pin` with nomic-embed-text. Its chunker is an AIL program,
 `build/chunk`, that cuts `.aiw` and `.md` files into chunks of whole lines: a function
 with the comment above it, or a section of Markdown, 40 lines and 1500 bytes at most,
 without overlap.

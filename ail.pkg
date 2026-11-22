@@ -1,0 +1,21 @@
+# aildb: a local, file-based vector search engine (README.md). A program
+# that uses it names it as a dependency and reads its library, for one
+#   use "aildb:src/lib/search.aiw"
+# (docs/library.md).
+name aildb
+version 0.1.0
+ail 0.1.0
+
+# what is shipped: the commands build, search and check
+bin aildb src/aildb.aiw
+
+# built for the tests: the commands with hooks that stop a build where a
+# test asks, the chunker of the example and its check, and the programs
+# of the measurements
+testbin aildb-stops tests/lib/stops.aiw
+testbin chunk example/chunk.aiw
+testbin example-check example/check.aiw
+testbin bench-run bench/run.aiw
+testbin bench-gen bench/gen.aiw
+testbin bench-scan bench/scan.aiw
+testbin aildb-times bench/times.aiw

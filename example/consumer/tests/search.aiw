@@ -1,0 +1,53 @@
+# consumer on a snapshot that the command of aildb wrote, beside the
+# command search on the same snapshot and query: the same results, with
+# the same bits of each score. The executable of aildb is the one of
+# the package two directories up, which is built before this test runs
+# (make test of aildb).
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "aildb:tests/lib/cmd.aiw"
+buf v 64
+buf line 24
+buf so 24
+buf se 24
+# run aildb with the arguments of n bytes at p and print what it wrote
+# to stdout and its status
+fn aildb p n
+	call bycut line 0
+	call byadd line cmdhome cmdhomen
+	call byadd line "/../../build/aildb "
+	call byadd line p n
+	load line as q
+	load line+8 as m
+	call cmdargs q m as av
+	call cmdrun av -1 so se as st
+	call print "aildb "
+	call print p n
+	call print "\n"
+	load so as q
+	load so+8 as m
+	call print q m
+	call print "status "
+	call putn st
+	call print "\n"
+end
+# three records of two dimensions: (1,0), (0,1), (1,1); the query (2,1)
+store4 v 0x3f800000
+store4 v+4 0
+store4 v+8 0
+store4 v+12 0x3f800000
+store4 v+16 0x3f800000
+store4 v+20 0x3f800000
+call filewrite "v.bin" v 24
+store4 v 0x40000000
+store4 v+4 0x3f800000
+call filewrite "q.bin" v 8
+call filewrite "m.tsv" "src/a.aiw\t1\t20\tail\nsrc/a.aiw\t21\t48\tail\ndocs/b.md\t1\t9\tmarkdown\n"
+call aildb "build -o s.idx -v v.bin -m m.tsv -d 2 -i my-model"
+call cmdshow "consumer s.idx q.bin 2"
+call aildb "search s.idx -k 2 -q q.bin"
+call cmdshow "consumer s.idx q.bin 9"
+call cmdshow "consumer s.idx v.bin 2"
+call cmdshow "consumer m.tsv q.bin 2"

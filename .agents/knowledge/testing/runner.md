@@ -1,10 +1,17 @@
 ---
 title: How the tests run
-last-verified: 2026-11-21
-sources: [tests/run.sh, tests/indent.sh, Makefile, tests/run.sh of ail-bench at 9b31e35]
+last-verified: 2026-11-22
+sources: [Makefile, ail.pkg, docs/cli.md of AIL, tests/run.sh and tests/indent.sh as they were at 03f56e1]
 status: current
 ---
 # How the tests run
+
+**Since 2026-11-22** the runner is `ail test` of AIL, which does what `tests/run.sh` did,
+and the indentation check is `ail fmt --check`; both scripts are gone, and the directory of
+a test is named in `AIL_TMP`, where this page says `AILDB_TMP`. `make test` runs both and
+the tests of `example/consumer`: 26 programs, and 1 there. What follows is the convention,
+which did not change, and the decisions as they were taken for the scripts
+([the package](../architecture/package.md) has the change).
 
 **Summary.** `make test` runs `tests/run.sh` and `tests/indent.sh`. A test is an AIL
 program `tests/<name>.aiw` with the output and exit status expected of it; the shell only

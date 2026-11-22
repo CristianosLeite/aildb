@@ -1,0 +1,31 @@
+aildb build -o s.idx -v v.bin -m m.tsv -d 2 -i my-model
+{"records":3,"dimension":2,"model":"my-model","source_revision":null}
+status 0
+$ consumer s.idx q.bin 2
+--- stdout
+1 0.948683 3fee5b9d0ab4f74e docs/b.md:1-9
+2 0.894427 3fec9f25c5bfedd9 src/a.aiw:1-20
+--- stderr
+--- status 0
+aildb search s.idx -k 2 -q q.bin
+{"source_revision":null,"model":"my-model"}
+{"rank":1,"score":0.948683,"score_bits":"3fee5b9d0ab4f74e","path":"docs/b.md","start_line":1,"end_line":9}
+{"rank":2,"score":0.894427,"score_bits":"3fec9f25c5bfedd9","path":"src/a.aiw","start_line":1,"end_line":20}
+status 0
+$ consumer s.idx q.bin 9
+--- stdout
+1 0.948683 3fee5b9d0ab4f74e docs/b.md:1-9
+2 0.894427 3fec9f25c5bfedd9 src/a.aiw:1-20
+3 0.447214 3fdc9f25c5bfedd9 src/a.aiw:21-48
+--- stderr
+--- status 0
+$ consumer s.idx v.bin 2
+--- stdout
+--- stderr
+consumer: the query has not the dimension of the snapshot
+--- status 1
+$ consumer m.tsv q.bin 2
+--- stdout
+--- stderr
+consumer: cannot open the snapshot
+--- status 1

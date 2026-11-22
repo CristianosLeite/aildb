@@ -1,16 +1,24 @@
-# NOTICE has the licence of AIL as the AIL repository has it: the file
-# ail/LICENSE, every byte, is in it. An executable of aildb has code of
-# the library of AIL in it, and the notice is what goes with one.
+# NOTICE has the licence of AIL as AIL has it: the file LICENSE of the
+# AIL this package is built with, every byte, is in it. "ail test" names
+# the directory of that AIL in AIL_HOME. An executable of aildb has code
+# of the library of AIL in it, and the notice is what goes with one.
 use "lib/std/io.aiw"
 use "lib/std/bytes.aiw"
 use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
 use "src/lib/text.aiw"
 buf a 24
 buf b 24
+buf path 24
+call procvar "AIL_HOME" as p n
+call byadd path p n
+call byadd path "/LICENSE"
+load path as p
+load path+8 as n
 call fileread "NOTICE" a as r
-call fileread "ail/LICENSE" b as s
+call fileread p n b as s
 ifslt r|s 0
-	call die "cannot read NOTICE or ail/LICENSE\n"
+	call die "cannot read NOTICE or the LICENSE of AIL\n"
 end
 load a as p
 load a+8 as n
