@@ -880,10 +880,13 @@ fn search
 	call opt 113 as qp qn
 	call opt 105 as mp mn
 	call query ip in qp qn mp mn
+	call hookmark 2
 	call opt 112 as pp pn
 	call opt 108 as lp ln
 	call scan k pp pn lp ln ip in
+	call hookmark 3
 	call results
+	call hookmark 4
 	sys exit_group 0
 end
 
@@ -906,6 +909,7 @@ fn check
 	sys exit_group 0
 end
 
+call hookmark 1
 # A pipe that nobody reads is to be an error of the write, which has a
 # line and the status of an I/O failure, and not the signal SIGPIPE,
 # which would end the program without either.

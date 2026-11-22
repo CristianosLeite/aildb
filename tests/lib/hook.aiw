@@ -64,3 +64,10 @@ fn hooksync hookfd hookn
 	sys hookfsync hookfd as hookr
 	ret hookr
 end
+
+# A moment of search that the measurements tell apart: 1 the program has
+# started, 2 the snapshot is open and validated and the query is read, 3
+# every record is scored, 4 the results are written. Nothing is done
+# with it here, as in the shipped executable.
+fn hookmark hookn
+end

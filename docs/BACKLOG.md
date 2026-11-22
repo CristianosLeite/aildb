@@ -147,3 +147,12 @@ the file to another path and verify the same query results.
   expected lines are among the five results, and the same bytes from the
   copy. Passed on 2026-11-21; `docs/example.md` has the output and the
   four queries of ten that were taken out.
+
+## 10. Measurement, and acceptance check 4
+
+- [x] The harness in AIL: `build/bench-run` runs a command for a number
+  of rounds, warm or with the files put out of the cache by `fadvise64`
+  and verified with `mincore`, and reports wall time, the parts of it
+  that `build/aildb-times` says (startup, opening, search, output), the
+  processor time and the peak resident memory; `bench-gen` makes the
+  inputs and `bench-scan` reads the vectors in three ways.

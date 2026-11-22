@@ -1,5 +1,6 @@
 # src/hook.aiw -- the places of build that the tests of interruption
-# and of failed syncs need to reach, as the shipped executable has them:
+# and of failed syncs need to reach, and the moments of search that the
+# measurements tell apart, as the shipped executable has them:
 # a stop point is nothing, and a sync is the sync. The executable of the
 # tests is compiled with tests/lib/hook.aiw in the place of this file,
 # and nothing of that one is in build/aildb.
@@ -21,4 +22,11 @@ end
 fn hooksync hookfd hookn
 	sys hookfsync hookfd as hookr
 	ret hookr
+end
+
+# A moment of search that the measurements tell apart: 1 the program has
+# started, 2 the snapshot is open and validated and the query is read, 3
+# every record is scored, 4 the results are written. The shipped
+# executable does nothing with it; bench/hook.aiw notes the time.
+fn hookmark hookn
 end

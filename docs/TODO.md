@@ -39,9 +39,6 @@ snapshot or table opening, search and result materialization; document
 how cold-cache conditions are verified for each engine's files and how
 mapped pages contribute to reported peak resident memory.
 
-- [ ] The harness in AIL: rounds, cold cache by `fadvise64` verified with
-  `mincore`, wall time, search time apart from startup, peak resident
-  memory, file size.
 - [ ] The same stored values, query and limit in LanceDB through its
   Python binding; the boundaries of each time written down, how the cold
   cache is verified for the files of each engine, and how mapped pages

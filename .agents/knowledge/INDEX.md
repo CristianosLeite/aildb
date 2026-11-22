@@ -17,6 +17,7 @@ The decisions about the language AIL, its compiler and its libraries are in the 
 ## testing
 - [How the tests run](testing/runner.md) — `make test`: AIL programs with expected output and status, compiled and run from the top of the repository, files in `AILDB_TMP`, the indentation check
 - [The independent implementation of acceptance check 2](testing/oracle.md) — what the oracle shares with the engine (the compiler only), the comparison of bytes, where the ties come from, the two differences reported apart
+- [How a query is measured](testing/measurement.md) — a process a query; times inside the engine through `hookmark` and a second executable; `CLOCK_MONOTONIC` across processes; cold by `fadvise64` and `mincore`; nearest-rank percentile
 
 ## status
 - [Open items](status/open-items.md) — pending decisions; the work, step by step, is in `docs/TODO.md`

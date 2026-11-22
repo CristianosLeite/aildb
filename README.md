@@ -23,6 +23,7 @@ SQL, approximate indexes, incremental writes and a network service are outside v
 - [docs/format.md](docs/format.md): the format of the snapshot file, its checks and the precision of a score
 - [docs/durability.md](docs/durability.md): what a build leaves when it is interrupted, and what is assumed of the filesystem and the storage when power is lost
 - [docs/example.md](docs/example.md): the example, `make example`, which indexes the AIL repository with a local embedding model and queries it
+- [docs/performance.md](docs/performance.md): how the time and the memory of a query are measured
 - [AGENTS.md](AGENTS.md): guidance for AI coding agents, with the rules of the repository and what AIL offers the project
 - [.agents/knowledge/INDEX.md](.agents/knowledge/INDEX.md): the knowledge base, decisions and their reasons
 

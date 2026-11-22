@@ -58,7 +58,7 @@ $(B)/chunk: example/chunk.aiw $(SRC) $(AILLIB) $(B)/ailc
 
 # Every test, or with T the tests of tests/run.sh named there:
 # make test T="name name".
-test: all $(B)/aildb-stops $(B)/chunk
+test: all $(B)/aildb-stops $(B)/chunk $(BENCH)
 ifeq ($(T),)
 	@f=0; AILC=$(B)/ailc tests/run.sh || f=1; tests/indent.sh || f=1; exit $$f
 else
@@ -88,6 +88,21 @@ example: all $(B)/chunk $(B)/example-check
 	$(B)/aildb check $(E)/ail.idx
 	cp $(E)/ail.idx $(E)/copy/moved.idx
 	$(B)/example-check $(B)/aildb $(E)/ail.idx $(E)/copy/moved.idx example/queries.tsv $(E)/queries.bin
+
+# The programs of the measurements (docs/performance.md), which are
+# AIL: the harness, the generator of the inputs, the scan
+# with three ways of reading, and the engine with hooks that say the
+# times of its parts.
+BENCH := $(B)/bench-run $(B)/bench-gen $(B)/bench-scan $(B)/aildb-times
+
+$(B)/bench-run: bench/run.aiw bench/stat.aiw $(SRC) $(AILLIB) $(B)/ailc
+	$(call compile,$(B)/ailc)
+$(B)/bench-gen: bench/gen.aiw $(SRC) $(AILLIB) $(B)/ailc
+	$(call compile,$(B)/ailc)
+$(B)/bench-scan: bench/scan.aiw bench/hook.aiw $(SRC) $(AILLIB) $(B)/ailc
+	$(call compile,$(B)/ailc)
+$(B)/aildb-times: bench/times.aiw bench/hook.aiw $(SRC) $(AILLIB) $(B)/ailc
+	$(call compile,$(B)/ailc)
 
 clean:
 	rm -rf $(B)
