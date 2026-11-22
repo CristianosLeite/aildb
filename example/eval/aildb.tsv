@@ -1,0 +1,10 @@
+compute the CRC-32 of a run of bytes	src/lib/crc.aiw	48
+divide a vector by its norm	src/lib/norm.aiw	18
+keep a score if it is among the best seen so far	src/lib/topk.aiw	88
+check that bytes are well-formed UTF-8	src/lib/text.aiw	91
+does a path with .. leave the repository	src/lib/text.aiw	160
+print a double with six digits after the point	src/lib/fmt.aiw	101
+verify the checksum of the vectors of a snapshot	src/lib/snap.aiw	268
+what does exit status 5 mean	docs/usage.md	21
+what is left when a build is killed before the rename	docs/durability.md	43
+how is the score of a record computed	docs/format.md	177

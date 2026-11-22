@@ -1,0 +1,10 @@
+print an unsigned number in decimal	lib/std/io.aiw	58
+wait for a child process to end and kill it after a time limit	lib/std/proc.aiw	208
+run a thread on one CPU only	lib/std/proc.aiw	274
+add a value to the heap	lib/std/heap.aiw	19
+take the oldest value out of the queue	lib/std/queue.aiw	57
+what do I need to install to build the compiler	README.md	17
+read a whole file into a buffer	lib/std/file.aiw	72
+list the names in a directory	lib/std/file.aiw	140
+look up a key in the hash map	lib/std/map.aiw	142
+under which license is the project published	README.md	112

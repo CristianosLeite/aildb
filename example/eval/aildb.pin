@@ -1,0 +1,5 @@
+# The second corpus of make eval (docs/evaluation.md): the sources of
+# aildb at its tag v0.1.0, with the queries of example/eval/aildb.tsv.
+#
+#   url revision
+https://github.com/CristianosLeite/aildb.git 467b91bcb6e9070d67b400c00ddbd67366a79ff4
