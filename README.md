@@ -96,4 +96,4 @@ Measured on one machine (a Core i7-12700H, the file on an NVMe drive), for the t
 
 ## License
 
-[Apache License 2.0](LICENSE). An executable of aildb has code of the AIL library compiled into it, which is under the MIT License: [NOTICE](NOTICE) has that licence and goes with every copy of an executable, beside `LICENSE`.
+Copyright 2026 Cristiano Leite. [Apache License 2.0](LICENSE). An executable of aildb has code of the AIL library compiled into it, which is under the MIT License: [NOTICE](NOTICE) has that licence and goes with every copy of an executable, beside `LICENSE`.

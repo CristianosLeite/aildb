@@ -91,9 +91,10 @@ details of each (field order, names of options) are in `docs/format.md` and
 ## Licence (user, 2026-11-21)
 - aildb is distributed under the Apache License 2.0. The file `LICENSE` is
   its text as the Apache Software Foundation publishes it, unchanged, and
-  `README.md` names it. There is no notice at the head of a source and no
-  copyright line of aildb: the user named no copyright holder, and the
-  licence asks for neither.
+  `README.md` names it. The copyright holder is Cristiano Leite (user,
+  2026-11-21): `NOTICE` and `README.md` have the line "Copyright 2026
+  Cristiano Leite". There is no notice at the head of a source, which the
+  licence does not ask for.
 - AIL is under the MIT licence. An executable of aildb has the code of the
   AIL library that its sources `use` compiled in, which the MIT licence
   allows under its own condition, that its notice goes with a copy of that
