@@ -1,0 +1,65 @@
+# A named pipe where a regular file is expected: check, search and
+# build -v say that it is no file that can be mapped, an I/O failure,
+# and do not wait for a writer of the pipe, which this test never
+# gives. Each command has two seconds; one that is still there then is
+# killed, and the test says so. A regular file is still read.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "tests/lib/cmd.aiw"
+use "tests/lib/mk.aiw"
+const mknod 133
+buf b 24
+buf v 24
+buf se 24
+buf path 4096
+# start the command line p n and print how it ended and its stderr
+fn try p n
+	call print "$ "
+	call print p n
+	call print "\n"
+	call cmdspawn p n as pid
+	call procwait pid 2000 as r
+	if r==-1000
+		call print "waited for the pipe and was killed\n"
+	else
+		call bycut se 0
+		call fileread "bg.err" se as x
+		load se as q
+		load se+8 as m
+		call print q m
+		call print "status "
+		call putn r
+		call print "\n"
+	end
+end
+call mknew 2 "m" ""
+store4 v 0x3f800000
+store4 v+4 0
+call mkrec "a.aiw" "ail" 1 9 v
+call mkdone b
+call mksave b -1 "one.idx"
+call filewrite "one.bin" v 8
+call filewrite "one.tsv" "a.aiw\t1\t9\tail\n"
+# a pipe of the mode 0644, S_IFIFO
+call filepath "pipe" path
+sys mknod path 0x1000|420 0 as r
+call print "pipe made: "
+call putn r==0
+call print "\n"
+call try "aildb check pipe"
+call try "aildb search pipe -k 1 -q one.bin"
+call try "aildb build -o out.idx -v pipe -m one.tsv -d 2 -i m"
+call fileopen "out.idx" 0 0 as fd
+call print "out.idx is there: "
+call putn fd!=-2
+call print "\n"
+call cmdstaged as r
+call print "temporary files: "
+call putn r
+call print "\n"
+# regular files, opened the same way
+call try "aildb check one.idx"
+call try "aildb build -o out.idx -v one.bin -m one.tsv -d 2 -i m"
+call try "aildb check out.idx"

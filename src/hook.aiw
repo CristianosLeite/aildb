@@ -27,6 +27,8 @@ end
 # A moment of search that the measurements tell apart: 1 the program has
 # started, 2 the snapshot is open and validated and the query is read, 3
 # every record is scored, 4 the results are written. The shipped
-# executable does nothing with it; bench/hook.aiw notes the time.
+# executable does nothing with it; the measurements, which are in the
+# repository aildb-bench, compile the commands with a hook that notes
+# the time.
 fn hookmark hookn
 end

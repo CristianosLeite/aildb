@@ -1,0 +1,5 @@
+# The first corpus of make eval (docs/evaluation.md): the sources of AIL
+# at the revision of the example, with the queries of example/eval/ail.tsv.
+#
+#   url revision
+https://github.com/CristianosLeite/ail.git a5b4559c2cffbef49538a668579a3820d5e16da5

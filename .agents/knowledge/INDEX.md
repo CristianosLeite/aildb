@@ -14,6 +14,8 @@ The decisions about the language AIL, its compiler and its libraries are in the 
 - [How build publishes a snapshot](architecture/publication.md) — lock, temporary file, sync, validation, rename, directory sync; status 6; stop points and failing syncs as a file of hooks that the shipped executable has empty
 - [The example](architecture/example.md) — nomic-embed-text; chunks of whole lines without overlap, a function with its comment or a Markdown section, 40 lines and 1500 bytes at most; the list of files comes from git, the text goes out as JSON strings; Ollama and a Python client; the expected lines among five results, six queries kept of ten
 - [aildb as a package](architecture/package.md) — `Ailfile` in place of `ail.pin` and the scripts, the search as a library, `example/consumer` as the program that imports it
+- [The retrieval evaluation](architecture/evaluation.md) — twenty fixed queries on AIL at `a5b4559` and aildb at `v0.1.0`, written before they were embedded; the place among all records, hit rate at 1, 5 and 10, mean reciprocal rank; the run of 2026-11-22; no comparison of chunks or models yet
+- [The MCP server](architecture/mcp.md) — `aildb-mcp` in AIL, no Python: libraries in AIL, the SDK in ail-extensions, the program in `mcp/`; a command a query with files in memory, the hits as the command printed them; the SDK has no address yet
 
 ## testing
 - [How the tests run](testing/runner.md) — `make test`, since 2026-11-22 `ail test` and `ail fmt --check`: AIL programs with expected output and status, compiled and run from the top of the repository, files in `AIL_TMP`

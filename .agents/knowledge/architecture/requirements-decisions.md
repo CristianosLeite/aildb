@@ -136,16 +136,51 @@ details of each (field order, names of options) are in `docs/format.md` and
   with `LICENSE` and `NOTICE`, since the code of the library of AIL is in
   it. Not decided: where it is published (a release of GitHub is the way
   AIL publishes its seeds), whether `v0.1.0` gets one afterwards, and what
-  makes it (AIL has `make dist` for its own).
+  makes it (AIL has `make dist` for its own). Decided and made on
+  2026-11-22: `v0.1.0` gets one (user), as a file of its release on GitHub,
+  where a draft without files is; `make dist` makes it and `make dist-check`
+  tries it (agent). The archive is built from the sources that git has at
+  the tag, not from the working tree, so it has the `NOTICE` of the tag;
+  the revision of AIL is the one of the checkout the command is in, which
+  must have no changes, or `AILREV=` for an installed AIL, and both
+  revisions are in the file `BUILD` of the archive. The modes, owner and
+  times are fixed, so the archive is the same bytes each time: `make
+  AIL=../ail-packages/build/ail dist` on 2026-11-22, on a Core i7-12700H
+  with Linux 7.0, with AIL at `9b94a9b`, printed
+  `618f98babd39b9c4f8f884d0b01a471ddca0313ee58712a882ebafe264d8f49a` twice,
+  the second time under another umask. `make dist-check` unpacked it in
+  `debian:stable-slim`, without a network, and `build`, `check` and
+  `search` printed there what `docs/usage.md` says of two records whose
+  cosines with the query are exactly 1 and 0. Not done: the upload, which
+  is the user's to ask for. Rejected: a workflow of GitHub that builds on
+  a tag, since no executable of AIL is published for it to use.
 - **The measurements move to a repository `aildb-bench`**, as the
   benchmarks of AIL are in ail-bench. Not done: `bench/`, `make bench` and
   `tests/bench_stat.aiw` and `tests/bench_tools.aiw` are still here. Not
   decided: whether the `hookmark` moments of `search` and
   `build/aildb-times`, which the measurements need of the engine, stay
   here, and how `docs/performance.md` names the revision of aildb-bench
-  its figures come from.
-- Both are items of `docs/TODO.md` (the release, and a step 13) and were
-  left for a later conversation.
+  its figures come from. Done on 2026-11-22 (agent, for the user to
+  review): the repository is a package of AIL, made on the user's machine
+  and published the same day at the user's word
+  (https://github.com/CristianosLeite/aildb-bench, public), that names aildb 0.1.0
+  as a dependency. **The `hookmark` moments stay in the engine** and
+  `aildb-times` leaves: aildb-bench compiles `aildb:src/main.aiw` with its
+  own file of hooks, as `tests/lib/stops.aiw` does here, so the engine
+  that is measured is the source of a tag and the shipped executable still
+  has no code of the measurements. Its `build/aildb` for 0.1.0 is byte for
+  byte the executable of `make dist`. `tests/lib/cmd.aiw` is used by its
+  tests through the package, so a version of aildb keeps it where it is.
+  **`docs/performance.md` here keeps the figures of 2026-11-21**, which
+  were made here at `4a21a3e`, and says that later runs are in the
+  document of aildb-bench, whose report names the revisions of aildb, of
+  aildb-bench and of AIL and the command of each measurement. The report
+  file of the run of 2026-11-21 was not kept: a later run overwrote
+  `build/bench/report.txt`, so the document is what is left of it.
+  Rejected: aildb-bench with a copy of the engine, which could differ from
+  a release; and the measurements as a nested package here, which is not
+  what was asked.
+- Both were items of `docs/TODO.md` (the release, and a step 13).
 
 ## Limits
 - The limits of the result count, the dimension and the record count are in

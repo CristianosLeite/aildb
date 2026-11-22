@@ -1,0 +1,19 @@
+place 1  f.aiw:5  the first
+place 5  f.aiw:45  the fifth
+place 6  f.aiw:51  the sixth
+place 10  f.aiw:100  the tenth
+place 11  f.aiw:101  the eleventh
+no place  g.aiw:1  another file
+6 queries
+in the first 1: 1 of 6 (0.167)
+in the first 5: 2 of 6 (0.333)
+in the first 10: 4 of 6 (0.667)
+no place: 1
+mean reciprocal rank: 0.2596
+status 0
+eval: the vectors are not one of a dimension for each query
+status 4
+eval: a line of the queries is not a text, a path and a line number
+status 4
+eval: a line of the queries is not a text, a path and a line number
+status 4

@@ -1,7 +1,0 @@
-# The source of build/aildb-times, the executable of the measurements:
-# the commands of src/main.aiw, as build/aildb has them, with the hooks
-# of bench/hook.aiw, which say on stderr when each part of a search was
-# done. It is no part of what is shipped.
-use "lib/std/io.aiw"
-use "bench/hook.aiw"
-use "src/main.aiw"

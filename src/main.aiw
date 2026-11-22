@@ -245,7 +245,9 @@ end
 # the address 0.
 fn mapfile p n
 	local st 144
-	call fileopen p n 0 0 as fd
+	# O_NONBLOCK, as the reader of a snapshot opens: a named pipe that
+	# has no writer is not waited for
+	call fileopen p n 0x800 0 as fd
 	ifslt fd 0
 		ret 0 0 fd
 	end

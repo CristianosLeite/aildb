@@ -1,0 +1,18 @@
+pipe made: 1
+$ aildb check pipe
+aildb: pipe: cannot open: not a file that can be mapped
+status 4
+$ aildb search pipe -k 1 -q one.bin
+aildb: pipe: cannot open: not a file that can be mapped
+status 4
+$ aildb build -o out.idx -v pipe -m one.tsv -d 2 -i m
+aildb: pipe: cannot read: not a file that can be mapped
+status 4
+out.idx is there: 0
+temporary files: 0
+$ aildb check one.idx
+status 0
+$ aildb build -o out.idx -v one.bin -m one.tsv -d 2 -i m
+status 0
+$ aildb check out.idx
+status 0

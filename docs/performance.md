@@ -5,8 +5,15 @@ measured, and what was decided from it. This is acceptance check 4.
 
 ## How it is measured
 
-The programs are in `bench/` and are AIL, built by `make test` into
-`build/`:
+The programs are AIL. They were in `bench/` of this repository when the
+figures below were made, at the revision `4a21a3e`, and are in a
+repository of their own since 2026-11-22,
+[aildb-bench](https://github.com/CristianosLeite/aildb-bench), which names
+aildb as a dependency and builds them into its `build/`. A run made
+there says in its report which revisions of aildb, of aildb-bench and of
+AIL made it, and its figures are in the `docs/performance.md` of that
+repository; the figures of this page are those of the run of 2026-11-21
+and are not changed.
 
 | Program | Is |
 |---|---|
@@ -166,6 +173,8 @@ is the first search of a fresh process, with nothing of Lance's own
 caches filled. A search in a process that stays was not measured.
 
 ## Running it
+
+In a checkout of aildb-bench:
 
 ```
 make bench PY=/path/to/python
@@ -375,6 +384,17 @@ review:
   an approximate index, should be measured before it is refused again.
 
 ## What was not measured
+
+Filtered searches, a process that stays and 1,000,000 records, which
+this section lists, were measured on 2026-11-22 with the programs in
+aildb-bench, for aildb 0.1.0: its
+[docs/performance.md](https://github.com/CristianosLeite/aildb-bench/blob/main/docs/performance.md) has the figures
+(430 ms warm and 2.2 s cold for a search of a million records, a process
+a query; a search in a process that keeps the snapshot open takes the
+time of the scan, 383 ms). Nothing was decided from them: the run was
+made on a machine that was in use, and no target of latency is set.
+
+When the figures of this page were made:
 
 - Sizes above 100,000 records, other dimensions, a limit other than 10,
   and searches with a filter, which score fewer records.

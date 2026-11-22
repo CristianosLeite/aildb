@@ -28,6 +28,18 @@ ail test        # the tests: 26 programs
 
 `make` and `make test` do the same, and `make test` also checks the indentation and runs the package of `example/consumer`; `make AIL=../ail/build/ail` uses the command of a checkout of AIL that is not installed. `build/aildb` is one static executable that can be copied anywhere.
 
+## The executable
+
+A release has the executable for x86-64 Linux as an archive, `aildb-<version>-x86_64-linux.tar.gz`, and the SHA-256 of the archive in a file beside it. It needs no AIL and nothing installed:
+
+```
+sha256sum -c aildb-0.1.0-x86_64-linux.tar.gz.sha256
+tar -xzf aildb-0.1.0-x86_64-linux.tar.gz
+aildb-0.1.0-x86_64-linux/aildb check an.idx
+```
+
+The directory has `aildb`, `LICENSE`, `NOTICE`, which goes with the executable to whoever gets it, and `BUILD`, which names the revision of aildb and the revision of AIL that made it. `make dist` makes the archive from the tag of the version in `Ailfile` (`REV=` names another revision) and gives the same bytes each time; `make dist-check` unpacks it in a Docker container that has no AIL and runs the three commands there.
+
 ## Using it
 
 An index is made from two files that another program wrote: the vectors as raw binary32, one after the other, and a line of metadata for each, with tabs between the path, the first line, the last line and the language. Three vectors of two dimensions and a query, made here with Python for the sake of something to run:
@@ -85,7 +97,7 @@ use "aildb:src/lib/search.aiw"
 
 ## The example
 
-`make example` indexes the AIL repository itself, at the revision of `example/corpus.pin`: an AIL program cuts its sources into chunks, a function or a section each, the embedding model nomic-embed-text makes the vectors, run on the same machine by [Ollama](https://ollama.com), and `search` is asked questions in words whose lines in the sources are known. It needs Ollama running with the model pulled, and Python 3. [docs/example.md](docs/example.md) describes the steps and what a run showed, including the queries that did not find their lines.
+`make example` indexes the AIL repository itself, at the revision of `example/corpus.pin`: an AIL program cuts its sources into chunks, a function or a section each, the embedding model nomic-embed-text makes the vectors, run on the same machine by [Ollama](https://ollama.com), and `search` is asked questions in words whose lines in the sources are known. It needs Ollama running with the model pulled, and Python 3. [docs/example.md](docs/example.md) describes the steps and what a run showed, including the queries that did not find their lines. `make eval` measures that part on fixed queries, the place at which each finds its lines on two repositories, and [docs/evaluation.md](docs/evaluation.md) has the measures.
 
 ## How fast
 
@@ -97,6 +109,10 @@ Measured on one machine (a Core i7-12700H, the file on an NVMe drive), for the t
 | 100,000 | 310 MB | 38 ms | 182 ms |
 
 [docs/performance.md](docs/performance.md) has the method, every figure, the same searches in LanceDB, and why version 1 has no approximate index and scans on one thread.
+
+## For a coding agent
+
+`aildb-mcp`, in `mcp/`, is a server of the Model Context Protocol: Claude Code or Codex asks it in words, it gets the vector of the query from the embedding model and the locations from `aildb search`, and answers with paths, lines and the revision to open them at. [docs/mcp.md](docs/mcp.md) says how it is started and added to an agent.
 
 ## Documents
 

@@ -193,7 +193,9 @@ The first results of these are near the subject (the test of the function
 that lists a directory, the head of the hash map's file), and the last is
 not: the chunk of the licence is three lines. How well a query finds its
 lines is a property of the model, of the texts and of how they are cut,
-and the example does not measure it; ten queries are no such measure. What
+and the example does not measure it; ten queries are no such measure
+([evaluation.md](evaluation.md) has the places of all ten, and of ten more
+on another repository). What
 the example shows is the path from a repository to lines that can be
 opened, and that a copy of the file answers the same.
 

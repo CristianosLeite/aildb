@@ -1,0 +1,288 @@
+# aildb-mcp between a client written as lines, an embedding service that
+# answers from a table (tests/lib/fake.aiw) and the command of aildb,
+# on a snapshot of three records of two dimensions that the test writes.
+# The discovery of the tool, and calls whose results are those of
+# "aildb search" for the same vectors, shown after them: ranks, the two
+# filters and the bits of the scores. Then a filter that takes nothing,
+# arguments that are wrong, a model that refuses, answers with what is no
+# vector or one of another dimension, an answer that comes too late, a
+# snapshot that is replaced between two calls, also by one of another
+# dimension, whose queries are then the ones taken, a model that nobody runs,
+# and a server started for another model or without a snapshot.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "aildb:tests/lib/cmd.aiw"
+use "aildb:tests/lib/mk.aiw"
+const pipe2 293
+const rename 82
+buf b 24
+buf v 8
+buf wide 16
+buf line 24
+buf out 24
+buf pend 8
+buf ts 16
+buf old 4096
+buf new 4096
+var port fake seen
+
+# the command line of the server with the options p n after what every
+# start has, in line
+fn server p n
+	call bycut line 0
+	call byadd line "aildb-mcp -a "
+	call byadd line cmdhome cmdhomen
+	call byadd line "/../build/aildb -e http://127.0.0.1:"
+	call byaddn line port
+	call byaddb line 32
+	call byadd line p n
+end
+# start it with a pipe as its stdin; its stdout is the file mcp.out
+fn start p n
+	call server p n
+	sys pipe2 pend 0x80000
+	load4 pend as rd
+	load line as q
+	load line+8 as m
+	call cmdspawnin q m rd "mcp.out" as pid
+	sys close rd
+	seen=0
+	ret pid
+end
+# send a line and print it, cut where it is long
+fn say p n
+	call print "> "
+	call print p n
+	call print "\n"
+	load4 pend+4 as wr
+	sys write wr p n
+	sys write wr "\n"
+end
+# print the next line of mcp.out, waiting five seconds for it at most
+fn hear
+	tries=0
+	label look
+	call bycut out 0
+	call fileread "mcp.out" out
+	load out as p
+	load out+8 as n
+	i=seen
+	label eol
+	if i<n
+		loadb p+i as c
+		if c!=10
+			i+=1
+			jmp eol
+		end
+		call print "< "
+		call print p+seen i+1-seen
+		seen=i+1
+		ret 0
+	end
+	if tries>5000
+		call print "< nothing\n"
+		ret 0
+	end
+	store ts 0
+	store ts+8 1000000
+	sys nanosleep ts 0
+	tries+=1
+	jmp look
+end
+fn ask p n
+	call say p n
+	call hear
+end
+# close the input and print how the server ended
+fn finish pid
+	load4 pend+4 as wr
+	sys close wr
+	call procwait pid 5000 as st
+	call print "the server ended with status "
+	call putn st
+	call print "\n"
+end
+# a start that is to fail: its status and what it said
+fn refused p n
+	call server p n
+	load line as q
+	load line+8 as m
+	call cmdargs q m as av
+	call cmdrun av -1 cmdso cmdse as st
+	call print "$ aildb-mcp "
+	call print p n
+	call print "\nstatus "
+	call putn st
+	call print ", stdout "
+	load cmdso+8 as x
+	call putn x
+	call print " bytes: "
+	load cmdse as q
+	load cmdse+8 as m
+	call print q m
+end
+# what the command prints for the query of the two binary32 x and y
+fn cli x y p n
+	store4 v x
+	store4 v+4 y
+	call filewrite "q.bin" v 8
+	call bycut line 0
+	call byadd line cmdhome cmdhomen
+	call byadd line "/../build/aildb search s.idx -q q.bin "
+	call byadd line p n
+	load line as q
+	load line+8 as m
+	call cmdargs q m as av
+	call cmdrun av -1 cmdso cmdse as st
+	call print "$ aildb search s.idx "
+	call print p n
+	call print "\n"
+	load cmdso as q
+	load cmdso+8 as m
+	call print q m
+end
+# the snapshot: revision p n, and a third record or not
+fn snapshot p n three q m
+	call mknew 2 "m" p n
+	store4 v 0x3f800000
+	store4 v+4 0
+	call mkrec "a.aiw" "ail" 1 10 v
+	store4 v 0
+	store4 v+4 0x3f800000
+	call mkrec "docs/b.md" "markdown" 5 9 v
+	if three
+		store4 v 0x3f19999a
+		store4 v+4 0x3f4ccccd
+		call mkrec "lib/c.aiw" "ail" 20 40 v
+	end
+	call mkdone b
+	call mksave b -1 q m
+end
+
+call snapshot "rev1" 1 "s.idx"
+call cmdspawn "embed-fake port.txt" as fake
+call cmdawait "port.txt" 5000 as r
+store ts 0
+store ts+8 20000000
+sys nanosleep ts 0
+call fileread "port.txt" out
+load out as p
+load out+8 as n
+port=0
+i=0
+while i<n
+	loadb p+i as c
+	port=port*10+c-48
+	i+=1
+end
+
+call print "# discovery\n"
+call start "-s s.idx -i m -p search_query:_" as pid
+call ask "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-11-25\",\"capabilities\":{},\"clientInfo\":{\"name\":\"test\",\"version\":\"0\"}}}"
+call say "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}"
+call ask "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\"}"
+call print "\n# calls, and the command for the same vectors\n"
+call ask "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"alpha\"}}}"
+call cli 0x3f800000 0 "-k 10"
+call ask "{\"jsonrpc\":\"2.0\",\"id\":4,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"both of them\",\"k\":2}}}"
+call cli 0x3f19999a 0x3f4ccccd "-k 2"
+call ask "{\"jsonrpc\":\"2.0\",\"id\":5,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"beta\",\"k\":5,\"language\":\"ail\"}}}"
+call cli 0 0x3f800000 "-k 5 -l ail"
+call ask "{\"jsonrpc\":\"2.0\",\"id\":6,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"beta\",\"path_prefix\":\"lib/\",\"language\":\"ail\"}}}"
+call cli 0 0x3f800000 "-k 10 -p lib/ -l ail"
+call print "\n# nothing found, and arguments that are wrong\n"
+call ask "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"alpha\",\"language\":\"rust\"}}}"
+call ask "{\"jsonrpc\":\"2.0\",\"id\":8,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"k\":3}}}"
+call ask "{\"jsonrpc\":\"2.0\",\"id\":9,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"alpha\",\"k\":51}}}"
+call ask "{\"jsonrpc\":\"2.0\",\"id\":10,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"alpha\",\"k\":\"3\"}}}"
+call ask "{\"jsonrpc\":\"2.0\",\"id\":11,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"\"}}}"
+call ask "{\"jsonrpc\":\"2.0\",\"id\":12,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"alpha\",\"language\":7}}}"
+call ask "{\"jsonrpc\":\"2.0\",\"id\":21,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"beta\",\"path_prefix\":\"lib/\\u0000x\"}}}"
+call ask "{\"jsonrpc\":\"2.0\",\"id\":22,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"beta\",\"language\":\"ail\\u0000\"}}}"
+call ask "{\"jsonrpc\":\"2.0\",\"id\":13,\"method\":\"tools/call\",\"params\":{\"name\":\"find\",\"arguments\":{}}}"
+call print "\n# the model\n"
+call ask "{\"jsonrpc\":\"2.0\",\"id\":14,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"refuse\"}}}"
+call ask "{\"jsonrpc\":\"2.0\",\"id\":15,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"junk\"}}}"
+call ask "{\"jsonrpc\":\"2.0\",\"id\":16,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"three\"}}}"
+call print "\n# the snapshot is replaced: another revision, two records\n"
+call snapshot "rev2" 0 "s.idx.new"
+call filepath "s.idx.new" old
+call filepath "s.idx" new
+sys rename old new as r
+call ask "{\"jsonrpc\":\"2.0\",\"id\":17,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"both\"}}}"
+call print "\n# replaced again, by one of three dimensions and the same model\n"
+call mknew 3 "m" "rev3"
+store4 wide 0
+store4 wide+4 0
+store4 wide+8 0x3f800000
+call mkrec "wide.aiw" "ail" 1 2 wide
+store4 wide 0x3f800000
+store4 wide+4 0
+store4 wide+8 0
+call mkrec "x.aiw" "ail" 3 4 wide
+call mkdone b
+call mksave b -1 "s.idx.new"
+sys rename old new as r
+call ask "{\"jsonrpc\":\"2.0\",\"id\":19,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"three\"}}}"
+call ask "{\"jsonrpc\":\"2.0\",\"id\":20,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"alpha\"}}}"
+call print "\n# the snapshot is gone\n"
+call fileunlink "s.idx"
+call ask "{\"jsonrpc\":\"2.0\",\"id\":18,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"alpha\"}}}"
+call finish pid
+
+call print "\n# a limit of 300 ms and an answer after two seconds\n"
+call snapshot "rev1" 1 "s.idx"
+call start "-s s.idx -i m -t 300" as pid
+call ask "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"slow\"}}}"
+# an answer that comes a byte every 100 ms: no read waits 300 ms, and
+# the whole does
+call procnow as t0
+call ask "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"drip\"}}}"
+call procnow as t1
+call print "answered within a second: "
+call putn t1-t0<1000000000
+call print "\n"
+call ask "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"alpha\",\"k\":1}}}"
+call finish pid
+
+# With no more than six descriptors the server starts, and a call can
+# make two of the three files in memory that a command needs: the call
+# fails, the two are closed, and the next call fails the same way and
+# not for want of a descriptor for the connection to the model.
+call print "\n# six descriptors at most\n"
+call bycut line 0
+call byadd line "nofile 6 "
+call byadd line cmdhome cmdhomen
+call byadd line "/build/aildb-mcp -a "
+call byadd line cmdhome cmdhomen
+call byadd line "/../build/aildb -e http://127.0.0.1:"
+call byaddn line port
+call byadd line " -s s.idx -i m"
+sys pipe2 pend 0x80000
+load4 pend as rd
+load line as q
+load line+8 as m
+call cmdspawnin q m rd "mcp.out" as pid
+sys close rd
+seen=0
+call ask "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"alpha\"}}}"
+call ask "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"alpha\"}}}"
+call ask "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"alpha\"}}}"
+call finish pid
+
+call print "\n# nobody runs the model\n"
+sys kill fake 9
+call procwait fake 0 as r
+call start "-s s.idx -i m" as pid
+call ask "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"alpha\"}}}"
+call finish pid
+
+call print "\n# starts that fail\n"
+call refused "-s s.idx -i nomic-embed-text"
+call refused "-s absent.idx -i m"
+call refused "-s s.idx"
+call refused "-s s.idx -i m -t 0"
+call filewrite "junk.idx" "this is no snapshot of anything, only some bytes that are long enough to be read as a header of one hundred and twenty-eight bytes, and more"
+call refused "-s junk.idx -i m"

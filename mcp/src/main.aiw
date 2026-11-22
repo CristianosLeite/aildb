@@ -1,0 +1,565 @@
+# aildb-mcp -- search a snapshot of aildb for a coding agent, over the
+# Model Context Protocol on stdin and stdout (docs/mcp.md).
+#
+#   aildb-mcp -s SNAPSHOT -i MODEL -e ENDPOINT [-a AILDB] [-p PREFIX] [-t MS]
+#
+# SNAPSHOT is the file that "aildb build" publishes, MODEL the identifier
+# of the embedding model it was built with, and ENDPOINT where that model
+# is asked for the vector of a query: "http://" an IPv4 address or
+# localhost, a port and a path, "/api/embed" if there is none, which is
+# asked as Ollama is. AILDB is the command of aildb (default "aildb", on
+# PATH), PREFIX what the model wants before the text of a query (none),
+# and MS the milliseconds the model and the search may each take, from
+# the first byte sent to the last received (30000).
+#
+# The one tool, search, takes a query in words, a number of results and
+# the two filters of "aildb search". The text is given to the model, the
+# vector to "aildb search SNAPSHOT -k K -i MODEL" on its stdin as raw
+# binary32, with no shell, and the lines it prints become the result.
+# Each call starts the command, so a snapshot that was built again is
+# the one searched. Nothing is written but the result: the server opens
+# the snapshot for no writing and publishes none.
+#
+# The status is 0 when the client closes the input, 2 for wrong usage, 3
+# for a snapshot that "aildb check" refuses or that is of another model,
+# and 4 when the command cannot be run; a line on stderr says why.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "lib/std/num.aiw"
+use "lib/std/json.aiw"
+use "lib/async/task.aiw"
+use "lib/async/time.aiw"
+use "lib/async/io.aiw"
+use "lib/net/http.aiw"
+use "mcp:src/mcp.aiw"
+
+const memfd 319
+const lseek 8
+# the most results a call may ask for
+const kmax 50
+buf server 80
+buf tool 72
+buf zs 8192             # the arguments of the command, a NUL after each
+buf av 104              # their addresses
+buf so 24               # what the command printed
+buf se 24               # and what it said
+buf vec 24              # the query as binary32
+buf body 24             # the request to the model
+buf resp 24             # and its response
+buf req 128
+buf num 24
+buf one 8              # one binary32
+data mname "aildb\0"
+var snapp snapn modelp modeln aildbp aildbn prep pren ms
+var ip port pathp pathn zn
+
+data inschema "{\"type\":\"object\",\"properties\":{"
+data "\"query\":{\"type\":\"string\",\"description\":\"What to look for, in words: a question or a description of the code or text.\"},"
+data "\"k\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":50,\"default\":10,\"description\":\"The largest number of results.\"},"
+data "\"path_prefix\":{\"type\":\"string\",\"description\":\"Only locations whose path starts with these bytes, as lib/std/.\"},"
+data "\"language\":{\"type\":\"string\",\"description\":\"Only locations of this language, as the index names it.\"}"
+data "},\"required\":[\"query\"],\"additionalProperties\":false}"
+data inend ""
+data outschema "{\"type\":\"object\",\"properties\":{"
+data "\"model\":{\"type\":\"string\",\"description\":\"The embedding model of the snapshot.\"},"
+data "\"source_revision\":{\"type\":[\"string\",\"null\"],\"description\":\"The revision of the sources the snapshot was built from: open the lines at this revision.\"},"
+data "\"hits\":{\"type\":\"array\",\"description\":\"The locations, the best first.\",\"items\":{\"type\":\"object\",\"properties\":{"
+data "\"rank\":{\"type\":\"integer\"},\"path\":{\"type\":\"string\"},\"start_line\":{\"type\":\"integer\"},\"end_line\":{\"type\":\"integer\"},"
+data "\"score\":{\"type\":\"number\",\"description\":\"The cosine similarity, six digits.\"},"
+data "\"score_bits\":{\"type\":\"string\",\"description\":\"The same as the bits of a binary64, in hexadecimal.\"}"
+data "},\"required\":[\"rank\",\"path\",\"start_line\",\"end_line\",\"score\",\"score_bits\"]}}"
+data "},\"required\":[\"model\",\"source_revision\",\"hits\"]}"
+data outend ""
+data notes "Semantic search over an index of source files: the tool search returns paths and line ranges, at the revision it names, for a query in words."
+data notesend ""
+data about "Find the source locations that are nearest in meaning to a query in words, in a local index of a repository. Returns paths with line ranges, the best first, and the revision of the sources they are of."
+data aboutend ""
+
+fn usage
+	call eprint "usage: aildb-mcp -s SNAPSHOT -i MODEL -e ENDPOINT [-a AILDB] [-p PREFIX] [-t MS]\n"
+	sys exit_group 2
+end
+fn fail st p n q m
+	call eprint "aildb-mcp: "
+	call eprint p n
+	call eprint q m
+	call eprint "\n"
+	sys exit_group st
+end
+
+# add the n bytes at p to the arguments of the command as number k
+fn arg k p n
+	call bycopy zs+zn p n
+	storeb zs+zn+n 0
+	store av+k*8 zs+zn
+	store av+k*8+8 0
+	zn+=n+1
+end
+
+# A descriptor of a file in memory with the n bytes at p, placed at its
+# start, or a negative number.
+fn memfile p n
+	sys memfd mname 1 as fd
+	ifslt fd 0
+		ret fd
+	end
+	if n
+		call fdwrite fd p n as ok
+		ifz ok
+			sys close fd
+			ret 0-5
+		end
+		sys lseek fd 0 0
+	end
+	ret fd
+end
+
+# Run the command of av with the n bytes at p as its stdin: its status
+# as procwait gives it, with so and se what it wrote; -1000 if it took
+# longer than ms, and -2000 if it could not be started.
+fn run p n
+	call memfile p n as in
+	call memfile 0 0 as out
+	call memfile 0 0 as err
+	ifslt in|out|err 0
+		# the ones that were made are closed: the server goes on
+		ifsge in 0
+			sys close in
+		end
+		ifsge out 0
+			sys close out
+		end
+		ifsge err 0
+			sys close err
+		end
+		ret 0-2000
+	end
+	call procstart av in out err as pid
+	st=0-2000
+	ifsge pid 0
+		call procwait pid ms as st
+	end
+	call bycut so 0
+	call bycut se 0
+	sys lseek out 0 0
+	sys lseek err 0 0
+	call filereadfd out so
+	call filereadfd err se
+	sys close in
+	sys close out
+	sys close err
+	ret st
+end
+
+# the first line of what the command said, for a message: its address
+# and length
+fn said
+	load se as p
+	load se+8 as n
+	i=0
+	label more
+	if i<n
+		loadb p+i as c
+		if c!=10
+			i+=1
+			jmp more
+		end
+	end
+	ret p i
+end
+
+# 1 if one of the n bytes at p is 0: an argument of a command ends at
+# such a byte, so a filter with one would be another filter
+fn hasnul p n
+	i=0
+	while i<n
+		loadb p+i as c
+		ifz c
+			ret 1
+		end
+		i+=1
+	end
+	ret 0
+end
+
+# make the result r the failure "p n: q m"
+fn failed r p n q m
+	call mcpfail r p n
+	call mcptext r q m
+	ret 0
+end
+
+# The tool: the query to the model, the vector to the command, its
+# lines to the result.
+async fn search x p n r
+	call jsonget p n "query" as qv qn qk
+	if qk!=5
+		call mcpfail r "query is to be a string"
+		ret 0
+	end
+	k=10
+	call jsonget p n "k" as v vn vk
+	if vk
+		call numint v vn as k ok
+		if (vk!=4)|(ok==0)|(k-1>=kmax)
+			call mcpfail r "k is to be a whole number from 1 to 50"
+			ret 0
+		end
+	end
+	call jsonget p n "path_prefix" as pv pn pk
+	call jsonget p n "language" as lv ln lk
+	if ((pk!=0)&(pk!=5))|((lk!=0)&(lk!=5))
+		call mcpfail r "path_prefix and language are to be strings"
+		ret 0
+	end
+	# the request to the model: the prefix and the text as one string
+	call bycut num 0
+	call byadd num prep pren
+	call jsonstr num qv qn as ok
+	load num as tp
+	load num+8 as tn
+	if tn==pren
+		call mcpfail r "query is to have a text"
+		ret 0
+	end
+	call bycut body 0
+	call byadd body "{\"model\":"
+	call jsonadds body modelp modeln
+	call byadd body ",\"truncate\":true,\"input\":["
+	call jsonadds body tp tn
+	call byadd body "]}" as ok
+	i=0
+	while i<128
+		store req+i 0
+		i+=8
+	end
+	store req ip
+	store req+8 port
+	store req+16 "POST"
+	store req+24 4
+	store req+32 pathp
+	store req+40 pathn
+	load body as bp
+	load body+8 as bn
+	store req+48 bp
+	store req+56 bn
+	store req+64 "application/json"
+	store req+72 16
+	store req+96 ms
+	# The limit holds for the request as a whole, besides each step of
+	# it: a model that sends a little before each read runs out would
+	# else keep this call, and every one after it, for as long as it
+	# likes.
+	call httpcall req resp as h
+	call httplimit h ms as h
+	st=0-12
+	if h
+		await h as st
+	end
+	ifslt st 0
+		call bycut num 0
+		call byadd num "error "
+		call byaddn num 0-st
+		if st==0-62
+			call byadd num ", no answer in the time it may take"
+		end
+		if st==0-111
+			call byadd num ", nobody listens at the endpoint"
+		end
+		load num as tp
+		load num+8 as tn
+		call failed r "the embedding model could not be asked: " tp tn
+		ret 0
+	end
+	load resp as bp
+	load resp+8 as bn
+	load req+112 as hn
+	if st!=200
+		call bycut num 0
+		call byadd num "status "
+		call byaddn num st
+		call byaddb num 32
+		bn-=hn
+		if bn>300
+			bn=300
+		end
+		call byadd num bp+hn bn
+		load num as tp
+		load num+8 as tn
+		call failed r "the embedding model refused: " tp tn
+		ret 0
+	end
+	# the first of "embeddings", numbers, as binary32
+	call jsonvalue bp+hn bn-hn as a an ak
+	call jsonget a an "embeddings" as v vn vk
+	ek=0
+	e=0
+	en=0
+	if vk==6
+		call jsonelem v+1 v+vn as e en ek nx
+	end
+	if ek!=6
+		call failed r "the embedding model answered without a vector" ""
+		ret 0
+	end
+	call bycut vec 0
+	nx=e+1
+	count=0
+	label elem
+	call jsonelem nx e+en as f fl fk nx
+	if fk
+		call numdouble f fl as d ok
+		if (fk!=4)|(ok==0)
+			call failed r "the embedding model answered with what is no number" ""
+			ret 0
+		end
+		f8to4 d as w
+		store4 one w
+		call byadd vec one 4
+		count+=1
+		jmp elem
+	end
+	ifz count
+		call failed r "the embedding model answered without a vector" ""
+		ret 0
+	end
+	# Its length is not compared here: the command compares it with the
+	# snapshot it opens for this call, which may be another than the one
+	# that was there when the server started.
+	# aildb search SNAPSHOT -k K -i MODEL [-p PREFIX] [-l LANGUAGE]
+	zn=0
+	call arg 0 aildbp aildbn
+	call arg 1 "search"
+	call arg 2 snapp snapn
+	call arg 3 "-k"
+	call bycut num 0
+	call byaddn num k
+	load num as tp
+	load num+8 as tn
+	call arg 4 tp tn
+	call arg 5 "-i"
+	call arg 6 modelp modeln
+	c=7
+	if pk
+		call bycut num 0
+		call jsonstr num pv pn
+		load num as tp
+		load num+8 as tn
+		if tn>2000
+			call mcpfail r "path_prefix is too long"
+			ret 0
+		end
+		call hasnul tp tn as bad
+		if bad
+			call mcpfail r "path_prefix has a NUL byte, which no argument of a command can hold"
+			ret 0
+		end
+		call arg c "-p"
+		call arg c+1 tp tn
+		c+=2
+	end
+	if lk
+		call bycut num 0
+		call jsonstr num lv ln
+		load num as tp
+		load num+8 as tn
+		if tn>255
+			call mcpfail r "language is too long"
+			ret 0
+		end
+		call hasnul tp tn as bad
+		if bad
+			call mcpfail r "language has a NUL byte, which no argument of a command can hold"
+			ret 0
+		end
+		call arg c "-l"
+		call arg c+1 tp tn
+	end
+	load vec as bp
+	load vec+8 as bn
+	call run bp bn as st
+	if st==0-1000
+		call failed r "the search took longer than it may" ""
+		ret 0
+	end
+	if st
+		call said as tp tn
+		ifz tn
+			call failed r "the command of aildb could not be run" ""
+			ret 0
+		end
+		call failed r "the search failed: " tp tn
+		ret 0
+	end
+	# the first line is about the snapshot, the others are results
+	load so as bp
+	load so+8 as bn
+	i=0
+	label eol
+	if i<bn
+		loadb bp+i as c
+		if c!=10
+			i+=1
+			jmp eol
+		end
+	end
+	call jsonvalue bp i as a an ak
+	call jsonget a an "model" as v vn vk
+	call jsonget a an "source_revision" as f fl fk
+	if (ak!=7)|(vk==0)|(fk==0)
+		call failed r "the command of aildb printed what is no result" ""
+		ret 0
+	end
+	call byadd r+24 "{\"model\":"
+	call byadd r+24 v vn
+	call byadd r+24 ",\"source_revision\":"
+	call byadd r+24 f fl
+	call byadd r+24 ",\"hits\":["
+	count=0
+	label line
+	bp+=i+1
+	bn-=i+1
+	ifsgt bn 0
+		i=0
+		label eol2
+		if i<bn
+			loadb bp+i as c
+			if c!=10
+				i+=1
+				jmp eol2
+			end
+		end
+		call jsonvalue bp i as a an ak
+		if ak!=7
+			call bycut r+24 0
+			call failed r "the command of aildb printed what is no result" ""
+			ret 0
+		end
+		if count
+			call byaddb r+24 44
+		end
+		call byadd r+24 a an
+		count+=1
+		jmp line
+	end
+	call byadd r+24 "]}"
+	ret 0
+end
+
+# the arguments: a letter and a value each, in any order, each once
+data defaildb "aildb"
+data defpath "/api/embed"
+call argc as c
+ms=30000
+aildbp=defaildb
+aildbn=5
+ep=0
+en=0
+i=1
+while i<c
+	call argv i as p n
+	call argv i+1 as v vn
+	loadb p as d
+	loadb p+1 as o
+	if (n!=2)|(d!=45)|(i+1>=c)
+		call usage
+	end
+	known=0
+	if o==115
+		snapp=v
+		snapn=vn
+		known=1
+	end
+	if o==105
+		modelp=v
+		modeln=vn
+		known=1
+	end
+	if o==101
+		ep=v
+		en=vn
+		known=1
+	end
+	if o==97
+		aildbp=v
+		aildbn=vn
+		known=1
+	end
+	if o==112
+		prep=v
+		pren=vn
+		known=1
+	end
+	if o==116
+		call numint v vn as ms ok
+		if (ok==0)|(ms-1>=3600000)
+			call usage
+		end
+		known=1
+	end
+	ifz known
+		call usage
+	end
+	i+=2
+end
+if (snapn==0)|(modeln==0)|(en==0)|(aildbn==0)|(snapn>4000)|(aildbn>1000)|(modeln>255)
+	call usage
+end
+call httpurl ep en as ip port pathp pathn ok
+ifz ok
+	call fail 2 "the endpoint is to be http://, an IPv4 address or localhost, a port and a path: " ep en
+end
+ifz pathn
+	pathp=defpath
+	pathn=10
+end
+# the snapshot as it is now: valid, and of the model
+zn=0
+call arg 0 aildbp aildbn
+call arg 1 "check"
+call arg 2 snapp snapn
+call run 0 0 as st
+if st
+	call said as p n
+	if (st==3)|(st==4)
+		call fail 3 p n ""
+	end
+	call fail 4 "the command of aildb cannot be run: " aildbp aildbn
+end
+load so as p
+load so+8 as n
+call jsonvalue p n as a an k
+call jsonget a an "dimension" as v vn vk
+call jsonget a an "model" as v vn vk
+call jsoneq v vn modelp modeln as same
+if (k!=7)|(vk!=5)
+	call fail 4 "the command of aildb printed what is no check: " aildbp aildbn
+end
+ifz same
+	call fail 3 "the snapshot is of the model " v vn
+end
+store server "aildb-mcp"
+store server+8 9
+store server+16 "0.1.0"
+store server+24 5
+store server+32 notes
+store server+40 notesend-notes
+store server+48 tool
+store server+56 1
+store tool "search"
+store tool+8 6
+store tool+16 about
+store tool+24 aboutend-about
+store tool+32 inschema
+store tool+40 inend-inschema
+store tool+48 outschema
+store tool+56 outend-outschema
+ref search as f
+store tool+64 f
+call mcpserve server 0 1 as h
+await h as r
+ifslt r 0
+	call fail 4 "the client cannot be read or written" ""
+end

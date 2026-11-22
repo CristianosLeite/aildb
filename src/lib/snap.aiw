@@ -217,7 +217,10 @@ fn snapopen snaps snapp snapn
 		store snaps+snapi 0
 		snapi+=8
 	end
-	call fileopen snapp snapn 0 0 as snapfd
+	# O_NONBLOCK: the open of a named pipe that has no writer returns at
+	# once, where it would wait for one, and the kind of the file is then
+	# asked of the descriptor. It changes nothing for a regular file.
+	call fileopen snapp snapn 0x800 0 as snapfd
 	ifslt snapfd 0
 		ret snapfd
 	end

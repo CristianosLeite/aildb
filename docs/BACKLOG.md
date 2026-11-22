@@ -202,6 +202,15 @@ mapped pages contribute to reported peak resident memory.
   `467b91b` (2026-11-22, at the user's word), after the packages were in
   `main` of AIL and AIL had its own tag `v0.1.0`, at its `9b94a9b`. No
   executable is published.
+- [x] The archive of a release: `make dist` (`tools/dist.sh`) takes the
+  sources of a tag out of git, builds them with the command of AIL and
+  packs `aildb`, `LICENSE`, `NOTICE` and `BUILD`, which names the
+  revisions of aildb and of AIL, into
+  `build/dist/aildb-<version>-x86_64-linux.tar.gz`, with its `.sha256`;
+  `make dist-check` (`tools/dist-check.sh`) runs `build`, `check` and
+  `search` of the unpacked executable in a Docker container without AIL.
+  The archive is for `v0.1.0` (user, 2026-11-22). Attaching it to the
+  release is left in `TODO.md`.
 
 ## 12. aildb as a package
 
@@ -221,3 +230,73 @@ mapped pages contribute to reported peak resident memory.
 - [x] `example/consumer` names aildb by its address and the version
   0.1.0, in place of its directory: `ail add` with the address wrote the
   line `dep` and `Ailfile.lock`, with the revision of the tag `v0.1.0`.
+
+## 13. The measurements in a repository of their own
+
+- [x] `bench/`, `make bench` and the tests `bench_stat` and `bench_tools`
+  moved to the repository aildb-bench (user, 2026-11-22), a package of
+  AIL that names aildb as a dependency; `src/hook.aiw` and the moments of
+  `search` stay. Its report names the revisions of the engine, of the
+  harness and of the compiler and the command of each measurement.
+  `docs/performance.md` keeps the figures of 2026-11-21, made here at
+  `4a21a3e`.
+- [x] In aildb-bench, the measurements extended: the two filters, a
+  process that keeps the snapshot or the table open (`bench-stay`, on
+  `src/lib/search.aiw`; `LANCE_STAY` for LanceDB), with the opening apart
+  from a search, warm and cold for both, and 1,000,000 records. Run on
+  2026-11-22 for aildb 0.1.0; no target and no decision (user,
+  2026-11-22).
+- [x] In aildb-bench, `bench_tools` takes a memory line of 0 as a
+  measurement (its commit `119c533`): a line `=` is to be there with a
+  number, and the reader of `/proc/self/status`, `hooknumber`, says no
+  number for a line that is absent or has no digit, with a test of its
+  own.
+- [x] aildb-bench published (2026-11-22, at the user's word): https://github.com/CristianosLeite/aildb-bench,
+  public, its `main` pushed as it was.
+
+## 14. Snapshot input handling
+
+- [x] A named pipe given as a snapshot or as the vectors of `build` is
+  refused at once. `snapopen` and `mapfile` opened the path before they
+  asked for its kind, and the open of a named pipe waits for a writer;
+  they open with `O_NONBLOCK` now, so the check of a regular file that
+  was there is reached. `tests/cli_fifo.aiw` gives `check`, `search` and
+  `build -v` a pipe that has no writer and two seconds each. The metadata
+  and the query are read, not mapped, and may be a pipe as before.
+
+## 15. Semantic retrieval evaluation
+
+- [x] The queries of the evaluation, written before they were embedded:
+  the ten of the first run of the example for AIL at `a5b4559`, and ten
+  new ones for aildb at `v0.1.0` (user, 2026-11-22: these two corpora).
+- [x] `make eval`: for each corpus the place of the first result that has
+  the expected lines, among all records, how many queries have it in the
+  first 1, 5 and 10, and the mean reciprocal rank (`example/eval.aiw`,
+  `tools/eval.sh`, `tests/example_eval.aiw`); the report has the digest of
+  the model and the limits of a chunk. `docs/evaluation.md` has the run
+  of 2026-11-22. The example stays as it was.
+
+## 16. MCP server for coding agents
+
+- [x] `aildb-mcp`, in `mcp/`: a server of the Model Context Protocol
+  over stdio with the tool `search` (a query in words, `k` up to 50, a
+  path prefix and a language), written in AIL (user, 2026-11-22: no
+  Python; JSON, the decimal to double and HTTP are libraries of AIL, and
+  the MCP SDK a module of ail-extensions). It asks the model at an
+  endpoint for the vector, checks its dimension, and starts `aildb
+  search` with the vector on stdin; the result has the model, the
+  revision and the hits as the command printed them. `mcp/tests/search.aiw`
+  with an embedding service that answers from a table; `docs/mcp.md`.
+- [x] A snapshot replaced by one of another dimension and the same
+  model is searched from the next call on: the server compared the
+  length of a vector with the dimension it had read when it started, and
+  now leaves that to `aildb search`, which compares it with the snapshot
+  it opens. `mcp/tests/search.aiw` replaces a snapshot of two dimensions
+  by one of three in a session: the vector of three is taken and the one
+  of two refused.
+- [x] A search asked by an agent: from Claude Code on 2026-11-22, the
+  lines of the first hit opened at the revision (`docs/mcp.md`), and from
+  Codex, which the user validated the same day and reported as passed in
+  full. A session of `codex exec` run by the agent had discovered the
+  tool and been stopped at the approval of the call, which a session
+  that is not interactive cannot give.

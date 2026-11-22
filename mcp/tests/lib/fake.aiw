@@ -1,0 +1,123 @@
+# embed-fake PORTFILE -- an embedding service for the tests, which
+# answers POST as Ollama answers /api/embed and gives each text a vector
+# from a table, by a word in it: "alpha" (1, 0), "beta" (0, 1), "both"
+# (0.6, 0.8), "three" a vector of three elements; "refuse" is the status
+# 500, "junk" a body that is no JSON, "slow" an answer after two seconds,
+# "drip" an answer that comes a byte every 100 ms for three seconds;
+# any other text is (1, 1). It listens on a port the kernel chooses and
+# writes the number to PORTFILE when it does.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/json.aiw"
+use "lib/async/task.aiw"
+use "lib/async/time.aiw"
+use "lib/async/io.aiw"
+use "lib/net/http.aiw"
+use "lib/net/httpd.aiw"
+buf text 24
+buf num 24
+# 1 if the m bytes at q stand somewhere in the n bytes at p
+fn has p n q m
+	i=0
+	while i+m<=n
+		j=0
+		label same
+		if j<m
+			loadb p+i+j as c
+			loadb q+j as d
+			if c==d
+				j+=1
+				jmp same
+			end
+		end
+		if j==m
+			ret 1
+		end
+		i+=1
+	end
+	ret 0
+end
+async fn handle x r
+	load r+48 as p
+	load r+56 as n
+	call jsonvalue p n as a an k
+	call jsonget a an "input" as v vn vk
+	call jsonelem v+1 v+vn as e en ek nx
+	call bycut text 0
+	if ek==5
+		call jsonstr text e en
+	end
+	load text as p
+	load text+8 as n
+	store r+72 "application/json"
+	store r+80 16
+	call has p n "slow" as y
+	if y
+		await asyncsleep 2000
+	end
+	call has p n "drip" as y
+	if y
+		# a response that never ends within any limit of a read: its
+		# head, then a byte every 100 ms for three seconds, written to
+		# the connection itself
+		load r+112 as c
+		await asyncwriteall c "HTTP/1.1 200 OK\x0d\nContent-Length: 1000\x0d\n\x0d\n" as y
+		i=0
+		while i<30
+			await asyncwriteall c "x" as y
+			await asyncsleep 100
+			i+=1
+		end
+		ret 0
+	end
+	call has p n "refuse" as y
+	if y
+		store r+64 500
+		call byadd r+88 "{\"error\":\"the model is not loaded\"}"
+		ret 0
+	end
+	call has p n "junk" as y
+	if y
+		call byadd r+88 "this is no JSON"
+		ret 0
+	end
+	call byadd r+88 "{\"model\":\"m\",\"embeddings\":[["
+	call has p n "alpha" as y
+	if y
+		call byadd r+88 "1,0"
+		jmp done
+	end
+	call has p n "beta" as y
+	if y
+		call byadd r+88 "0.0,1.0e0"
+		jmp done
+	end
+	call has p n "both" as y
+	if y
+		call byadd r+88 "0.6,0.8"
+		jmp done
+	end
+	call has p n "three" as y
+	if y
+		call byadd r+88 "1,2,3"
+		jmp done
+	end
+	call byadd r+88 "1,1"
+	label done
+	call byadd r+88 "]],\"total_duration\":1}"
+	ret 0
+end
+call argv 1 as fp fn
+ifz fn
+	call die "usage: embed-fake PORTFILE\n"
+end
+call asynclisten 0x7f000001 0 as l
+call asyncport l as port
+call byaddn num port
+load num as p
+load num+8 as n
+call filewrite fp fn p n
+ref handle as f
+call httpdserve l f 0 as h
+await h as r

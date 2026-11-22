@@ -1,0 +1,111 @@
+# discovery
+> {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"test","version":"0"}}}
+< {"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{"tools":{}},"serverInfo":{"name":"aildb-mcp","version":"0.1.0"},"instructions":"Semantic search over an index of source files: the tool search returns paths and line ranges, at the revision it names, for a query in words."}}
+> {"jsonrpc":"2.0","method":"notifications/initialized"}
+> {"jsonrpc":"2.0","id":2,"method":"tools/list"}
+< {"jsonrpc":"2.0","id":2,"result":{"tools":[{"name":"search","description":"Find the source locations that are nearest in meaning to a query in words, in a local index of a repository. Returns paths with line ranges, the best first, and the revision of the sources they are of.","inputSchema":{"type":"object","properties":{"query":{"type":"string","description":"What to look for, in words: a question or a description of the code or text."},"k":{"type":"integer","minimum":1,"maximum":50,"default":10,"description":"The largest number of results."},"path_prefix":{"type":"string","description":"Only locations whose path starts with these bytes, as lib/std/."},"language":{"type":"string","description":"Only locations of this language, as the index names it."}},"required":["query"],"additionalProperties":false},"outputSchema":{"type":"object","properties":{"model":{"type":"string","description":"The embedding model of the snapshot."},"source_revision":{"type":["string","null"],"description":"The revision of the sources the snapshot was built from: open the lines at this revision."},"hits":{"type":"array","description":"The locations, the best first.","items":{"type":"object","properties":{"rank":{"type":"integer"},"path":{"type":"string"},"start_line":{"type":"integer"},"end_line":{"type":"integer"},"score":{"type":"number","description":"The cosine similarity, six digits."},"score_bits":{"type":"string","description":"The same as the bits of a binary64, in hexadecimal."}},"required":["rank","path","start_line","end_line","score","score_bits"]}}},"required":["model","source_revision","hits"]}}]}}
+
+# calls, and the command for the same vectors
+> {"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"search","arguments":{"query":"alpha"}}}
+< {"jsonrpc":"2.0","id":3,"result":{"content":[{"type":"text","text":"{\"model\":\"m\",\"source_revision\":\"rev1\",\"hits\":[{\"rank\":1,\"score\":1.000000,\"score_bits\":\"3ff0000000000000\",\"path\":\"a.aiw\",\"start_line\":1,\"end_line\":10},{\"rank\":2,\"score\":0.600000,\"score_bits\":\"3fe3333340000000\",\"path\":\"lib/c.aiw\",\"start_line\":20,\"end_line\":40},{\"rank\":3,\"score\":0.000000,\"score_bits\":\"0000000000000000\",\"path\":\"docs/b.md\",\"start_line\":5,\"end_line\":9}]}"}],"structuredContent":{"model":"m","source_revision":"rev1","hits":[{"rank":1,"score":1.000000,"score_bits":"3ff0000000000000","path":"a.aiw","start_line":1,"end_line":10},{"rank":2,"score":0.600000,"score_bits":"3fe3333340000000","path":"lib/c.aiw","start_line":20,"end_line":40},{"rank":3,"score":0.000000,"score_bits":"0000000000000000","path":"docs/b.md","start_line":5,"end_line":9}]},"isError":false}}
+$ aildb search s.idx -k 10
+{"source_revision":"rev1","model":"m"}
+{"rank":1,"score":1.000000,"score_bits":"3ff0000000000000","path":"a.aiw","start_line":1,"end_line":10}
+{"rank":2,"score":0.600000,"score_bits":"3fe3333340000000","path":"lib/c.aiw","start_line":20,"end_line":40}
+{"rank":3,"score":0.000000,"score_bits":"0000000000000000","path":"docs/b.md","start_line":5,"end_line":9}
+> {"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"search","arguments":{"query":"both of them","k":2}}}
+< {"jsonrpc":"2.0","id":4,"result":{"content":[{"type":"text","text":"{\"model\":\"m\",\"source_revision\":\"rev1\",\"hits\":[{\"rank\":1,\"score\":1.000000,\"score_bits\":\"3ff0000006666666\",\"path\":\"lib/c.aiw\",\"start_line\":20,\"end_line\":40},{\"rank\":2,\"score\":0.800000,\"score_bits\":\"3fe9999995c28f5d\",\"path\":\"docs/b.md\",\"start_line\":5,\"end_line\":9}]}"}],"structuredContent":{"model":"m","source_revision":"rev1","hits":[{"rank":1,"score":1.000000,"score_bits":"3ff0000006666666","path":"lib/c.aiw","start_line":20,"end_line":40},{"rank":2,"score":0.800000,"score_bits":"3fe9999995c28f5d","path":"docs/b.md","start_line":5,"end_line":9}]},"isError":false}}
+$ aildb search s.idx -k 2
+{"source_revision":"rev1","model":"m"}
+{"rank":1,"score":1.000000,"score_bits":"3ff0000006666666","path":"lib/c.aiw","start_line":20,"end_line":40}
+{"rank":2,"score":0.800000,"score_bits":"3fe9999995c28f5d","path":"docs/b.md","start_line":5,"end_line":9}
+> {"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"search","arguments":{"query":"beta","k":5,"language":"ail"}}}
+< {"jsonrpc":"2.0","id":5,"result":{"content":[{"type":"text","text":"{\"model\":\"m\",\"source_revision\":\"rev1\",\"hits\":[{\"rank\":1,\"score\":0.800000,\"score_bits\":\"3fe99999a0000000\",\"path\":\"lib/c.aiw\",\"start_line\":20,\"end_line\":40},{\"rank\":2,\"score\":0.000000,\"score_bits\":\"0000000000000000\",\"path\":\"a.aiw\",\"start_line\":1,\"end_line\":10}]}"}],"structuredContent":{"model":"m","source_revision":"rev1","hits":[{"rank":1,"score":0.800000,"score_bits":"3fe99999a0000000","path":"lib/c.aiw","start_line":20,"end_line":40},{"rank":2,"score":0.000000,"score_bits":"0000000000000000","path":"a.aiw","start_line":1,"end_line":10}]},"isError":false}}
+$ aildb search s.idx -k 5 -l ail
+{"source_revision":"rev1","model":"m"}
+{"rank":1,"score":0.800000,"score_bits":"3fe99999a0000000","path":"lib/c.aiw","start_line":20,"end_line":40}
+{"rank":2,"score":0.000000,"score_bits":"0000000000000000","path":"a.aiw","start_line":1,"end_line":10}
+> {"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"search","arguments":{"query":"beta","path_prefix":"lib/","language":"ail"}}}
+< {"jsonrpc":"2.0","id":6,"result":{"content":[{"type":"text","text":"{\"model\":\"m\",\"source_revision\":\"rev1\",\"hits\":[{\"rank\":1,\"score\":0.800000,\"score_bits\":\"3fe99999a0000000\",\"path\":\"lib/c.aiw\",\"start_line\":20,\"end_line\":40}]}"}],"structuredContent":{"model":"m","source_revision":"rev1","hits":[{"rank":1,"score":0.800000,"score_bits":"3fe99999a0000000","path":"lib/c.aiw","start_line":20,"end_line":40}]},"isError":false}}
+$ aildb search s.idx -k 10 -p lib/ -l ail
+{"source_revision":"rev1","model":"m"}
+{"rank":1,"score":0.800000,"score_bits":"3fe99999a0000000","path":"lib/c.aiw","start_line":20,"end_line":40}
+
+# nothing found, and arguments that are wrong
+> {"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"search","arguments":{"query":"alpha","language":"rust"}}}
+< {"jsonrpc":"2.0","id":7,"result":{"content":[{"type":"text","text":"{\"model\":\"m\",\"source_revision\":\"rev1\",\"hits\":[]}"}],"structuredContent":{"model":"m","source_revision":"rev1","hits":[]},"isError":false}}
+> {"jsonrpc":"2.0","id":8,"method":"tools/call","params":{"name":"search","arguments":{"k":3}}}
+< {"jsonrpc":"2.0","id":8,"result":{"content":[{"type":"text","text":"query is to be a string"}],"isError":true}}
+> {"jsonrpc":"2.0","id":9,"method":"tools/call","params":{"name":"search","arguments":{"query":"alpha","k":51}}}
+< {"jsonrpc":"2.0","id":9,"result":{"content":[{"type":"text","text":"k is to be a whole number from 1 to 50"}],"isError":true}}
+> {"jsonrpc":"2.0","id":10,"method":"tools/call","params":{"name":"search","arguments":{"query":"alpha","k":"3"}}}
+< {"jsonrpc":"2.0","id":10,"result":{"content":[{"type":"text","text":"k is to be a whole number from 1 to 50"}],"isError":true}}
+> {"jsonrpc":"2.0","id":11,"method":"tools/call","params":{"name":"search","arguments":{"query":""}}}
+< {"jsonrpc":"2.0","id":11,"result":{"content":[{"type":"text","text":"query is to have a text"}],"isError":true}}
+> {"jsonrpc":"2.0","id":12,"method":"tools/call","params":{"name":"search","arguments":{"query":"alpha","language":7}}}
+< {"jsonrpc":"2.0","id":12,"result":{"content":[{"type":"text","text":"path_prefix and language are to be strings"}],"isError":true}}
+> {"jsonrpc":"2.0","id":21,"method":"tools/call","params":{"name":"search","arguments":{"query":"beta","path_prefix":"lib/\u0000x"}}}
+< {"jsonrpc":"2.0","id":21,"result":{"content":[{"type":"text","text":"path_prefix has a NUL byte, which no argument of a command can hold"}],"isError":true}}
+> {"jsonrpc":"2.0","id":22,"method":"tools/call","params":{"name":"search","arguments":{"query":"beta","language":"ail\u0000"}}}
+< {"jsonrpc":"2.0","id":22,"result":{"content":[{"type":"text","text":"language has a NUL byte, which no argument of a command can hold"}],"isError":true}}
+> {"jsonrpc":"2.0","id":13,"method":"tools/call","params":{"name":"find","arguments":{}}}
+< {"jsonrpc":"2.0","id":13,"error":{"code":-32602,"message":"Unknown tool: find"}}
+
+# the model
+> {"jsonrpc":"2.0","id":14,"method":"tools/call","params":{"name":"search","arguments":{"query":"refuse"}}}
+< {"jsonrpc":"2.0","id":14,"result":{"content":[{"type":"text","text":"the embedding model refused: status 500 {\"error\":\"the model is not loaded\"}"}],"isError":true}}
+> {"jsonrpc":"2.0","id":15,"method":"tools/call","params":{"name":"search","arguments":{"query":"junk"}}}
+< {"jsonrpc":"2.0","id":15,"result":{"content":[{"type":"text","text":"the embedding model answered without a vector"}],"isError":true}}
+> {"jsonrpc":"2.0","id":16,"method":"tools/call","params":{"name":"search","arguments":{"query":"three"}}}
+< {"jsonrpc":"2.0","id":16,"result":{"content":[{"type":"text","text":"the search failed: aildb: standard input: holds more than 8 bytes, and a query of 2 dimensions is 8"}],"isError":true}}
+
+# the snapshot is replaced: another revision, two records
+> {"jsonrpc":"2.0","id":17,"method":"tools/call","params":{"name":"search","arguments":{"query":"both"}}}
+< {"jsonrpc":"2.0","id":17,"result":{"content":[{"type":"text","text":"{\"model\":\"m\",\"source_revision\":\"rev2\",\"hits\":[{\"rank\":1,\"score\":0.800000,\"score_bits\":\"3fe9999995c28f5d\",\"path\":\"docs/b.md\",\"start_line\":5,\"end_line\":9},{\"rank\":2,\"score\":0.600000,\"score_bits\":\"3fe333333851eb82\",\"path\":\"a.aiw\",\"start_line\":1,\"end_line\":10}]}"}],"structuredContent":{"model":"m","source_revision":"rev2","hits":[{"rank":1,"score":0.800000,"score_bits":"3fe9999995c28f5d","path":"docs/b.md","start_line":5,"end_line":9},{"rank":2,"score":0.600000,"score_bits":"3fe333333851eb82","path":"a.aiw","start_line":1,"end_line":10}]},"isError":false}}
+
+# replaced again, by one of three dimensions and the same model
+> {"jsonrpc":"2.0","id":19,"method":"tools/call","params":{"name":"search","arguments":{"query":"three"}}}
+< {"jsonrpc":"2.0","id":19,"result":{"content":[{"type":"text","text":"{\"model\":\"m\",\"source_revision\":\"rev3\",\"hits\":[{\"rank\":1,\"score\":0.801784,\"score_bits\":\"3fe9a8365810363f\",\"path\":\"wide.aiw\",\"start_line\":1,\"end_line\":2},{\"rank\":2,\"score\":0.267261,\"score_bits\":\"3fd11acee560242a\",\"path\":\"x.aiw\",\"start_line\":3,\"end_line\":4}]}"}],"structuredContent":{"model":"m","source_revision":"rev3","hits":[{"rank":1,"score":0.801784,"score_bits":"3fe9a8365810363f","path":"wide.aiw","start_line":1,"end_line":2},{"rank":2,"score":0.267261,"score_bits":"3fd11acee560242a","path":"x.aiw","start_line":3,"end_line":4}]},"isError":false}}
+> {"jsonrpc":"2.0","id":20,"method":"tools/call","params":{"name":"search","arguments":{"query":"alpha"}}}
+< {"jsonrpc":"2.0","id":20,"result":{"content":[{"type":"text","text":"the search failed: aildb: standard input: holds 8 bytes, and a query of 3 dimensions is 12"}],"isError":true}}
+
+# the snapshot is gone
+> {"jsonrpc":"2.0","id":18,"method":"tools/call","params":{"name":"search","arguments":{"query":"alpha"}}}
+< {"jsonrpc":"2.0","id":18,"result":{"content":[{"type":"text","text":"the search failed: aildb: s.idx: cannot open: no such file or directory"}],"isError":true}}
+the server ended with status 0
+
+# a limit of 300 ms and an answer after two seconds
+> {"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"search","arguments":{"query":"slow"}}}
+< {"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"the embedding model could not be asked: error 62, no answer in the time it may take"}],"isError":true}}
+> {"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"search","arguments":{"query":"drip"}}}
+< {"jsonrpc":"2.0","id":3,"result":{"content":[{"type":"text","text":"the embedding model could not be asked: error 62, no answer in the time it may take"}],"isError":true}}
+answered within a second: 1
+> {"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"search","arguments":{"query":"alpha","k":1}}}
+< {"jsonrpc":"2.0","id":2,"result":{"content":[{"type":"text","text":"{\"model\":\"m\",\"source_revision\":\"rev1\",\"hits\":[{\"rank\":1,\"score\":1.000000,\"score_bits\":\"3ff0000000000000\",\"path\":\"a.aiw\",\"start_line\":1,\"end_line\":10}]}"}],"structuredContent":{"model":"m","source_revision":"rev1","hits":[{"rank":1,"score":1.000000,"score_bits":"3ff0000000000000","path":"a.aiw","start_line":1,"end_line":10}]},"isError":false}}
+the server ended with status 0
+
+# six descriptors at most
+> {"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"search","arguments":{"query":"alpha"}}}
+< {"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"the command of aildb could not be run"}],"isError":true}}
+> {"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"search","arguments":{"query":"alpha"}}}
+< {"jsonrpc":"2.0","id":2,"result":{"content":[{"type":"text","text":"the command of aildb could not be run"}],"isError":true}}
+> {"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"search","arguments":{"query":"alpha"}}}
+< {"jsonrpc":"2.0","id":3,"result":{"content":[{"type":"text","text":"the command of aildb could not be run"}],"isError":true}}
+the server ended with status 0
+
+# nobody runs the model
+> {"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"search","arguments":{"query":"alpha"}}}
+< {"jsonrpc":"2.0","id":1,"result":{"content":[{"type":"text","text":"the embedding model could not be asked: error 111, nobody listens at the endpoint"}],"isError":true}}
+the server ended with status 0
+
+# starts that fail
+$ aildb-mcp -s s.idx -i nomic-embed-text
+status 3, stdout 0 bytes: aildb-mcp: the snapshot is of the model "m"
+$ aildb-mcp -s absent.idx -i m
+status 3, stdout 0 bytes: aildb-mcp: aildb: absent.idx: cannot open: no such file or directory
+$ aildb-mcp -s s.idx
+status 2, stdout 0 bytes: usage: aildb-mcp -s SNAPSHOT -i MODEL -e ENDPOINT [-a AILDB] [-p PREFIX] [-t MS]
+$ aildb-mcp -s s.idx -i m -t 0
+status 2, stdout 0 bytes: usage: aildb-mcp -s SNAPSHOT -i MODEL -e ENDPOINT [-a AILDB] [-p PREFIX] [-t MS]
+$ aildb-mcp -s junk.idx -i m
+status 3, stdout 0 bytes: aildb-mcp: aildb: junk.idx: not a snapshot

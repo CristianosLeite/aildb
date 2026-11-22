@@ -1,10 +1,15 @@
 ---
 title: How a query is measured
-last-verified: 2026-11-21
+last-verified: 2026-11-22
 sources: [conversation 2026-11-21, docs/performance.md, bench/run.aiw, bench/hook.aiw, bench/scan.aiw, bench/bench.sh, bench/lance_make.py, bench/lance_query.py, tests/bench_tools.aiw]
 status: current
 ---
 # How a query is measured
+
+**Where the programs are.** Since 2026-11-22 they are in the repository aildb-bench
+(user, 2026-11-22; [the decision](../architecture/requirements-decisions.md)), and the
+paths `bench/...` and `tests/bench_...` of this page are paths there. This page is about
+the run of 2026-11-21, made with the programs as they were here at `4a21a3e`.
 
 **Summary.** The harness of acceptance check 4 is `build/bench-run`, an AIL program that
 starts a command once a round and reads the clock around it. The parts of a search are

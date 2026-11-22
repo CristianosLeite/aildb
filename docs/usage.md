@@ -62,7 +62,11 @@ snapshot that is there. `INDEX` is any path whose name does not end in
   lines of the metadata. Its size is exactly 4 times `DIMENSION` times the
   number of lines. Every element is finite, and no vector is all zeros; a
   vector need not have the norm 1, since `build` normalizes it
-  ([format.md](format.md#vectors)).
+  ([format.md](format.md#vectors)). It is a regular file, which `build`
+  maps: a directory, a device or a named pipe is an I/O failure, status
+  4, and a named pipe is not waited for. The metadata and the query of
+  `search` are read and may be a pipe, which is read to its end as any
+  reader of a pipe does.
 - `-m METADATA`: a text file with one line for each record, every line
   ended by a line feed, the last one too. A line is four fields with one
   tab between them:
@@ -199,3 +203,7 @@ line on standard error and status 3; a file that cannot be read, status 4:
 aildb: old.idx: invalid snapshot: the checksum of the vectors differs
 aildb: absent.idx: cannot open: no such file or directory
 ```
+
+A snapshot is a regular file. A directory, a device or a named pipe is a
+file that cannot be opened, status 4, said at once: `check` and `search`
+do not wait for a writer of a named pipe.

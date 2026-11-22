@@ -30,86 +30,51 @@ Nothing is left of this step (`BACKLOG.md`).
 
 Version 0.1.0 is tagged (`BACKLOG.md`).
 
-- [ ] An executable published with a release (user, 2026-11-22):
-  `build/aildb` of the tagged revision, with `LICENSE` and `NOTICE`.
-  Build from the release tag with an identified AIL revision and attach
-  a Linux x86-64 archive and its SHA-256 checksum to the release.
-  Smoke-test the extracted executable's `build`, `check` and `search`
-  on a clean Linux x86-64 environment without AIL installed. Decide
-  whether to add an archive to `v0.1.0` or start with the next release.
+- [ ] Attach the archive of `make dist` and its `.sha256` to the release
+  `v0.1.0` (user, 2026-11-22: the archive is for `v0.1.0`), which is a
+  draft without files; it is done at the user's word. The archive is
+  made and tried (`BACKLOG.md`).
 
 ## 13. The measurements in a repository of their own
 
-- [ ] Move `bench/` to a repository `aildb-bench` (user, 2026-11-22), as
-  the benchmarks of AIL are in ail-bench: the programs of the
-  measurements, `make bench` and their tests leave this repository, and
-  `docs/performance.md` says where its figures come from.
-  Record the engine, harness and compiler revisions alongside the commands
-  and environment for each run. Keep the original report tied to the
-  revisions used to produce it.
+The programs are in the repository
+[aildb-bench](https://github.com/CristianosLeite/aildb-bench) (`BACKLOG.md`).
 
-- [ ] Extend the benchmark to cover filtered queries, larger corpora and
-  repeated queries in a process with an open snapshot or table. Keep the
-  same stored vectors, queries and result limits across engines. Report
-  startup and open time separately from query latency. Measure warm and
-  cold file-cache runs for both process models. Use the results and a
-  stated latency target to decide whether to prototype a parallel scan
-  or an approximate index.
+- [ ] The measurements of filters, of a process that stays and of
+  1,000,000 records are made (`BACKLOG.md`; the figures are in
+  `docs/performance.md` of aildb-bench). Left: make the run again on a
+  machine that is left alone, state a latency target, and decide with
+  both whether to prototype a parallel scan or an approximate index
+  (user, 2026-11-22: measure only, for now).
 
 ## 14. Snapshot input handling
 
-- [ ] Reject a named pipe passed as a snapshot promptly. `snapopen`
-  opens the path before `fstat`, so `check` and `search` can wait for a
-  FIFO writer before reaching the regular-file check. Open the path with
-  `O_NONBLOCK` and validate the type on the returned descriptor before
-  mapping. Review the same pattern in `build -v`, which also expects a
-  regular file. Add timeout-bounded regression tests for a FIFO without a
-  writer and verify that regular files still work.
+Nothing is left of this step (`BACKLOG.md`).
 
 ## 15. Semantic retrieval evaluation
 
-- [ ] Create a fixed query set with expected source locations at a pinned
-  corpus revision. Start with all ten queries from the original example
-  run, including the four outside the top five, and add queries from other
-  repositories before tuning. Record the embedding model digest and
-  chunking settings. Record the rank of the first matching location for
-  each query and report hit rate at k and mean reciprocal rank. Use the
-  same queries to compare chunk sizes, overlap and embedding models.
-  Keep the existing example as a smoke test for the path from source
-  files to ranked locations and for snapshot copies. See the [original
-  example results](example.md#what-it-showed).
+The fixed queries, their places and the measures are done (`BACKLOG.md`,
+[evaluation.md](evaluation.md)).
+
+- [ ] Use the queries of `make eval` to compare chunk sizes, overlap,
+  the path as part of the embedded text and embedding models. The limits
+  of a chunk are constants of `example/chunk.aiw` and the model, its
+  dimension and its prefixes constants of `example/embed.py`; make them
+  arguments, run each variant on both corpora and add the measures to
+  `docs/evaluation.md`. Add queries on a repository of another author
+  first, in a language the chunker is taught, since both corpora are
+  AIL and Markdown.
 
 ## 16. MCP server for coding agents
 
-- [ ] Implement a local, read-only Model Context Protocol server for
-  Codex and Claude Code. Start with a separate `aildb-mcp` process over
-  [stdio](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports).
-  Consider the [official Python SDK](https://github.com/modelcontextprotocol/python-sdk)
-  for the adapter and keep ranking in AIL. Configure one snapshot path
-  and a local embedding endpoint at startup. Use stdout for MCP messages
-  and stderr for diagnostics.
+The server is written (`BACKLOG.md`, [mcp.md](mcp.md)).
 
-  Expose a `search` tool accepting query text, a bounded `k` and the
-  optional path-prefix and language filters. Generate the query vector
-  with the model and query prefix used by the indexed corpus. Check the
-  embedding dimension and pass the configured model identifier to
-  `aildb search`. Invoke the CLI without a shell and send binary32
-  query bytes on stdin. Return an object with the model, source revision
-  and ranked hits with paths, line ranges, scores and `score_bits`.
-  Define input and output schemas using the
-  [MCP tools contract](https://modelcontextprotocol.io/specification/2025-11-25/server/tools).
-
-  Keep snapshot publication in the `build` CLI. Keep the snapshot path,
-  model and embedding endpoint in server configuration. Apply timeouts
-  to embedding and search, and report snapshot, model and provider
-  failures as tool errors. A CLI call per query opens the current
-  snapshot after a rebuild. If measurements justify keeping a mapping
-  open, consider an AIL worker using `src/lib/search.aiw` and test its
-  reload behavior across atomic replacements.
-
-  Test discovery and calls over stdio with a deterministic embedding
-  provider and a fixture snapshot. Compare ranks, filters and score bits
-  with the CLI. Cover empty results, mismatched models, provider
-  failures and snapshot replacement. Document installation and verify
-  one search from Codex and Claude Code, including opening the returned
-  source lines at the reported revision.
+- [ ] Give the server SDK an address: `mcp/Ailfile` names the module
+  `mcp` of ail-extensions by its directory beside this repository,
+  since a dependency by address is a repository with the package at its
+  top. Until then `make mcp-test` is no part of `make test`. It also
+  needs a version of AIL that has the libraries (an item of the TODO of
+  AIL).
+- [ ] If the measurements of aildb-bench justify keeping a mapping open,
+  an AIL worker on `src/lib/search.aiw` in place of a command a query,
+  with a test of its reload across atomic replacements.

@@ -1,7 +1,7 @@
 # aildb is a package of AIL (Ailfile), built and tested by the command
 # ail: "ail build" compiles build/aildb from src/aildb.aiw, and
 # "ail test" runs the tests. The targets all, test and clean are those
-# commands, for whoever types make; example and bench are what the
+# commands, for whoever types make; the others are what the
 # command does not do. AIL names the command, if it is not on PATH:
 #   make AIL=../ail/build/ail
 AIL ?= ail
@@ -52,18 +52,43 @@ example:
 	cp $(E)/ail.idx $(E)/copy/moved.idx
 	$(B)/example-check $(B)/aildb $(E)/ail.idx $(E)/copy/moved.idx example/queries.tsv $(E)/queries.bin
 
-# The measurements of acceptance check 4 (docs/performance.md), against
-# the Python binding of LanceDB, with the programs of bench/: the
-# harness, the generator of the inputs, the scan with three ways of
-# reading, and the engine with hooks that say the times of its parts.
-# PY is a Python that has the package lancedb.
-PY ?= python3
-bench:
+# The retrieval evaluation (docs/evaluation.md): for each corpus of
+# CORPORA, a repository and revision in example/eval/<corpus>.pin with
+# the queries of example/eval/<corpus>.tsv, the place at which each query
+# finds its lines, how many are among the first 1, 5 and 10, and the mean
+# reciprocal rank. It needs a running Ollama, as the example does, and
+# writes build/eval/report.txt.
+CORPORA ?= ail aildb
+eval:
 	$(AIL) build
-	for p in bench-run bench-gen bench-scan aildb-times; do $(AIL) build $$p || exit 1; done
-	AIL=$(AIL) bench/bench.sh $(PY)
+	$(AIL) build chunk
+	$(AIL) build example-eval
+	tools/eval.sh $(AIL) $(CORPORA)
+
+# The MCP server, mcp/ (docs/mcp.md), a package of its own: its test
+# and its indentation. It needs an AIL that has lib/std/json.aiw and
+# lib/net/http.aiw, and the module mcp of ail-extensions beside this
+# repository, so it is no part of make test.
+mcp-test:
+	$(AIL) build
+	cd mcp && $(AILCMD) test && $(AILCMD) fmt --check
+
+# The archive of a release (README.md, "The executable"): the
+# executable of the revision REV, by default the tag of the version in
+# Ailfile, built by this command of AIL from the sources that git has at
+# that revision, with LICENSE, NOTICE and a file BUILD that names the
+# two revisions: build/dist/aildb-<version>-x86_64-linux.tar.gz and its
+# .sha256. dist-check unpacks it in a container that has no AIL, of the
+# image IMAGE, and runs build, check and search there; it needs Docker.
+REV ?= v$(shell sed -n 's/^version //p' Ailfile)
+IMAGE ?= debian:stable-slim
+dist:
+	tools/dist.sh $(REV) $(AIL)
+
+dist-check:
+	tools/dist-check.sh $(IMAGE)
 
 clean:
 	$(AIL) clean
 
-.PHONY: all test example bench clean
+.PHONY: all test example eval mcp-test dist dist-check clean
