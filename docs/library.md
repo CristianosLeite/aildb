@@ -46,7 +46,7 @@ call snapopen snap "index.aildb" as r       # 0, or why it is no snapshot
 call fileread "query.bin" query as r        # the binary32 of the query
 call searchdim snap as dim
 load query as p
-alloc dim*8 as q
+alloc dim*8 as q                            # 0 without memory
 call searchquery snap p q as r              # the query, of the norm 1
 call searchrun snap sel q 10 0 0 0 0 as r o # the 10 best, no filter
 call searchcount sel as c

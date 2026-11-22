@@ -38,6 +38,9 @@ if r!=dim*4
 end
 load query as p
 alloc dim*8 as q
+ifz q
+	call die "consumer: out of memory\n"
+end
 call searchquery snap p q as r
 if r
 	call die "consumer: the query is no vector\n"
