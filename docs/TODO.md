@@ -78,7 +78,13 @@ The server is written (`BACKLOG.md`, [mcp.md](mcp.md)).
   ([mcp.md](mcp.md#what-was-checked)). A direct call through the Codex
   app server with temporary configuration and local Ollama matched all
   three CLI hits, including `score_bits`. The first hit was checked
-  against the source at the returned revision.
+  against the source at the returned revision. An agent-driven session
+  of `codex exec` (0.171.0, 2026-11-22, the server given with `-c` for
+  that run alone) discovered the tool and tried the call, which Codex
+  did not make: "MCP tool call requires approval, but approval policy
+  is never". What is left is a session in which the call is approved,
+  by the user at the prompt of an interactive session or by a setting
+  of the user's.
 - [ ] Give the server SDK an address: `mcp/Ailfile` names the module
   `mcp` of ail-extensions by its directory beside this repository,
   since a dependency by address is a repository with the package at its
