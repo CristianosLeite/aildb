@@ -50,7 +50,23 @@ time in a second one, `build/aildb-times`. `docs/performance.md` defines each ti
   environment made with `uv` at `~/.cache/aildb-bench/venv` on the user's machine,
   Python 3.12 with lancedb 0.41.0, named to `make bench` as `PY`.
 
-## What is tested and what is not
+## What the figures decided (agent, 2026-11-21, for the user to review)
+
+`make bench` at `4a21a3e`, i7-12700H, processor 2, ext4 on NVMe; `docs/performance.md`
+has every figure. At 100,000 vectors of 768 dimensions: 38 ms warm and 182 ms cold end
+to end, 35.6 ms of search warm; LanceDB 0.41.0 in a process a query 0.85 to 0.98
+seconds, its search 284 ms on one processor and 217 ms on all.
+
+- **The read-only mapping stays**: a fifth faster than `pread64` warm, within a tenth
+  cold. `MAP_POPULATE` was measured and refused: 38 percent slower cold.
+- **No approximate index in version 1**: exact search is fast enough at the sizes the
+  first use reaches, and an index gives up reproducible results and the plain file.
+- **No parallel scan in version 1**: 36 ms to divide warm at 100,000, and cold the
+  drive decides. To be measured again near a million vectors.
+- The comparison is a process a query, which was the decision of 2026-11-21; a LanceDB
+  process that stays was not measured and the document says so.
+- Not explained: `bench-scan` with a mapping is a tenth slower at 100,000 than the
+  engine reading the same way (41.9 against 38.1 ms).
 
 `tests/bench_stat.aiw` has the median, the percentile and the rounding to milliseconds.
 `tests/bench_tools.aiw` has the generator's bytes (the 16 elements it prints were

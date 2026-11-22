@@ -42,8 +42,8 @@ and `a5b4559`, 2026-11-21); `make test` passed there.
   `a5b4559`, the head of the branch `binary32`, which was on the remote of
   the AIL repository on 2026-11-21. A clone of this repository on that day
   fetched it, built the compiler from the seed and passed `make test`.
-  The branch is not merged into `main` there; if it is merged as other
-  commits, the pin moves to one of them.
+  The branch was merged into `main` there afterwards (`e8acf57`) with
+  its commits kept, so the pin stays.
 
 ## 2. Skeleton
 
@@ -150,6 +150,19 @@ the file to another path and verify the same query results.
 
 ## 10. Measurement, and acceptance check 4
 
+Acceptance check 4: measure top-10 at 10,000 and 100,000 vectors of 768
+dimensions. Report median and p95 end-to-end latency for cold and warm
+file-cache conditions, search time apart from startup, peak resident
+memory, and file size. Compare exact search with the Python binding of
+LanceDB on the same inputs and report the hardware, revisions, commands,
+cache procedure, and rounds. Use the results to decide whether approximate
+indexing or parallel scans are warranted, and measure again the choice of
+a read-only mapping. Give both engines the same stored vector values,
+query and result limit; define the timing boundaries for process startup,
+snapshot or table opening, search and result materialization; document
+how cold-cache conditions are verified for each engine's files and how
+mapped pages contribute to reported peak resident memory.
+
 - [x] The harness in AIL: `build/bench-run` runs a command for a number
   of rounds, warm or with the files put out of the cache by `fadvise64`
   and verified with `mincore`, and reports wall time, the parts of it
@@ -163,3 +176,6 @@ the file to another path and verify the same query results.
   of it. `docs/performance.md` has the boundaries of each time, how the
   cold cache is verified for the files of each engine, and how mapped
   pages count in the peak resident memory.
+- [x] `docs/performance.md` with the figures at 10,000 and 100,000 vectors
+  of `make bench` on 2026-11-21, and the decisions: the read-only mapping
+  stays, and version 1 has no approximate index and no parallel scan.

@@ -24,24 +24,6 @@ The statements are written and `ail.pin` names the revision that has them
 
 - [ ] Float literals (user's proposal): not needed for version 1.
 
-## 10. Measurement, and acceptance check 4
-
-Acceptance check 4: measure top-10 at 10,000 and 100,000 vectors of 768
-dimensions. Report median and p95 end-to-end latency for cold and warm
-file-cache conditions, search time apart from startup, peak resident
-memory, and file size. Compare exact search with the Python binding of
-LanceDB on the same inputs and report the hardware, revisions, commands,
-cache procedure, and rounds. Use the results to decide whether approximate
-indexing or parallel scans are warranted, and measure again the choice of
-a read-only mapping. Give both engines the same stored vector values,
-query and result limit; define the timing boundaries for process startup,
-snapshot or table opening, search and result materialization; document
-how cold-cache conditions are verified for each engine's files and how
-mapped pages contribute to reported peak resident memory.
-
-- [ ] `docs/performance.md` with the figures at 10,000 and 100,000 vectors
-  and the decision on approximate indexes and parallel scans.
-
 ## 11. Release
 
 - [ ] `README.md`: how to build, the three commands, the example.

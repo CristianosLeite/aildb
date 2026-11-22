@@ -6,7 +6,7 @@ The first application is semantic search over a source repository: given the emb
 
 ## Status
 
-Being written. The three commands work and are tested, against an independent implementation and under interruption among others; an end-to-end example indexes the AIL repository ([docs/example.md](docs/example.md)); the measurements are still to come: [docs/TODO.md](docs/TODO.md) has the steps that are left, with what each must show, and the questions still open are listed in [.agents/knowledge/status/open-items.md](.agents/knowledge/status/open-items.md).
+Being written. The three commands work and are tested, against an independent implementation and under interruption among others; an end-to-end example indexes the AIL repository ([docs/example.md](docs/example.md)); the measurements, also against LanceDB, are in [docs/performance.md](docs/performance.md): [docs/TODO.md](docs/TODO.md) has the steps that are left, with what each must show, and the questions still open are listed in [.agents/knowledge/status/open-items.md](.agents/knowledge/status/open-items.md).
 
 ## Version 1 in short
 
@@ -23,7 +23,7 @@ SQL, approximate indexes, incremental writes and a network service are outside v
 - [docs/format.md](docs/format.md): the format of the snapshot file, its checks and the precision of a score
 - [docs/durability.md](docs/durability.md): what a build leaves when it is interrupted, and what is assumed of the filesystem and the storage when power is lost
 - [docs/example.md](docs/example.md): the example, `make example`, which indexes the AIL repository with a local embedding model and queries it
-- [docs/performance.md](docs/performance.md): how the time and the memory of a query are measured, also against LanceDB
+- [docs/performance.md](docs/performance.md): the time and the memory of a query at 10,000 and 100,000 vectors, how they are measured, the comparison with LanceDB and what was decided from it
 - [AGENTS.md](AGENTS.md): guidance for AI coding agents, with the rules of the repository and what AIL offers the project
 - [.agents/knowledge/INDEX.md](.agents/knowledge/INDEX.md): the knowledge base, decisions and their reasons
 

@@ -85,8 +85,8 @@ documented.
 - **The binary32 statements are added to the AIL repository by the agent, on a branch that
   is not pushed**; the user reviews and publishes it, and `ail.pin` moves to the published
   revision afterwards. Done on 2026-11-21: the branch `binary32` was on the remote with
-  `a5b4559` as its head, and `ail.pin` names that commit. It is not merged into `main` of
-  the AIL repository, so a merge that makes other commits of it moves the pin again.
+  `a5b4559` as its head, and `ail.pin` names that commit. It was merged into `main` of
+  the AIL repository the same day (`e8acf57`) with its commits kept, so the pin stays.
 
 ## Licence (user, 2026-11-21)
 - aildb is distributed under the Apache License 2.0. The file `LICENSE` is
