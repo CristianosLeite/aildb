@@ -30,7 +30,7 @@ is one, and `example/consumer` imports it.
 
 ## 11. Release
 
-- [ ] The release itself, which is the user's: the tag `v<version>` of
-  the version in `Ailfile`, 0.1.0 as it stands, after the packages are
-  in `main` of AIL and AIL has its own tag; an executable that is passed
-  on goes with `LICENSE` and `NOTICE`.
+Version 0.1.0 is tagged (`BACKLOG.md`).
+
+- [ ] Whether an executable is published with a release (user's
+  decision): one that is passed on goes with `LICENSE` and `NOTICE`.

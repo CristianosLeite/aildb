@@ -21,8 +21,8 @@ cloned AIL and the two test scripts are gone.
 - **`Ailfile` replaces `ail.pin`** (agent, 2026-11-22, in the plan the user approved).
   aildb asks for a version of AIL, `ail 0.1.0`, and is built by the AIL that is installed
   or named with `make AIL=`. What is lost: the exact revision of AIL that a clone was
-  built and tested against. A version of AIL is a tag once the user gives one; until
-  then 0.1.0 is whatever its branch has.
+  built and tested against. A version of AIL is a tag: `v0.1.0` is its `9b94a9b`
+  (2026-11-22), and `v0.1.0` of aildb is `467b91b`, built and tested with it.
 - **The manifest is called `Ailfile`** and a lock `Ailfile.lock` (user, 2026-11-22;
   pull request 26 of AIL). It was `ail.pkg` until the same day: `.pkg` is the installer
   package of macOS and of other systems, and a tool that goes by the extension takes
