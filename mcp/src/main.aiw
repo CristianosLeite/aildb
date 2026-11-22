@@ -33,7 +33,7 @@ use "lib/async/task.aiw"
 use "lib/async/time.aiw"
 use "lib/async/io.aiw"
 use "lib/net/http.aiw"
-use "mcp:src/mcp.aiw"
+use "ail-extensions:mcp/src/mcp.aiw"
 
 const memfd 319
 const lseek 8
