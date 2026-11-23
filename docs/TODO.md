@@ -35,9 +35,6 @@ Versions 0.1.0 and 0.1.1 are tagged (`BACKLOG.md`).
   draft without files; `v0.1.1` has no release yet). The archive of
   `v0.1.0` is made and tried (`BACKLOG.md`); it is done at the user's
   word.
-- [ ] Name aildb 0.1.1 in `example/consumer`, which still names 0.1.0:
-  the tag `v0.1.1` is needed first, and is on the merge of the change
-  that made the version.
 
 ## 13. The measurements in a repository of their own
 

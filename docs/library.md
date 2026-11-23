@@ -5,7 +5,7 @@ written in AIL can search a snapshot itself, with the functions the
 command is made of. This page is how a program gets them and what they
 are. `example/consumer` is such a program, with a test that compares its
 results with those of the command; `make test` runs it. It names aildb
-as above, by its address and the version 0.1.0, so what it searches with
+as above, by its address and the version 0.1.1, so what it searches with
 is the library of that tag, not the one of the checkout it lies in, and
 its first test in a new checkout fetches the tag from the network.
 
@@ -17,10 +17,10 @@ writes ([its documentation](https://github.com/CristianosLeite/ail/blob/main/doc
 ```
 ail new finder
 cd finder
-ail add https://github.com/CristianosLeite/aildb.git 0.1.0
+ail add https://github.com/CristianosLeite/aildb.git 0.1.1
 ```
 
-That takes a released version, its tag `v0.1.0`; without the number it
+That takes a released version, its tag `v0.1.1`; without the number it
 is the newest tag. `ail` writes the revision the tag names into
 `Ailfile.lock`, which is kept with the sources, and clones aildb into
 `deps/aildb` when the package is next built. `ail add --path ../aildb`

@@ -87,5 +87,5 @@ cloned AIL and the two test scripts are gone.
   the pull request 11.
 - `example/consumer` still names aildb 0.1.0 at that tag: a package cannot name a version
   of the repository it is in before that version is tagged, as it was with 0.1.0, where
-  the consumer named the directory first and the address afterwards. A change after the
-  tag names 0.1.1.
+  the consumer named the directory first and the address afterwards. The change after the
+  tag names 0.1.1, the revision `355920b`.
