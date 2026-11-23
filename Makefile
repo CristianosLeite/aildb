@@ -29,7 +29,8 @@ else
 endif
 
 # The example, acceptance check 1 (docs/example.md): the files of the
-# repository and revision in example/corpus.pin are cut into chunks,
+# repository and revision in example/corpus.pin are cut into chunks
+# (build/chunk -c, the sources of AIL and Markdown as they were cut then),
 # build/embed asks a running Ollama for the embeddings of the
 # chunks and of the queries, build makes the snapshot, and
 # build/example-check searches it and a copy of it at another path for
@@ -48,7 +49,7 @@ example:
 	git clone -q --no-checkout $(URL) $(E)/repo
 	git -C $(E)/repo archive $(PIN) | tar -x -C $(E)/src
 	git -C $(E)/repo ls-tree -r --name-only $(PIN) > $(E)/list
-	$(B)/chunk $(E)/src $(E)/meta.tsv $(E)/text.jsonl < $(E)/list
+	$(B)/chunk -c $(E)/src $(E)/meta.tsv $(E)/text.jsonl < $(E)/list
 	$(B)/embed document $(E)/text.jsonl $(E)/vectors.bin
 	$(B)/embed query example/queries.tsv $(E)/queries.bin
 	$(B)/aildb build -o $(E)/ail.idx -v $(E)/vectors.bin -m $(E)/meta.tsv -d 768 -i nomic-embed-text -r $(PIN)

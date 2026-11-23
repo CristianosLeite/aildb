@@ -57,7 +57,7 @@ make eval
 ```
 
 It works in `build/eval/`, a directory for each corpus, with the steps of
-`make example`: the files of the revision, `build/chunk`,
+`make example`: the files of the revision, `build/chunk -c`,
 `build/embed` for the chunks and for the queries, `aildb build`, and
 then `build/example-eval`. `CORPORA="ail"` names the corpora to run.
 `build/eval/report.txt` has what was printed, with the day, the revision

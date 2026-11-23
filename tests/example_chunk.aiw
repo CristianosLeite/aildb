@@ -1,7 +1,11 @@
-# the chunker of the example, build/chunk: how it cuts a source of AIL
-# and a Markdown file into chunks, as docs/example.md says, the lines of
-# metadata and of text it writes, and what it says of wrong arguments, a
-# path that build would not take and a file that is not there.
+# the chunker, build/chunk: how it cuts a source of AIL and a Markdown
+# file into chunks, as docs/example.md says, the lines of metadata and of
+# text it writes, and what it says of wrong arguments, a path that build
+# would not take and a file that is not there. The first cases are run
+# with -c, as the corpora of the example are; then come the files that
+# are taken without it: every text file with the language its name
+# says, what is not text, a line longer than a chunk, and a file of the
+# most bytes that are read.
 use "lib/std/io.aiw"
 use "lib/std/bytes.aiw"
 use "lib/std/file.aiw"
@@ -9,23 +13,36 @@ use "lib/std/proc.aiw"
 use "tests/lib/cmd.aiw"
 buf b 24
 buf f 24
-# run the chunker on the list at list.txt and print what it wrote
-fn run
-	call fileunlink "meta.tsv"
-	call fileunlink "text.jsonl"
-	call cmdshowin "chunk . meta.tsv text.jsonl" "list.txt"
+# print what the chunker wrote; text says whether the lines of text too
+fn wrote text
 	call bycut b 0
 	call fileread "meta.tsv" b
 	call print "--- meta.tsv\n"
 	load b as p
 	load b+8 as n
 	call print p n
-	call bycut b 0
-	call fileread "text.jsonl" b
-	call print "--- text.jsonl\n"
-	load b as p
-	load b+8 as n
-	call print p n
+	if text
+		call bycut b 0
+		call fileread "text.jsonl" b
+		call print "--- text.jsonl\n"
+		load b as p
+		load b+8 as n
+		call print p n
+	end
+end
+# run the chunker with -c on the list at list.txt and print what it wrote
+fn run
+	call fileunlink "meta.tsv"
+	call fileunlink "text.jsonl"
+	call cmdshowin "chunk -c . meta.tsv text.jsonl" "list.txt"
+	call wrote 1
+end
+# the same without -c
+fn all text
+	call fileunlink "meta.tsv"
+	call fileunlink "text.jsonl"
+	call cmdshowin "chunk . meta.tsv text.jsonl" "list.txt"
+	call wrote text
 end
 # write the bytes of f to the file at p n and empty f
 fn save p n
@@ -95,8 +112,71 @@ call filewrite "crlf.aiw" "fn a\x0d\nend\x0d\n\x0d\nfn b\x0d\nend\x0d\n"
 call filewrite "list.txt" "empty.aiw\nMakefile\nblank.md\n.aiw\n.md\nnone.txt\n\ncrlf.aiw\nlib/a.aiw"
 call run
 
+call print "\n# without -c: every text file, in the language the end of its path names\n"
+call filemkdir "src" 493
+call filemkdir "a.b" 493
+call filewrite "src/m.py" "def f():\n    return 1\n\nx = f()\n"
+call filewrite "notes.txt" "a note\n"
+call filewrite "Makefile" "all:\n\techo\n"
+call filewrite ".gitignore" "build\n"
+call filewrite "a.b/c" "no end\n"
+call filewrite "x." "an empty end\n"
+call filewrite "UP.PY" "an end that is not in the table\n"
+call filewrite "ff.c" "int a;\x0cint b;\n"
+call filewrite "list.txt" "lib/a.aiw\ndoc.md\nsrc/m.py\nnotes.txt\nMakefile\n.gitignore\na.b/c\nx.\nUP.PY\nff.c\nempty.aiw\n"
+call all 1
+
+call print "\n# what is not text is passed over, with a line if its name says text\n"
+call filewrite "bin.dat" "a\0b"
+call filewrite "img.png" "\x89PNG\x0d\x0a\x1a\x0a"
+call filewrite "bad.py" "x=\"\xa0\"\n"
+call filewrite "del.txt" "a\x7fb\n"
+call filewrite "esc.sh" "echo \x1b[0m\n"
+call filewrite "cut.md" "caf\xc3"
+call filewrite "list.txt" "bin.dat\nimg.png\nbad.py\ndel.txt\nesc.sh\ncut.md\n../lib/a.aiw\nli\x01b/a.aiw\n/etc/a.md\nnotes.txt\n"
+call all 1
+
+call print "\n# a line longer than 1500 bytes is cut where a character ends\n"
+# 1499 bytes and a character of two, 1497 bytes and one of three, ten bytes
+call byadd f "first\n"
+i=0
+while i<1499
+	call byaddb f 97
+	i+=1
+end
+call byadd f "\xc3\xa9"
+i=0
+while i<1497
+	call byaddb f 98
+	i+=1
+end
+call byadd f "\xe2\x82\xac"
+call byadd f "cccccccccc\nlast\n"
+call save "wide.txt"
+call filewrite "list.txt" "wide.txt\nwide.md\n"
+call all 1
+
+call print "\n# 1048576 bytes are read, and a file of a byte more is passed over\n"
+call byadd f "x\n"
+i=2
+while i<1048576
+	call byaddb f 10
+	i+=1
+end
+load f as q
+load f+8 as m
+call filewrite "most.txt" q m
+call byaddb f 10
+call save "more.txt"
+call filewrite "list.txt" "most.txt\nmore.txt\n"
+call all 0
+
 call print "\n# what it refuses\n"
 call cmdshow "chunk . meta.tsv"
+call cmdshow "chunk -c . meta.tsv"
+call cmdshow "chunk -c . meta.tsv text.jsonl more"
+call filewrite "list.txt" "notes.txt\nnone.txt\n"
+call all 1
 call filewrite "list.txt" "lib/a.aiw\nlib/none.aiw\n"
 call run
 call filewrite "list.txt" "../lib/a.aiw\n"

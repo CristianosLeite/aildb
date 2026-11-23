@@ -1,5 +1,6 @@
 # the functions of src/lib/text.aiw: numbers with their limits, lines
-# and fields, equality and prefixes, and which bytes are a valid string;
+# and fields, equality and prefixes, which bytes are a valid string and
+# which well-formed UTF-8;
 # the expected answers for UTF-8 are those of Python 3's decoder
 use "lib/std/io.aiw"
 use "src/lib/text.aiw"
@@ -154,6 +155,27 @@ call one a
 call textvalid "\xf1\x80\x80\x80x" as a
 call one a
 call textvalid "\xf1\x80\x80A" as a
+call one a
+# well-formed UTF-8 with any bytes below 0x80 among it
+call textutf8 "" as a
+call one a
+call textutf8 "a\x09b\x0a\0\x7f\x1b" as a
+call one a
+call textutf8 "caf\xc3\xa9\n" as a
+call one a
+call textutf8 "\xf0\x9f\x98\x80\x0d\n" as a
+call one a
+call textutf8 "\x80" as a
+call one a
+call textutf8 "a\xa0b" as a
+call one a
+call textutf8 "\xc0\x80" as a
+call one a
+call textutf8 "\xed\xa0\x80" as a
+call one a
+call textutf8 "\xf4\x90\x80\x80" as a
+call one a
+call textutf8 "ok\n\xe2\x82" as a
 call one a
 # a path that stays below where it starts, and one that does not
 fn inside p n

@@ -1,6 +1,7 @@
 # src/lib/text.aiw -- bytes read as text: an unsigned number, the end of
 # a line or a field, a prefix, whether bytes are a string a snapshot may
-# hold, and whether a path stays below the directory it starts in. Text is an address and a length, with no byte after it that
+# hold or well-formed UTF-8, and whether a path stays below the directory
+# it starts in. Text is an address and a length, with no byte after it that
 # belongs to it. The functions read and never write, need no other file
 # and cannot fail: what they did not find is a result.
 #
@@ -85,6 +86,62 @@ fn textprefix textp textn textq textm
 	tail texteq textp textm textq textm
 end
 
+# The index after the character of more than one byte whose first byte,
+# textc, is the one before the index texti among the textn bytes at
+# textp, or 0 if the bytes there are not well-formed UTF-8: a byte that
+# starts no character, a surrogate, an overlong form, something above
+# U+10FFFF, or a character that the bytes end in.
+fn textmore textp textn texti textc
+	# the bytes that follow the first, and the range of the second,
+	# which is narrower where a shorter form or a surrogate would
+	# be written
+	textlo=128
+	texthi=191
+	if textc<0xc2
+		ret 0
+	end
+	textk=1
+	if textc>=0xe0
+		textk=2
+		if textc==0xe0
+			textlo=0xa0
+		end
+		if textc==0xed
+			texthi=0x9f
+		end
+	end
+	if textc>=0xf0
+		textk=3
+		if textc==0xf0
+			textlo=0x90
+		end
+		if textc==0xf4
+			texthi=0x8f
+		end
+		if textc>0xf4
+			ret 0
+		end
+	end
+	if texti+textk>textn
+		ret 0
+	end
+	loadb textp+texti as textc
+	if (textc<textlo)|(textc>texthi)
+		ret 0
+	end
+	texti+=1
+	textk-=1
+	while textk
+		loadb textp+texti as textc
+		if (textc<128)|(textc>191)
+			ret 0
+		end
+		texti+=1
+		textk-=1
+	end
+	ret texti
+end
+
 # 1 if the textn bytes at textp are a string as docs/format.md has it:
 # well-formed UTF-8 (no surrogate, no overlong form, nothing above
 # U+10FFFF) with no byte below 0x20 and no byte 0x7F. No bytes are one.
@@ -98,52 +155,28 @@ fn textvalid textp textn
 				ret 0
 			end
 		else
-			# the bytes that follow the first, and the range of the second,
-			# which is narrower where a shorter form or a surrogate would
-			# be written
-			textlo=128
-			texthi=191
-			if textc<0xc2
+			call textmore textp textn texti textc as texti
+			ifz texti
 				ret 0
 			end
-			textk=1
-			if textc>=0xe0
-				textk=2
-				if textc==0xe0
-					textlo=0xa0
-				end
-				if textc==0xed
-					texthi=0x9f
-				end
-			end
-			if textc>=0xf0
-				textk=3
-				if textc==0xf0
-					textlo=0x90
-				end
-				if textc==0xf4
-					texthi=0x8f
-				end
-				if textc>0xf4
-					ret 0
-				end
-			end
-			if texti+textk>textn
+		end
+	end
+	ret 1
+end
+
+# 1 if the textn bytes at textp are well-formed UTF-8, as textvalid has
+# it, whatever bytes below 0x80 are among them: the contents of a file,
+# which have line feeds and tabs where a string of a snapshot has none.
+# No bytes are well-formed.
+fn textutf8 textp textn
+	texti=0
+	while texti<textn
+		loadb textp+texti as textc
+		texti+=1
+		if textc>=128
+			call textmore textp textn texti textc as texti
+			ifz texti
 				ret 0
-			end
-			loadb textp+texti as textc
-			if (textc<textlo)|(textc>texthi)
-				ret 0
-			end
-			texti+=1
-			textk-=1
-			while textk
-				loadb textp+texti as textc
-				if (textc<128)|(textc>191)
-					ret 0
-				end
-				texti+=1
-				textk-=1
 			end
 		end
 	end

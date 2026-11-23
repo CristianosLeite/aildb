@@ -122,9 +122,14 @@ revision are cut into chunks, nomic-embed-text gives their vectors, and
 `aildb build -r` publishes the index with the whole name of the
 revision. Two things follow from those steps:
 
-- The chunker takes the sources of AIL (`.aiw`) and Markdown (`.md`) and
-  passes over every other file, so of a repository in another language
-  its documents are indexed. A revision with neither is an error.
+- The chunker takes every file that is text, whatever the language: a
+  source of AIL is cut at its functions, Markdown at its headings, and
+  any other file by its lines alone, with the language that the end of
+  its path names, `python` for `.py` and `text` for an end it does not
+  know ([example.md](example.md#every-text-file)). A file that is not
+  text is passed over, and so is one of more than 1048576 bytes, which
+  is not taken out of git at all; the second has a line on standard
+  error. A revision with no text in it is an error.
 - A file is indexed as the bytes git has for it at the revision, each
   written from its blob: what an attribute would do to an archive or a
   checkout (`export-ignore`, `export-subst`, a filter, line ends) is not
@@ -179,10 +184,11 @@ commit replaces it and a file that is not committed is not in it, an
 older revision is indexed by its name, a repository with a document
 whose path is not ASCII, a source in a directory with a space, a
 document that `export-ignore` keeps out of an archive, a symbolic link
-to a document outside it and a path that git quotes gives the two
-records of its two regular files, and a revision or a repository
-that is not there, a repository with nothing to index and a service that
-is gone leave the index as it was.
+to a document outside it and a path that git quotes, a file that is not text and one of more than
+1048576 bytes gives the three records of its three regular files of
+text, and a revision or a repository that is not there, a repository
+with no text in it and a service that is gone leave the index as it
+was.
 
 Against the model itself, on 2026-11-23 (Ollama 0.40.17,
 nomic-embed-text F16, digest `0a109f422b47`, on an NVIDIA RTX 3050
@@ -227,3 +233,16 @@ against the source at the returned revision; and the user validated a
 session of Codex itself and reported that it passed in full. A session
 of `codex exec` that is not interactive lists the tool and does not call
 it, since a call of an MCP tool needs an approval there.
+
+With the chunker that takes every text file, the same day, the same
+machine and the same Ollama: `make index` in a checkout of aildb at
+`510bf11` printed `139 files, 768 chunks`, `768 vectors of 768
+dimensions` and the line of `aildb build` with 768 records and
+`510bf11cd9e0e26b8657a9dd3ba54c603d488d04`. A server started with that
+index gave `tools/dist-check.sh` 1 to 32 as the third of three results
+for "unpack the release archive in a Docker container without AIL and
+compare what the commands print", after two passages of
+`docs/BACKLOG.md` about the same script, and `.github/workflows/test.yml`
+1 to 36 as the one result of the language `yaml` for "run make test on a
+pull request with the released AIL": a script of the shell and a
+workflow, which the index of before did not have.

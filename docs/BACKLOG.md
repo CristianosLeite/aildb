@@ -324,3 +324,14 @@ mapped pages contribute to reported peak resident memory.
   index first. `tests/tools_index.aiw`, against the service of
   `tests/lib/embedfake.aiw`, and a run against Ollama on 2026-11-23,
   aildb itself at `39fcca3`, searched through the server (`docs/mcp.md`).
+- [x] Every text file in the index of a repository (user, 2026-11-23:
+  the chunker took `.aiw` and `.md` and no other file): without `-c`,
+  `build/chunk` cuts every file that is well-formed UTF-8 without
+  control bytes, by its lines and with the language its path names,
+  passes over a file above 1048576 bytes, which `tools/index.sh` does
+  not take out of git, and cuts a line above 1500 bytes where a
+  character ends; `-c` is the chunker of before, for `make example` and
+  `make eval`, whose three lists it cuts into the same bytes
+  (`docs/example.md`). `textutf8` of `src/lib/text.aiw` is the check of
+  UTF-8 that `textvalid` shares. A run against Ollama on 2026-11-23,
+  aildb at `510bf11`, searched through the server (`docs/mcp.md`).
