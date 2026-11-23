@@ -210,16 +210,17 @@ mid.pdf	4	4	pdf
 "before"
 "after"
 
-# the chunks of a PDF file may be 16777216 bytes of metadata and text: one is kept, and nothing of one with more
+# the chunks of a PDF file may be 16777216 bytes of metadata and text: one with as many is kept, and nothing of one whose last chunk has 16 more, or of one with more before its last page
 $ chunk . meta.tsv text.jsonl < list.txt
 --- stdout
-3 files, 10252 chunks
+3 files, 10498 chunks
 --- stderr
 --- status 0
 $ chunk . meta.tsv text.jsonl < list.txt
 --- stdout
 2 files, 2 chunks
 --- stderr
+chunk: passed over, a PDF file with more text than is kept of one: last.pdf
 chunk: passed over, a PDF file with more text than is kept of one: much.pdf
 --- status 0
 --- meta.tsv

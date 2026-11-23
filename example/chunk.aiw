@@ -173,12 +173,6 @@ fn emit pp pn first last lp ln p n
 		if pdfspilt
 			ret 0
 		end
-		load meta+8 as a
-		load text+8 as b
-		if a+b-pdfbase>pdfkept
-			pdfspilt=1
-			ret 0
-		end
 	end
 	call byadd meta pp pn
 	call byaddb meta 9
@@ -192,6 +186,15 @@ fn emit pp pn first last lp ln p n
 	call byaddb text 10 as c
 	if (a==0)|(b==0)|(c==0)
 		call fail 4 "out of memory" ""
+	end
+	if pageno
+		# with this chunk: the file may have pdfkept bytes and no more
+		load meta+8 as a
+		load text+8 as b
+		if a+b-pdfbase>pdfkept
+			pdfspilt=1
+			ret 0
+		end
 	end
 	chunks+=1
 end

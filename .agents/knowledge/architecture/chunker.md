@@ -94,9 +94,11 @@ ail-extensions.
   the memory of the reader alone: the chunks of a file, which stay in the two buffers
   until the last file is cut, were bounded by the work only, about a kilobyte of text
   for each byte of the file. `readmax` now asks for the size that `fstat` gives and a
-  byte, and goes on in steps of 65536 for a file that gives more. `emit` adds no chunk
-  of a PDF file once its chunks are more than `pdfkept`, and `pdffile` then takes back
-  what was cut, as for a spent document. The number is the agent's: a book of a
+  byte, and goes on in steps of 65536 for a file that gives more. `emit` counts
+  the chunks of a PDF file with the one it has just added and adds none after they are
+  more than `pdfkept` (a second review, at `b2c105d`: it looked before it added, so the
+  last chunk could go over), and `pdffile` then takes back what was cut, as for a spent
+  document. The number is the agent's: a book of a
   thousand pages has a few megabytes of text. Not done: a limit for all files together,
   and the room of the buffer of a page, which is the reader's to bound (its README).
 - **The dependency is in the `Ailfile` of the top** (agent; the user: acceptable for
