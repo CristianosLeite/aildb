@@ -1,7 +1,7 @@
 ---
 title: The MCP server
-last-verified: 2026-11-22
-sources: [conversation 2026-11-22, docs/TODO.md, docs/mcp.md, mcp/src/main.aiw, mcp/tests/search.aiw, mcp/tests/lib/fake.aiw, the AIL repository (lib/std/json.aiw, lib/std/num.aiw, lib/net/http.aiw, lib/net/httpd.aiw), ail-extensions (mcp/src/mcp.aiw)]
+last-verified: 2026-11-23
+sources: [conversation 2026-11-22, conversation 2026-11-23, tools/index.sh, tests/tools_index.aiw, docs/TODO.md, docs/mcp.md, mcp/src/main.aiw, mcp/tests/search.aiw, mcp/tests/lib/fake.aiw, the AIL repository (lib/std/json.aiw, lib/std/num.aiw, lib/net/http.aiw, lib/net/httpd.aiw), ail-extensions (mcp/src/mcp.aiw)]
 status: current
 ---
 # The MCP server
@@ -91,4 +91,38 @@ pushed or merged.
   package in its directory `mcp/`, had none. The user had the package merged and tagged
   `v0.1.0` the same day, and `mcp/Ailfile` names it by its address and that version, the
   revision `4493f9d` in `mcp/Ailfile.lock`.
+- **The index of a repository is `make index`, a script** (agent, 2026-11-23, for the user
+  to review). The user reported that the installation asks for an index that is not there
+  after a clone: `docs/mcp.md` had `/path/to/repo.idx` and one sentence that pointed to the
+  example, whose steps are bound to `example/corpus.pin`. `tools/index.sh REPO OUT
+  [REVISION]` does those steps for any repository of git, and `make index` builds the three
+  programs first; with no `REPO` it indexes aildb itself, so a clone has a file to name.
+  Rejected: an index committed to the repository (a snapshot is rebuilt from sources, and
+  it would be of a revision that is no longer `HEAD` after the next commit); a server that
+  starts without a snapshot and fails each call (the start that fails is tested and
+  documented, and the agent shows it); a command `aildb index` in the engine (the engine
+  makes no embedding and does not cut files). The chunker still takes only `.aiw` and
+  `.md`, which the document says; the script is a shell script as `tools/eval.sh` is, with
+  a test that makes a repository with git under fixed dates and settings, so git is now
+  needed by `make test` (the checkout on GitHub has it).
+- **The files of a revision are written from their blobs** (the review of the pull request
+  16, Copilot, 2026-11-23; agent for the how). The first form took them with `git archive`
+  and listed them with `git ls-tree --name-only`, as `make example` and `tools/eval.sh` do
+  for the repositories they pin. For a repository that is not known this was wrong in
+  three ways: a committed symbolic link `x.md` was followed by the chunker, so a file
+  outside the revision went to the embedding service; a path that is not ASCII was listed
+  quoted and so passed over without a word; and `export-ignore` took files out of the
+  archive that the list still named, while `export-subst` changed their text. Now
+  `ls-tree` is read with modes and `core.quotePath=false`, only the modes 100644 and
+  100755 are taken, and each `.aiw` and `.md` is written with `git cat-file blob`. The
+  script so names the two suffixes that the chunker knows; the list has every regular
+  file, so a suffix the chunker learns and the script does not have fails with "cannot
+  read" and is not passed over unseen. Rejected: a checkout through a temporary index,
+  which applies filters and line ends and writes links. What git still quotes (a double
+  quote, a backslash, a control byte) is passed over with a line on standard error, since
+  a shell cannot read names that end in NUL; the chunker would refuse the control bytes
+  anyway. The example and the evaluation keep `git archive`: their repositories and
+  revisions are pinned and were looked at. `make index` gives its three values to the
+  shell between double quotes and finds the name of the directory there, for paths with
+  spaces (the same review).
 - (Settled on 2026-11-22: AIL has the version 0.1.1 for the libraries, at the user's word, and `Ailfile` and `mcp/Ailfile` ask for it; `make test` runs the test of `mcp/`.)
