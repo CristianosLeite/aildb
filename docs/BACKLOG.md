@@ -236,6 +236,9 @@ mapped pages contribute to reported peak resident memory.
 - [x] `example/consumer` names aildb by its address and the version
   0.1.0, in place of its directory: `ail add` with the address wrote the
   line `dep` and `Ailfile.lock`, with the revision of the tag `v0.1.0`.
+- [x] `example/consumer` names aildb by the version 0.1.1: `ail add`
+  wrote the line `dep` and the lock, with the revision of the tag
+  `v0.1.1`.
 
 ## 13. The measurements in a repository of their own
 
