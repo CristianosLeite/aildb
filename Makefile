@@ -73,17 +73,23 @@ eval:
 # The index of a repository, which the MCP server is given to search
 # (docs/mcp.md): the files that the git repository in the directory REPO
 # has at the revision AT, cut and embedded as the example does it, in
-# the snapshot IDX. Without REPO it is this repository, so that a clone
-# has an index to try: build/index/aildb.idx. It needs a running Ollama
-# with nomic-embed-text, as the example does.
+# the snapshot IDX, or build/index/<the name of the directory>.idx.
+# Without REPO it is this repository, so that a clone has an index to
+# try: build/index/aildb.idx. It needs a running Ollama with
+# nomic-embed-text, as the example does. The three are given to the
+# shell between double quotes, so a path may have spaces in it; the
+# name of the directory is found by the shell for the same reason,
+# since a function of make would take such a path for several.
 REPO ?= .
 AT ?= HEAD
-IDX ?= $(B)/index/$(notdir $(abspath $(REPO))).idx
 index:
 	$(AIL) build
 	$(AIL) build chunk
 	$(AIL) build embed
-	tools/index.sh $(REPO) $(IDX) $(AT)
+	@repo="$(REPO)"; idx="$(IDX)"; \
+	[ -n "$$idx" ] || idx="$(B)/index/$$(basename "$$(cd "$$repo" 2>/dev/null && pwd)").idx"; \
+	echo "tools/index.sh $$repo $$idx $(AT)"; \
+	tools/index.sh "$$repo" "$$idx" "$(AT)"
 
 # The MCP server alone, mcp/ (docs/mcp.md), a package of its own: its
 # test and its indentation, which make test runs too.

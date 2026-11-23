@@ -3,7 +3,11 @@
 # answers as Ollama does (tests/lib/embedfake.aiw): the index of HEAD,
 # with the name of the revision as git says it; after another commit and
 # with a file that is not committed, the index replaced; an older
-# revision by its name, into a directory that is not there; and what
+# revision by its name, into a directory that is not there; a repository
+# whose files are not what an archive or a list of names would give (a
+# path that is not ASCII, a directory with a space, a document that
+# export-ignore keeps out of an archive, a symbolic link to a document
+# outside the repository, a path that git quotes); and what
 # cannot be done: a revision and a repository that are not there, a
 # repository with nothing to index, wrong usage, and a service that is
 # gone, after which the index is the one that was there and nothing
@@ -91,6 +95,11 @@ call cmdshow "aildb check o/r.idx"
 call print "# the revision before, into a directory that is not there\n"
 call index "r o/d/one.idx HEAD~1"
 call cmdshow "aildb check o/d/one.idx"
+
+call print "# a document that is not ASCII, a source in \"a b\", export-ignore, a link, a quote\n"
+call sh ". ./git.sh\ngit init -q s\nprintf '# Out\\nnot of the repository\\n' > out.md\nmkdir s/docs 's/a b'\nprintf '# Five\\nfifth\\n' > 's/docs/r\xc3\xa9sum\xc3\xa9.md'\nprintf 'fn c\\n\\tret 2\\nend\\n' > 's/a b/c.aiw'\nprintf 'docs/** export-ignore\\n' > s/.gitattributes\nln -s ../out.md s/link.md\nprintf '# Six\\nsixth\\n' > 's/q\".md'\ngit -C s add .\ngit -C s commit -q -m one\n"
+call index "s o/s.idx"
+call cmdshow "aildb check o/s.idx"
 
 call print "# what cannot be done\n"
 call index "r o/bad.idx absent"

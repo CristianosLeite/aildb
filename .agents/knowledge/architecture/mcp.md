@@ -105,4 +105,24 @@ pushed or merged.
   `.md`, which the document says; the script is a shell script as `tools/eval.sh` is, with
   a test that makes a repository with git under fixed dates and settings, so git is now
   needed by `make test` (the checkout on GitHub has it).
+- **The files of a revision are written from their blobs** (the review of the pull request
+  16, Copilot, 2026-11-23; agent for the how). The first form took them with `git archive`
+  and listed them with `git ls-tree --name-only`, as `make example` and `tools/eval.sh` do
+  for the repositories they pin. For a repository that is not known this was wrong in
+  three ways: a committed symbolic link `x.md` was followed by the chunker, so a file
+  outside the revision went to the embedding service; a path that is not ASCII was listed
+  quoted and so passed over without a word; and `export-ignore` took files out of the
+  archive that the list still named, while `export-subst` changed their text. Now
+  `ls-tree` is read with modes and `core.quotePath=false`, only the modes 100644 and
+  100755 are taken, and each `.aiw` and `.md` is written with `git cat-file blob`. The
+  script so names the two suffixes that the chunker knows; the list has every regular
+  file, so a suffix the chunker learns and the script does not have fails with "cannot
+  read" and is not passed over unseen. Rejected: a checkout through a temporary index,
+  which applies filters and line ends and writes links. What git still quotes (a double
+  quote, a backslash, a control byte) is passed over with a line on standard error, since
+  a shell cannot read names that end in NUL; the chunker would refuse the control bytes
+  anyway. The example and the evaluation keep `git archive`: their repositories and
+  revisions are pinned and were looked at. `make index` gives its three values to the
+  shell between double quotes and finds the name of the directory there, for paths with
+  spaces (the same review).
 - (Settled on 2026-11-22: AIL has the version 0.1.1 for the libraries, at the user's word, and `Ailfile` and `mcp/Ailfile` ask for it; `make test` runs the test of `mcp/`.)

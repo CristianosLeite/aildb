@@ -113,7 +113,8 @@ make index REPO=/path/to/repository   # build/index/<its directory>.idx
 
 `make index` writes the index of the git repository in the directory
 `REPO` at its `HEAD`, or at the revision `AT=`, into
-`build/index/<name of the directory>.idx`, or the file `IDX=`. Without
+`build/index/<name of the directory>.idx`, or the file `IDX=`; a path
+may have spaces in it. Without
 `REPO` it indexes aildb itself, into `build/index/aildb.idx`. It is
 `tools/index.sh REPO OUT [REVISION]`, the steps of [the
 example](example.md) for a repository of one's own: the files of the
@@ -124,6 +125,13 @@ revision. Two things follow from those steps:
 - The chunker takes the sources of AIL (`.aiw`) and Markdown (`.md`) and
   passes over every other file, so of a repository in another language
   its documents are indexed. A revision with neither is an error.
+- A file is indexed as the bytes git has for it at the revision, each
+  written from its blob: what an attribute would do to an archive or a
+  checkout (`export-ignore`, `export-subst`, a filter, line ends) is not
+  done. Only a regular file is taken: a symbolic link is passed over,
+  since what it names may be outside the revision, and so is a
+  submodule. A path with a double quote, a backslash or a byte below
+  0x20 is passed over with a line on standard error.
 - The index is of a revision: a change that is not committed is not in
   it. `make index` again, after a commit, replaces the file as `aildb
   build` does, and the next call of the tool searches the new one, with
@@ -163,7 +171,11 @@ makes, with an embedding service in place of Ollama
 (`tests/lib/embedfake.aiw`): the index of `HEAD` has a record for each
 chunk and the name of the revision that `git rev-parse` prints, a second
 commit replaces it and a file that is not committed is not in it, an
-older revision is indexed by its name, and a revision or a repository
+older revision is indexed by its name, a repository with a document
+whose path is not ASCII, a source in a directory with a space, a
+document that `export-ignore` keeps out of an archive, a symbolic link
+to a document outside it and a path that git quotes gives the two
+records of its two regular files, and a revision or a repository
 that is not there, a repository with nothing to index and a service that
 is gone leave the index as it was.
 

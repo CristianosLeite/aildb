@@ -11,6 +11,15 @@
 # indexed. An OUT that is there is replaced as build replaces one, so a
 # reader of it, the MCP server among them, has the old index or the new.
 #
+# A file is indexed as the bytes git has for it at the revision: each is
+# written from its blob, so nothing an attribute would do to an archive
+# or a checkout (export-ignore, export-subst, a filter, line ends) is
+# done to it. Only a regular file is taken. A symbolic link is passed
+# over, since what it names may be outside the revision, and so is a
+# submodule. A path with a double quote, a backslash or a byte below
+# 0x20 in it, which git prints quoted, is passed over with a line on
+# standard error, and so is one that would lead out of the directory.
+#
 # Standard output has the line of "aildb build" and standard error what
 # the steps said. The status is 0, 2 for wrong usage, 1 if a program of
 # build/ is not built, REPO is no repository or has no such revision,
@@ -44,8 +53,37 @@ mkdir -p "$(dirname "$out")"
 w=$(mktemp -d "$out.XXXXXX")
 trap 'rm -rf "$w"' EXIT
 mkdir "$w/src"
-git -C "$repo" archive "$pin" | tar -x -C "$w/src"
-git -C "$repo" ls-tree -r --name-only "$pin" > "$w/list"
+# "mode type name<tab>path" for each entry, a path of other bytes than
+# ASCII as it is. The list is every regular file, of which the chunker
+# takes what it knows; the files written are those it reads, the
+# sources of AIL and Markdown (example/chunk.aiw). It fails for a path
+# of the list that it takes and does not find, so the two cannot come
+# to differ unseen.
+tab=$(printf '\t')
+git -C "$repo" -c core.quotePath=false ls-tree -r --full-tree "$pin" > "$w/tree"
+: > "$w/list"
+while IFS= read -r line; do
+	meta=${line%%"$tab"*}
+	path=${line#*"$tab"}
+	case ${meta%% *} in
+	100644|100755) ;;
+	*) continue ;;
+	esac
+	case $path in
+	\"*)
+		echo "index: passed over, a path that git quotes: $path" >&2
+		continue ;;
+	/*|../*|*/../*|*/..|..)
+		echo "index: passed over, a path that leaves the repository: $path" >&2
+		continue ;;
+	esac
+	printf '%s\n' "$path" >> "$w/list"
+	case $path in
+	*.aiw|*.md)
+		mkdir -p "$(dirname "$w/src/$path")"
+		git -C "$repo" cat-file blob "${meta##* }" > "$w/src/$path" ;;
+	esac
+done < "$w/tree"
 "$b/chunk" "$w/src" "$w/meta.tsv" "$w/text.jsonl" < "$w/list" >&2
 if [ ! -s "$w/meta.tsv" ]; then
 	echo "index: $repo has no source of AIL and no Markdown at $rev" >&2

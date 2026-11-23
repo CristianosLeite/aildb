@@ -41,6 +41,18 @@ $ aildb check o/d/one.idx
 {"records":4,"dimension":768,"model":"nomic-embed-text","source_revision":"be192d9ee1c08077e4d0d32995db33d7c38d12a1"}
 --- stderr
 --- status 0
+# a document that is not ASCII, a source in "a b", export-ignore, a link, a quote
+$ tools/index.sh s o/s.idx
+{"records":2,"dimension":768,"model":"nomic-embed-text","source_revision":"deeab316a2936dcd8574b1fb2537d4fcfca4b1a5"}
+index: passed over, a path that git quotes: "q\".md"
+2 files, 2 chunks
+2 vectors of 768 dimensions
+status 0
+$ aildb check o/s.idx
+--- stdout
+{"records":2,"dimension":768,"model":"nomic-embed-text","source_revision":"deeab316a2936dcd8574b1fb2537d4fcfca4b1a5"}
+--- stderr
+--- status 0
 # what cannot be done
 $ tools/index.sh r o/bad.idx absent
 index: r has no revision absent
@@ -73,6 +85,8 @@ o:
 d
 r.idx
 r.idx.lock
+s.idx
+s.idx.lock
 
 o/d:
 one.idx
