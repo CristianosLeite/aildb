@@ -70,6 +70,21 @@ eval:
 	$(AIL) build embed
 	tools/eval.sh $(AIL) $(CORPORA)
 
+# The index of a repository, which the MCP server is given to search
+# (docs/mcp.md): the files that the git repository in the directory REPO
+# has at the revision AT, cut and embedded as the example does it, in
+# the snapshot IDX. Without REPO it is this repository, so that a clone
+# has an index to try: build/index/aildb.idx. It needs a running Ollama
+# with nomic-embed-text, as the example does.
+REPO ?= .
+AT ?= HEAD
+IDX ?= $(B)/index/$(notdir $(abspath $(REPO))).idx
+index:
+	$(AIL) build
+	$(AIL) build chunk
+	$(AIL) build embed
+	tools/index.sh $(REPO) $(IDX) $(AT)
+
 # The MCP server alone, mcp/ (docs/mcp.md), a package of its own: its
 # test and its indentation, which make test runs too.
 mcp-test:
@@ -94,4 +109,4 @@ dist-check:
 clean:
 	$(AIL) clean
 
-.PHONY: all test example eval mcp-test dist dist-check clean
+.PHONY: all test example eval index mcp-test dist dist-check clean

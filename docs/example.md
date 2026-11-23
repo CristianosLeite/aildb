@@ -155,6 +155,9 @@ results is the record of that path whose lines have that line, and the
 search on the copy wrote the same bytes, scores included. `make example`
 fails unless every query is good.
 
+The same steps for another repository, without the queries, are `make
+index REPO=<its directory>` ([mcp.md](mcp.md#in-claude-code-and-in-codex)).
+
 To ask something else, embed it and search:
 
 ```

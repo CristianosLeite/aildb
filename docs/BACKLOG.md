@@ -316,3 +316,10 @@ mapped pages contribute to reported peak resident memory.
 - [x] aildb asks for AIL 0.1.1 (user, 2026-11-22), the first version
   with the libraries of the MCP server, in `Ailfile` and `mcp/Ailfile`;
   the test of `mcp/` is a part of `make test`.
+- [x] The index of a repository in one command (user, 2026-11-23: the
+  installation of the server asks for an index, and a clone has none):
+  `make index REPO=<directory>`, which is `tools/index.sh REPO OUT
+  [REVISION]`, the steps of the example for a repository of git at a
+  revision, and `docs/mcp.md` with the installation from a clone, the
+  index first. `tests/tools_index.aiw`, against the service of
+  `tests/lib/embedfake.aiw`. Not run against Ollama itself.

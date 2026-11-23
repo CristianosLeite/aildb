@@ -99,19 +99,51 @@ make mcp-test         # its test, with the build/aildb above; make test runs it 
 
 ## In Claude Code and in Codex
 
-With the two executables at paths of your own, and Ollama running the
-model:
+The server searches an index, and a clone of this repository has none:
+an index is built from sources and is no file of the repository. So it
+is made first, and the server is started with its path. From a clone,
+with [Ollama](https://ollama.com) running:
 
 ```
-claude mcp add aildb -- /path/to/aildb-mcp -s /path/to/repo.idx -i nomic-embed-text \
-    -e http://127.0.0.1:11434 -a /path/to/aildb -p "search_query: "
-codex mcp add aildb -- /path/to/aildb-mcp -s /path/to/repo.idx -i nomic-embed-text \
-    -e http://127.0.0.1:11434 -a /path/to/aildb -p "search_query: "
+ollama pull nomic-embed-text
+make                                  # build/aildb
+(cd mcp && ail build)                 # mcp/build/aildb-mcp
+make index REPO=/path/to/repository   # build/index/<its directory>.idx
 ```
 
-The agent then has the tool `search` of the server `aildb`. The index of
-a repository is made as [the example](example.md) makes one: chunks,
-their vectors from the same model, and `aildb build -r` with the revision.
+`make index` writes the index of the git repository in the directory
+`REPO` at its `HEAD`, or at the revision `AT=`, into
+`build/index/<name of the directory>.idx`, or the file `IDX=`. Without
+`REPO` it indexes aildb itself, into `build/index/aildb.idx`. It is
+`tools/index.sh REPO OUT [REVISION]`, the steps of [the
+example](example.md) for a repository of one's own: the files of the
+revision are cut into chunks, nomic-embed-text gives their vectors, and
+`aildb build -r` publishes the index with the whole name of the
+revision. Two things follow from those steps:
+
+- The chunker takes the sources of AIL (`.aiw`) and Markdown (`.md`) and
+  passes over every other file, so of a repository in another language
+  its documents are indexed. A revision with neither is an error.
+- The index is of a revision: a change that is not committed is not in
+  it. `make index` again, after a commit, replaces the file as `aildb
+  build` does, and the next call of the tool searches the new one, with
+  the server left running.
+
+Then the server is added with the paths of the two executables and of
+the index, each a whole path, since the agent starts the server in a
+directory of its own choice. In the clone:
+
+```
+claude mcp add aildb -- $PWD/mcp/build/aildb-mcp -s $PWD/build/index/<name>.idx \
+    -i nomic-embed-text -e http://127.0.0.1:11434 -a $PWD/build/aildb -p "search_query: "
+codex mcp add aildb -- $PWD/mcp/build/aildb-mcp -s $PWD/build/index/<name>.idx \
+    -i nomic-embed-text -e http://127.0.0.1:11434 -a $PWD/build/aildb -p "search_query: "
+```
+
+The agent then has the tool `search` of the server `aildb`. A server
+that is named an index that is not there ends when it starts, with
+status 3 and the line `aildb-mcp: aildb: <path>: cannot open: no such
+file or directory`, and the agent shows it as failed.
 
 ## What was checked
 
@@ -125,6 +157,16 @@ with what is no vector or one of three dimensions, answers too late or is
 not there, a snapshot replaced between two calls, then replaced by one of
 three dimensions, for which the vector of three is taken and the one of
 two refused, a snapshot that is gone, and starts that fail.
+
+`tests/tools_index.aiw` runs `tools/index.sh` on a repository that it
+makes, with an embedding service in place of Ollama
+(`tests/lib/embedfake.aiw`): the index of `HEAD` has a record for each
+chunk and the name of the revision that `git rev-parse` prints, a second
+commit replaces it and a file that is not committed is not in it, an
+older revision is indexed by its name, and a revision or a repository
+that is not there, a repository with nothing to index and a service that
+is gone leave the index as it was. `make index` was not run against
+Ollama itself: the machine of 2026-11-23 had none running.
 
 Against the model itself, on 2026-11-22 (Ollama 0.40.17, nomic-embed-text,
 the index of AIL at `a5b4559` that `make eval` built): the three hits of

@@ -63,7 +63,7 @@ $ build/aildb check index.aildb
 ## More
 
 - [docs/usage.md](docs/usage.md): the three commands in full
-- [docs/mcp.md](docs/mcp.md): `aildb-mcp`, the MCP server that lets Claude Code or Codex search an index in words
+- [docs/mcp.md](docs/mcp.md): `aildb-mcp`, the MCP server that lets Claude Code or Codex search an index in words, and `make index`, which makes the index of a repository for it
 - [docs/library.md](docs/library.md): aildb as a dependency of a program written in AIL
 - [docs/example.md](docs/example.md): `make example`, which indexes the AIL repository with a local embedding model and queries it
 - [docs/evaluation.md](docs/evaluation.md): `make eval`, how well queries find their lines

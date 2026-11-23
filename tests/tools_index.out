@@ -1,0 +1,81 @@
+# two functions, two sections and a file that is passed over
+$ tools/index.sh r o/r.idx
+{"records":4,"dimension":768,"model":"nomic-embed-text","source_revision":"be192d9ee1c08077e4d0d32995db33d7c38d12a1"}
+2 files, 4 chunks
+4 vectors of 768 dimensions
+status 0
+$ /usr/bin/env git -C r rev-parse HEAD
+--- stdout
+be192d9ee1c08077e4d0d32995db33d7c38d12a1
+--- stderr
+--- status 0
+$ aildb check o/r.idx
+--- stdout
+{"records":4,"dimension":768,"model":"nomic-embed-text","source_revision":"be192d9ee1c08077e4d0d32995db33d7c38d12a1"}
+--- stderr
+--- status 0
+# another commit, and a file that is not committed
+$ tools/index.sh r o/r.idx
+{"records":5,"dimension":768,"model":"nomic-embed-text","source_revision":"07f45a448071c7f5c460f5a7ea82f899ce10c375"}
+3 files, 5 chunks
+5 vectors of 768 dimensions
+status 0
+$ /usr/bin/env git -C r rev-parse HEAD
+--- stdout
+07f45a448071c7f5c460f5a7ea82f899ce10c375
+--- stderr
+--- status 0
+$ aildb check o/r.idx
+--- stdout
+{"records":5,"dimension":768,"model":"nomic-embed-text","source_revision":"07f45a448071c7f5c460f5a7ea82f899ce10c375"}
+--- stderr
+--- status 0
+# the revision before, into a directory that is not there
+$ tools/index.sh r o/d/one.idx HEAD~1
+{"records":4,"dimension":768,"model":"nomic-embed-text","source_revision":"be192d9ee1c08077e4d0d32995db33d7c38d12a1"}
+2 files, 4 chunks
+4 vectors of 768 dimensions
+status 0
+$ aildb check o/d/one.idx
+--- stdout
+{"records":4,"dimension":768,"model":"nomic-embed-text","source_revision":"be192d9ee1c08077e4d0d32995db33d7c38d12a1"}
+--- stderr
+--- status 0
+# what cannot be done
+$ tools/index.sh r o/bad.idx absent
+index: r has no revision absent
+status 1
+$ tools/index.sh absent o/bad.idx
+index: absent is no repository of git
+status 1
+$ tools/index.sh e o/bad.idx
+0 files, 0 chunks
+index: e has no source of AIL and no Markdown at HEAD
+status 1
+$ tools/index.sh r
+usage: tools/index.sh REPO OUT [REVISION]
+status 2
+$ tools/index.sh r o/bad.idx HEAD more
+usage: tools/index.sh REPO OUT [REVISION]
+status 2
+$ tools/index.sh r o/r.idx HEAD~1
+2 files, 4 chunks
+embed: Ollama cannot be asked: error 111
+status 1
+$ aildb check o/r.idx
+--- stdout
+{"records":5,"dimension":768,"model":"nomic-embed-text","source_revision":"07f45a448071c7f5c460f5a7ea82f899ce10c375"}
+--- stderr
+--- status 0
+$ /usr/bin/env LC_ALL=C ls o o/d
+--- stdout
+o:
+d
+r.idx
+r.idx.lock
+
+o/d:
+one.idx
+one.idx.lock
+--- stderr
+--- status 0

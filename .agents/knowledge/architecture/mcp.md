@@ -1,7 +1,7 @@
 ---
 title: The MCP server
-last-verified: 2026-11-22
-sources: [conversation 2026-11-22, docs/TODO.md, docs/mcp.md, mcp/src/main.aiw, mcp/tests/search.aiw, mcp/tests/lib/fake.aiw, the AIL repository (lib/std/json.aiw, lib/std/num.aiw, lib/net/http.aiw, lib/net/httpd.aiw), ail-extensions (mcp/src/mcp.aiw)]
+last-verified: 2026-11-23
+sources: [conversation 2026-11-22, conversation 2026-11-23, tools/index.sh, tests/tools_index.aiw, docs/TODO.md, docs/mcp.md, mcp/src/main.aiw, mcp/tests/search.aiw, mcp/tests/lib/fake.aiw, the AIL repository (lib/std/json.aiw, lib/std/num.aiw, lib/net/http.aiw, lib/net/httpd.aiw), ail-extensions (mcp/src/mcp.aiw)]
 status: current
 ---
 # The MCP server
@@ -91,4 +91,18 @@ pushed or merged.
   package in its directory `mcp/`, had none. The user had the package merged and tagged
   `v0.1.0` the same day, and `mcp/Ailfile` names it by its address and that version, the
   revision `4493f9d` in `mcp/Ailfile.lock`.
+- **The index of a repository is `make index`, a script** (agent, 2026-11-23, for the user
+  to review). The user reported that the installation asks for an index that is not there
+  after a clone: `docs/mcp.md` had `/path/to/repo.idx` and one sentence that pointed to the
+  example, whose steps are bound to `example/corpus.pin`. `tools/index.sh REPO OUT
+  [REVISION]` does those steps for any repository of git, and `make index` builds the three
+  programs first; with no `REPO` it indexes aildb itself, so a clone has a file to name.
+  Rejected: an index committed to the repository (a snapshot is rebuilt from sources, and
+  it would be of a revision that is no longer `HEAD` after the next commit); a server that
+  starts without a snapshot and fails each call (the start that fails is tested and
+  documented, and the agent shows it); a command `aildb index` in the engine (the engine
+  makes no embedding and does not cut files). The chunker still takes only `.aiw` and
+  `.md`, which the document says; the script is a shell script as `tools/eval.sh` is, with
+  a test that makes a repository with git under fixed dates and settings, so git is now
+  needed by `make test` (the checkout on GitHub has it).
 - (Settled on 2026-11-22: AIL has the version 0.1.1 for the libraries, at the user's word, and `Ailfile` and `mcp/Ailfile` ask for it; `make test` runs the test of `mcp/`.)
