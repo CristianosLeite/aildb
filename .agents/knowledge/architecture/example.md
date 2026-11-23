@@ -1,7 +1,7 @@
 ---
 title: The example
-last-verified: 2026-11-21
-sources: [conversation 2026-11-21, docs/example.md, example/chunk.aiw, example/embed.py, example/check.aiw, example/queries.tsv, tests/example_chunk.aiw]
+last-verified: 2026-11-22
+sources: [conversation 2026-11-21, docs/example.md, example/chunk.aiw, example/embed.aiw, tests/example_embed.aiw, example/check.aiw, example/queries.tsv, tests/example_chunk.aiw]
 status: current
 ---
 # The example
@@ -48,6 +48,24 @@ without overlap.
   download but a model file to fetch and name by hand; sentence-transformers or
   fastembed, which bring PyTorch or ONNX Runtime as packages; and writing the client in AIL, which would need
   a parser of decimal fractions that rounds correctly and an HTTP client for one use.
+- **The client is AIL since 2026-11-22** (user: "embed.py can be rewritten in AIL"). What
+  the rejection above lacked is there now: `lib/std/num.aiw`, `lib/std/json.aiw` and
+  `lib/net/http.aiw` of AIL 0.1.1, written for the MCP server. `example/embed.aiw`,
+  `build/embed`, has the three forms of the script, its prefixes, its batches of sixteen,
+  its messages and its statuses; `example/embed.py` is gone, and `make example` and `make
+  eval` need no Python. It replaces bytes that are no UTF-8 as the decoder of Python does
+  with `errors="replace"`, one U+FFFD for a run that starts a character and is not the
+  whole of one, so that the model gets the same text. Checked on 2026-11-22 with Ollama
+  0.40.17: the 3266 vectors of the chunks of AIL at `a5b4559` and those of the ten queries
+  are byte for byte what the script had written, 10,033,152 and 30,720 bytes, and the line
+  of `embed model` is the one of the script. What differs: `OLLAMA_HOST` is an IPv4
+  address or `localhost`, since the client of AIL knows no names, and a number of the
+  model above the largest binary32 is "not 768 finite numbers" where the script said what
+  `struct` says.
+- **`tests/example_embed.aiw`** runs the program against `build/embed-fake`, which answers
+  as Ollama does and puts into each vector the number of the bytes of the text it got and
+  their sum, so the test shows the prefix, the text and the replacement of bad bytes; the
+  numbers it is to print were computed with Python (`decode("utf-8", "replace")`).
 - **The task prefixes are part of the example** (agent, 2026-11-21): `search_document: `
   for a chunk and `search_query: ` for a query, as the model card of nomic-embed-text
   asks. Ollama does not add them.

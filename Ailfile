@@ -14,5 +14,7 @@ bin aildb src/aildb.aiw
 # of docs/evaluation.md
 testbin aildb-stops tests/lib/stops.aiw
 testbin chunk example/chunk.aiw
+testbin embed example/embed.aiw
+testbin embed-fake tests/lib/embedfake.aiw
 testbin example-check example/check.aiw
 testbin example-eval example/eval.aiw

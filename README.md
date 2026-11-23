@@ -23,7 +23,7 @@ aildb is a package of AIL and is built by its command, `ail` ([AIL](https://gith
 
 ```
 ail build       # build/aildb
-ail test        # the tests: 26 programs
+ail test        # the tests: 27 programs
 ```
 
 `make` and `make test` do the same, and `make test` also checks the indentation and runs the packages of `example/consumer` and of `mcp`, the MCP server; AIL is to be 0.1.1 or later; `make AIL=../ail/build/ail` uses the command of a checkout of AIL that is not installed. `build/aildb` is one static executable that can be copied anywhere.
@@ -97,7 +97,7 @@ use "aildb:src/lib/search.aiw"
 
 ## The example
 
-`make example` indexes the AIL repository itself, at the revision of `example/corpus.pin`: an AIL program cuts its sources into chunks, a function or a section each, the embedding model nomic-embed-text makes the vectors, run on the same machine by [Ollama](https://ollama.com), and `search` is asked questions in words whose lines in the sources are known. It needs Ollama running with the model pulled, and Python 3. [docs/example.md](docs/example.md) describes the steps and what a run showed, including the queries that did not find their lines. `make eval` measures that part on fixed queries, the place at which each finds its lines on two repositories, and [docs/evaluation.md](docs/evaluation.md) has the measures.
+`make example` indexes the AIL repository itself, at the revision of `example/corpus.pin`: an AIL program cuts its sources into chunks, a function or a section each, the embedding model nomic-embed-text makes the vectors, run on the same machine by [Ollama](https://ollama.com), and `search` is asked questions in words whose lines in the sources are known. It needs Ollama running with the model pulled, and nothing else: the program that asks it for the vectors is AIL too. [docs/example.md](docs/example.md) describes the steps and what a run showed, including the queries that did not find their lines. `make eval` measures that part on fixed queries, the place at which each finds its lines on two repositories, and [docs/evaluation.md](docs/evaluation.md) has the measures.
 
 ## How fast
 

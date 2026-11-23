@@ -83,16 +83,20 @@ ollama serve
 ollama pull nomic-embed-text
 ```
 
-`example/embed.py` asks it for the vectors. It needs Python 3 and nothing
-that is not in its standard library:
+`build/embed`, from `example/embed.aiw`, asks it for the vectors. It is an
+AIL program, as everything else of the example: the HTTP client, the JSON
+and the numbers are the libraries of AIL (`ail build embed` makes it, and
+`make example` does):
 
 ```
-python3 example/embed.py document TEXT VECTORS
-python3 example/embed.py query QUERIES VECTORS
+build/embed document TEXT VECTORS
+build/embed query QUERIES VECTORS
+build/embed model
 ```
 
 `TEXT` is the file of that name of `build/chunk`; `QUERIES` has a query
-on each line, up to the first tab. `VECTORS` gets one vector for each
+on each line, up to the first tab, and an empty line is passed over.
+`embed model` prints the version of Ollama and the digest of the model. `VECTORS` gets one vector for each
 line, in order, 768 binary32, little-endian: the file `aildb build -v`
 reads, and for one query the bytes `aildb search -q` reads. The file is
 written whole or not at all.
@@ -101,9 +105,13 @@ written whole or not at all.
   it is for. A chunk is sent as `search_document: ` and its text, a query
   as `search_query: ` and its text. A query embedded without the word, or
   with the other one, is compared with vectors it was not made for.
-- A byte sequence that is not UTF-8 is sent as U+FFFD.
+- A byte sequence that is not UTF-8 is sent as U+FFFD, one for each run of
+  bytes that starts a character and is not the whole of one.
+- A number of the model is read as the nearest double and rounded to the
+  nearest binary32, which is what a program in another language stores.
 - The texts go to `/api/embed` of Ollama sixteen at a time, at the address
-  of the environment variable `OLLAMA_HOST` or `http://127.0.0.1:11434`.
+  of the environment variable `OLLAMA_HOST` or `http://127.0.0.1:11434`:
+  an IPv4 address or `localhost`, since the client knows no names.
 - Ollama reads a text up to the context it runs the model with and drops
   the rest. A chunk of at most 1500 bytes was taken to be inside it; a
   line that is longer is a chunk that may be embedded by its start only.
@@ -131,7 +139,7 @@ prints:
    into `repo/`, `git archive` puts its files at the revision of that
    file into `src/`, and `git ls-tree` lists them.
 2. `build/chunk` writes `meta.tsv` and `text.jsonl`.
-3. `example/embed.py` writes `vectors.bin` for the chunks and
+3. `build/embed` writes `vectors.bin` for the chunks and
    `queries.bin` for the queries of `example/queries.tsv`.
 4. `aildb build` makes `ail.idx`, with `nomic-embed-text` as the model
    identifier and the revision of AIL as the source revision, and `aildb
@@ -151,7 +159,7 @@ To ask something else, embed it and search:
 
 ```
 printf 'how do I start a child process\n' > q.txt
-python3 example/embed.py query q.txt q.bin
+build/embed query q.txt q.bin
 build/aildb search build/example/ail.idx -k 5 -q q.bin
 ```
 

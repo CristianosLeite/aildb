@@ -30,7 +30,7 @@ endif
 
 # The example, acceptance check 1 (docs/example.md): the files of the
 # repository and revision in example/corpus.pin are cut into chunks,
-# example/embed.py asks a running Ollama for the embeddings of the
+# build/embed asks a running Ollama for the embeddings of the
 # chunks and of the queries, build makes the snapshot, and
 # build/example-check searches it and a copy of it at another path for
 # the lines each query is to find.
@@ -42,14 +42,15 @@ example:
 	$(AIL) build
 	$(AIL) build chunk
 	$(AIL) build example-check
+	$(AIL) build embed
 	rm -rf $(E)
 	mkdir -p $(E)/src $(E)/copy
 	git clone -q --no-checkout $(URL) $(E)/repo
 	git -C $(E)/repo archive $(PIN) | tar -x -C $(E)/src
 	git -C $(E)/repo ls-tree -r --name-only $(PIN) > $(E)/list
 	$(B)/chunk $(E)/src $(E)/meta.tsv $(E)/text.jsonl < $(E)/list
-	python3 example/embed.py document $(E)/text.jsonl $(E)/vectors.bin
-	python3 example/embed.py query example/queries.tsv $(E)/queries.bin
+	$(B)/embed document $(E)/text.jsonl $(E)/vectors.bin
+	$(B)/embed query example/queries.tsv $(E)/queries.bin
 	$(B)/aildb build -o $(E)/ail.idx -v $(E)/vectors.bin -m $(E)/meta.tsv -d 768 -i nomic-embed-text -r $(PIN)
 	$(B)/aildb check $(E)/ail.idx
 	cp $(E)/ail.idx $(E)/copy/moved.idx
@@ -66,6 +67,7 @@ eval:
 	$(AIL) build
 	$(AIL) build chunk
 	$(AIL) build example-eval
+	$(AIL) build embed
 	tools/eval.sh $(AIL) $(CORPORA)
 
 # The MCP server alone, mcp/ (docs/mcp.md), a package of its own: its

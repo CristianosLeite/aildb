@@ -60,7 +60,7 @@ The fixed queries, their places and the measures are done (`BACKLOG.md`,
 - [ ] Use the queries of `make eval` to compare chunk sizes, overlap,
   the path as part of the embedded text and embedding models. The limits
   of a chunk are constants of `example/chunk.aiw` and the model, its
-  dimension and its prefixes constants of `example/embed.py`; make them
+  dimension and its prefixes constants of `example/embed.aiw`; make them
   arguments, run each variant on both corpora and add the measures to
   `docs/evaluation.md`. Add queries on a repository of another author
   first, in a language the chunker is taught, since both corpora are

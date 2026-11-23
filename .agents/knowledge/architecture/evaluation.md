@@ -33,7 +33,7 @@ chunk sizes or models was run.
   in `example/check.aiw`, so that another model needs no change of the program.
 - **`make eval` does not fail for a bad place** (agent): it measures. The example is
   the check, with its six queries, and is unchanged.
-- **`embed.py model`** (agent) prints the version of Ollama and the digest of the model
+- **`embed model`** (agent; `embed.py model` until the script was rewritten in AIL) prints the version of Ollama and the digest of the model
   for the report, which the item asked to be recorded.
 
 ## What the run showed (2026-11-22, `docs/evaluation.md`)

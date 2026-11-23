@@ -1,0 +1,480 @@
+# embed -- the embeddings of the example, from a model that Ollama runs.
+#
+#   embed document TEXT VECTORS
+#   embed query QUERIES VECTORS
+#   embed model
+#
+# TEXT has a string of JSON on each line, as build/chunk writes it;
+# QUERIES has lines of fields with tabs between, of which the first is a
+# query; an empty line is passed over. VECTORS gets one vector for each
+# line, in order: 768 binary32, little-endian, which is what "aildb build
+# -v" and "aildb search -q" read. "embed model" prints the version of
+# Ollama and which model it has under the name, with its digest, for a
+# report that is to say what made its vectors.
+#
+# The model is nomic-embed-text. It wants to be told what a text is for,
+# so a chunk is sent after "search_document: " and a query after
+# "search_query: ". Ollama is asked at the address of the environment
+# variable OLLAMA_HOST, or at http://127.0.0.1:11434: "http://" or not,
+# an IPv4 address or localhost, and a port or not. A file of AIL may hold
+# bytes that are not UTF-8; the model gets U+FFFD for each run of them
+# that is no character. A number of the model is read as the nearest
+# double and rounded to the nearest binary32. docs/example.md says more.
+#
+# The status is 0 and stdout has the number of vectors, or 2 for wrong
+# usage and 1 for a file that cannot be read or written, a model that
+# cannot be asked or an answer that is not as many vectors of 768 finite
+# numbers as there were texts, with a line on stderr. VECTORS is written
+# whole or not at all: to VECTORS.part first, which is then renamed.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "lib/std/num.aiw"
+use "lib/std/json.aiw"
+use "lib/async/task.aiw"
+use "lib/async/time.aiw"
+use "lib/async/io.aiw"
+use "lib/net/http.aiw"
+
+const dimension 768
+const batch 16
+const rename 82
+buf raw 24      # the file as it is
+buf text 24     # the same as UTF-8, U+FFFD for what was none
+buf body 24     # a request
+buf resp 24     # and its response
+buf out 24      # the vectors
+buf one 8
+buf host 24     # the address as httpurl takes it
+buf line 24
+buf req 128
+buf from 4096
+buf to 4096
+data model "nomic-embed-text"
+data modelend ""
+data local "http://127.0.0.1:11434"
+data localend ""
+var ip port
+
+fn fail p n q m
+	call eprint "embed: "
+	call eprint p n
+	call eprint q m
+	call eprint "\n"
+	sys exit_group 1
+end
+
+# Add the n bytes at p to text as well-formed UTF-8: a run of bytes that
+# is the start of a character and not the whole of one, or a byte that
+# starts none, becomes one U+FFFD, as a decoder that replaces does it.
+# The caller has asked for the room of three times n bytes, the most
+# this adds, so no append here can fail.
+fn clean p n
+	e=p+n
+	label more
+	if p>=e
+		ret 0
+	end
+	# a run of ASCII
+	q=p
+	label plain
+	if q<e
+		loadb q as c
+		if c<128
+			q+=1
+			jmp plain
+		end
+	end
+	if q>p
+		call byadd text p q-p
+		p=q
+		jmp more
+	end
+	call jsonutf p e as k
+	if k
+		call byadd text p k
+		p+=k
+		jmp more
+	end
+	# not a character: the bytes of it that could start one are passed
+	# over together, and at least one byte
+	loadb p as c
+	k=1
+	need=0
+	lo=0x80
+	hi=0xbf
+	if (c>=0xc2)&(c<0xe0)
+		need=1
+	end
+	if (c>=0xe0)&(c<0xf0)
+		need=2
+	end
+	if (c>=0xf0)&(c<0xf5)
+		need=3
+	end
+	if c==0xe0
+		lo=0xa0
+	end
+	if c==0xed
+		hi=0x9f
+	end
+	if c==0xf0
+		lo=0x90
+	end
+	if c==0xf4
+		hi=0x8f
+	end
+	label cont
+	if (k<=need)&(p+k<e)
+		loadb p+k as d
+		if (d>=lo)&(d<=hi)
+			k+=1
+			lo=0x80
+			hi=0xbf
+			jmp cont
+		end
+	end
+	call byadd text "\xef\xbf\xbd"
+	p+=k
+	jmp more
+end
+
+# ask the model at the path p n, with the body of bn bytes at bp or with
+# none, and leave the answer in resp: the address and length of its body
+fn ask p n bp bn
+	i=0
+	while i<128
+		store req+i 0
+		i+=8
+	end
+	store req ip
+	store req+8 port
+	if bn
+		store req+16 "POST"
+		store req+24 4
+		store req+64 "application/json"
+		store req+72 16
+	end
+	store req+32 p
+	store req+40 n
+	store req+48 bp
+	store req+56 bn
+	store req+96 600000
+	store req+104 0x40000000
+	call httpcall req resp as h
+	st=0-12
+	if h
+		await h as st
+	end
+	ifslt st 0
+		call bycut line 0
+		call byadd line "error "
+		call byaddn line 0-st
+		load line as q
+		load line+8 as m
+		call fail "Ollama cannot be asked: " q m
+	end
+	load resp as q
+	load resp+8 as m
+	load req+112 as hn
+	if st!=200
+		call bycut line 0
+		call byadd line "status "
+		call byaddn line st
+		call byaddb line 32
+		m-=hn
+		if m>300
+			m=300
+		end
+		call byadd line q+hn m
+		load line as q
+		load line+8 as m
+		call fail "Ollama refused: " q m
+	end
+	ret q+hn m-hn
+end
+
+# send the texts that body holds, k of them, and add their vectors to out
+fn embed k
+	call byadd body "]}" as ok
+	ifz ok
+		call fail "no memory" ""
+	end
+	load body as bp
+	load body+8 as bn
+	call ask "/api/embed" bp bn as a an
+	call jsonvalue a an as a an kind
+	call jsonget a an "embeddings" as v vn vk
+	if vk!=6
+		call fail "the answer of Ollama has no embeddings" ""
+	end
+	q=v+1
+	got=0
+	label vector
+	call jsonelem q v+vn as e en ek q
+	if ek
+		if ek!=6
+			call fail "a vector is not 768 finite numbers" ""
+		end
+		p=e+1
+		count=0
+		label number
+		call jsonelem p e+en as f fl fk p
+		if fk
+			call numdouble f fl as d ok
+			f8to4 d as w
+			# finite as a binary32 too: its exponent is not all ones
+			if (fk!=4)|(ok==0)|((w>>23&255)==255)
+				call fail "a vector is not 768 finite numbers" ""
+			end
+			store4 one w
+			call byadd out one 4 as ok
+			ifz ok
+				call fail "no memory" ""
+			end
+			count+=1
+			jmp number
+		end
+		if count!=dimension
+			call fail "a vector is not 768 finite numbers" ""
+		end
+		got+=1
+		jmp vector
+	end
+	if got!=k
+		call fail "as many vectors as texts were expected" ""
+	end
+end
+
+# start a request for the texts of a batch
+fn begin
+	call bycut body 0
+	call byadd body "{\"model\":"
+	call jsonadds body model modelend-model
+	call byadd body ",\"truncate\":true,\"input\":["
+end
+
+# the address of Ollama, from the environment or the one it has on the
+# machine: ip and port
+fn where
+	call procvar "OLLAMA_HOST" as p n
+	ifz n
+		p=local
+		n=localend-local
+	end
+	label slash
+	if n
+		loadb p+n-1 as c
+		if c==47
+			n-=1
+			jmp slash
+		end
+	end
+	call bycut host 0
+	i=0
+	scheme=0
+	while i+2<n
+		load2 p+i as c
+		loadb p+i+2 as d
+		if (c==0x2f3a)&(d==47)
+			scheme=1
+		end
+		i+=1
+	end
+	ifz scheme
+		call byadd host "http://"
+	end
+	call byadd host p n
+	load host as p
+	load host+8 as n
+	call httpurl p n as ip port q m ok
+	ifz ok
+		call fail "OLLAMA_HOST is to be an IPv4 address or localhost, with a port or not: " p n
+	end
+end
+
+# print what Ollama says of itself and of the model
+fn about
+	call ask "/api/version" 0 0 as a an
+	call jsonvalue a an as a an kind
+	call jsonget a an "version" as v vn vk
+	if vk!=5
+		call fail "Ollama did not say its version" ""
+	end
+	call bycut line 0
+	call byadd line "Ollama "
+	call jsonstr line v vn
+	call ask "/api/tags" 0 0 as a an
+	call jsonvalue a an as a an kind
+	call jsonget a an "models" as v vn vk
+	q=v+1
+	label next
+	ek=0
+	e=0
+	en=0
+	if vk==6
+		call jsonelem q v+vn as e en ek q
+	end
+	ifz ek
+		call fail "Ollama has no model nomic-embed-text" ""
+	end
+	call jsonget e en "name" as np nn nk
+	call jsoneq np nn "nomic-embed-text" as same
+	call jsoneq np nn "nomic-embed-text:latest" as same2
+	ifz (nk==5)&(same|same2)
+		jmp next
+	end
+	call byadd line ", "
+	call jsonstr line np nn
+	call byadd line ": digest "
+	call jsonget e en "digest" as dp dn dk
+	if dk!=5
+		call fail "the model has no digest" ""
+	end
+	call jsonstr line dp dn
+	call jsonget e en "details" as tp tn tk
+	call byadd line ", "
+	call jsonget tp tn "quantization_level" as dp dn dk
+	if dk==5
+		call jsonstr line dp dn
+	else
+		call byadd line "?"
+	end
+	call byadd line ", a context of "
+	call jsonget tp tn "context_length" as dp dn dk
+	if dk==4
+		call byadd line dp dn
+	else
+		call byadd line "?"
+	end
+	call byadd line " tokens\n"
+	load line as p
+	load line+8 as n
+	call print p n
+end
+
+call argc as c
+call argv 1 as kp kn
+call httpis kp kn "model" as ismodel
+call httpis kp kn "document" as isdoc
+call httpis kp kn "query" as isquery
+if ((c!=2)|(ismodel==0))&((c!=4)|((isdoc|isquery)==0))
+	call eprint "    embed document TEXT VECTORS\n    embed query QUERIES VECTORS\n    embed model\n"
+	sys exit_group 2
+end
+call where
+if ismodel
+	call about
+	sys exit_group 0
+end
+call argv 2 as p n
+call fileread p n raw as r
+ifslt r 0
+	call fail "cannot read " p n
+end
+load raw as p
+load raw+8 as n
+# room for the text at its longest, three bytes for one, so that clean
+# cannot leave a byte out for want of memory
+call byneed text n*3 as ok
+ifz ok
+	call fail "no memory" ""
+end
+call clean p n
+load text as p
+load text+8 as n
+total=0
+k=0
+call begin
+while n
+	# a line, without its line feed
+	l=0
+	label eol
+	if l<n
+		loadb p+l as c
+		if c!=10
+			l+=1
+			jmp eol
+		end
+	end
+	call bycut line 0
+	if isdoc
+		call byadd line "search_document: "
+		call jsonvalue p l as a an kind
+		if kind!=5
+			call fail "a line of the text is no string of JSON" ""
+		end
+		call jsonstr line a an as ok
+		take=1
+	else
+		call byadd line "search_query: "
+		# the field before the first tab
+		m=0
+		label tab
+		if m<l
+			loadb p+m as c
+			if c!=9
+				m+=1
+				jmp tab
+			end
+		end
+		call byadd line p m as ok
+		take=l!=0
+	end
+	ifz ok
+		# no text is sent in part
+		call fail "no memory" ""
+	end
+	if take
+		if k
+			call byaddb body 44
+		end
+		load line as q
+		load line+8 as m
+		call jsonadds body q m as ok
+		ifz ok
+			call fail "no memory" ""
+		end
+		k+=1
+		total+=1
+		if k==batch
+			call embed k
+			call begin
+			k=0
+		end
+	end
+	p+=l
+	n-=l
+	if n
+		p+=1
+		n-=1
+	end
+end
+if k
+	call embed k
+end
+# the whole file or none: build reads no half of it
+call argv 3 as p n
+if n>4000
+	call fail "the path of the vectors is too long" ""
+end
+call bycut line 0
+call byadd line p n
+call byadd line ".part"
+load line as q
+load line+8 as m
+load out as vp
+load out+8 as vn
+call filewrite q m vp vn as r
+ifslt r 0
+	call fail "cannot write " q m
+end
+call filepath q m from
+call filepath p n to
+sys rename from to as r
+if r
+	call fail "cannot write " p n
+end
+call putn total
+call print " vectors of 768 dimensions\n"
