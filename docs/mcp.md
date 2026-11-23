@@ -142,11 +142,16 @@ the index, each a whole path, since the agent starts the server in a
 directory of its own choice. In the clone:
 
 ```
-claude mcp add aildb -- $PWD/mcp/build/aildb-mcp -s $PWD/build/index/<name>.idx \
-    -i nomic-embed-text -e http://127.0.0.1:11434 -a $PWD/build/aildb -p "search_query: "
-codex mcp add aildb -- $PWD/mcp/build/aildb-mcp -s $PWD/build/index/<name>.idx \
-    -i nomic-embed-text -e http://127.0.0.1:11434 -a $PWD/build/aildb -p "search_query: "
+claude mcp add aildb -- "$PWD/mcp/build/aildb-mcp" \
+    -s "$PWD/build/index/<name>.idx" -i nomic-embed-text \
+    -e http://127.0.0.1:11434 -a "$PWD/build/aildb" -p "search_query: "
+codex mcp add aildb -- "$PWD/mcp/build/aildb-mcp" \
+    -s "$PWD/build/index/<name>.idx" -i nomic-embed-text \
+    -e http://127.0.0.1:11434 -a "$PWD/build/aildb" -p "search_query: "
 ```
+
+The paths are between double quotes, so that a clone or an index whose
+name has a blank is still one argument each.
 
 The agent then has the tool `search` of the server `aildb`. A server
 that is named an index that is not there ends when it starts, with
