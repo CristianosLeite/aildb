@@ -19,9 +19,10 @@
 # file with no units is, and the first and the last line of each of its
 # chunks are the number of the page, from 1, with the language "pdf". A
 # page that cannot be read is passed over with a line; a file that
-# cannot be opened, or that costs more work or memory than it is
-# allowed, is passed over whole, and no chunk of it is kept; a file
-# of which no page gave a chunk is passed over with a line too.
+# cannot be opened, that costs more work or memory than it is allowed,
+# or whose chunks are more bytes of META and TEXT than pdfkept, is
+# passed over whole, and no chunk of it is kept; a file of which no
+# page gave a chunk is passed over with a line too.
 #
 # A file that is not text is passed over, and so are a file of more than
 # maxfile bytes, maxpdf for a PDF file, which is not read beyond them, a
@@ -57,11 +58,17 @@ const maxfile 1048576
 # and a PDF file of more bytes than this, which has pictures in it
 # where another file has text
 const maxpdf 33554432
+# the bytes asked for at a time of a file that is longer than it said
+const readstep 65536
 # what a PDF file may cost (pdf/README.md of ail-extensions): the work
 # for each of its bytes and besides, and the bytes of memory
 const pdfwork 64
 const pdfmore 1000000
 const pdfheld 268435456
+# and the bytes that the chunks of one PDF file may be in META and TEXT,
+# which are held until the last file is cut and which the memory of the
+# reader does not count
+const pdfkept 16777216
 
 # the ends of paths and the languages they name, each with a NUL byte
 # after it; an end with no byte is the end of the table
@@ -84,8 +91,10 @@ buf path 24
 buf doc pdfsize
 buf leaf 24
 # pageno is the page that the chunks being cut are of, 0 for the chunks
-# of a file that has lines
-var chunks files rootp rootn pageno
+# of a file that has lines; pdfbase is the bytes that META and TEXT had
+# before the PDF file being cut, and pdfspilt says that its chunks came
+# to more than pdfkept, after which none is added
+var chunks files rootp rootn pageno pdfbase pdfspilt
 
 fn fail st p n q m
 	call eprint "chunk: "
@@ -161,6 +170,15 @@ fn emit pp pn first last lp ln p n
 	if pageno
 		first=pageno
 		last=pageno
+		if pdfspilt
+			ret 0
+		end
+		load meta+8 as a
+		load text+8 as b
+		if a+b-pdfbase>pdfkept
+			pdfspilt=1
+			ret 0
+		end
 	end
 	call byadd meta pp pn
 	call byaddb meta 9
@@ -331,22 +349,36 @@ end
 
 # add the bytes of the file at the path p n to the buffer b, which is
 # empty, but no more than max+1 of them: their number, or the error of
-# the kernel negated. A file that gives max+1 is longer than max.
+# the kernel negated. A file that gives max+1 is longer than max. The
+# room asked for is what the file says it has and a byte, not max: a
+# short file is read on a machine that has no memory for the longest.
+# One that gives more than it said is read on in steps.
 fn readmax p n b max
+	local st 144
 	call fileopen p n 0 0 as fd
 	ifslt fd 0
 		ret fd
 	end
-	call byneed b max+1 as ok
-	ifz ok
-		sys close fd
-		ret -12
+	want=readstep
+	sys fstat fd st as r
+	ifz r
+		load st+48 as want
+		want+=1
 	end
-	load b as q
+	if (want<1)|(want>max+1)
+		want=max+1
+	end
 	sum=0
 	label more
 	if sum<=max
-		sys read fd q+sum max+1-sum as r
+		store b+8 sum
+		call byneed b want as ok
+		ifz ok
+			sys close fd
+			ret -12
+		end
+		load b as q
+		sys read fd q+sum want as r
 		jeq r -4 more
 		ifslt r 0
 			sys close fd
@@ -354,6 +386,13 @@ fn readmax p n b max
 		end
 		if r
 			sum+=r
+			want-=r
+			ifz want
+				want=readstep
+			end
+			if want>max+1-sum
+				want=max+1-sum
+			end
 			jmp more
 		end
 	end
@@ -393,12 +432,14 @@ end
 
 # The PDF file of the r bytes at q, at the path p l: the text of each
 # page cut into chunks of that page. A page that cannot be read is
-# passed over; if the file cannot be opened or is spent, nothing of it
-# is kept.
+# passed over; if the file cannot be opened or is spent, or its chunks
+# are more bytes than pdfkept, nothing of it is kept.
 fn pdffile p l q r
 	load meta+8 as m0
 	load text+8 as t0
 	c0=chunks
+	pdfbase=m0+t0
+	pdfspilt=0
 	call pdfopen q r doc r*pdfwork+pdfmore pdfheld as pages
 	ifslt pages 0
 		if pages==pdfdoclocked
@@ -441,6 +482,14 @@ fn pdffile p l q r
 			pageno=i
 			call cut p l a x 2 "pdf" 1
 			pageno=0
+			if pdfspilt
+				call pdfclose doc
+				store meta+8 m0
+				store text+8 t0
+				chunks=c0
+				call over "a PDF file with more text than is kept of one" p l
+				ret 0
+			end
 		end
 		i+=1
 	end

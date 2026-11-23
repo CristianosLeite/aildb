@@ -346,3 +346,9 @@ mapped pages contribute to reported peak resident memory.
   `tests/example_chunk.aiw` and `tests/tools_index.aiw`; a run against
   Ollama on 2026-11-23, the manual of bzip2, searched by page through
   the server (`docs/mcp.md`).
+- [x] Two findings of a review of the pull request 17 at `50c4fe2`
+  (2026-11-23): the chunker reads a file into the room the file has,
+  not into that of the longest, so a short PDF file is read under a
+  limit of 32 MiB; and the chunks of one PDF file may be 16777216
+  bytes of metadata and text, `pdfkept`, above which the file is
+  passed over whole. Tests in `tests/example_chunk.aiw`.

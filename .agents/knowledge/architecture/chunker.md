@@ -86,6 +86,19 @@ ail-extensions.
 - **33554432 bytes for a PDF file, 64 units of work a byte and a million, 256 MiB**
   (agent, 2026-11-23, for the user to review). The most work a byte among 394 files
   read on 2026-11-23 was 5.5 (`pdf/README.md` of ail-extensions).
+- **16777216 bytes of metadata and text for the chunks of one PDF file, and a file read
+  into the room it has** (agent, 2026-11-23, after a review of the pull request 17 at
+  `50c4fe2`, for the user to review). The review found that `readmax` asked for the
+  33554433 bytes of the longest PDF file before it read one, so that a file of 146 KB
+  ended the chunker with the status 4 under a limit of 32 MiB, and that the 256 MiB are
+  the memory of the reader alone: the chunks of a file, which stay in the two buffers
+  until the last file is cut, were bounded by the work only, about a kilobyte of text
+  for each byte of the file. `readmax` now asks for the size that `fstat` gives and a
+  byte, and goes on in steps of 65536 for a file that gives more. `emit` adds no chunk
+  of a PDF file once its chunks are more than `pdfkept`, and `pdffile` then takes back
+  what was cut, as for a spent document. The number is the agent's: a book of a
+  thousand pages has a few megabytes of text. Not done: a limit for all files together,
+  and the room of the buffer of a page, which is the reader's to bound (its README).
 - **The dependency is in the `Ailfile` of the top** (agent; the user: acceptable for
   this pull request). A program that uses aildb as a library then fetches
   ail-extensions too, since dependencies are followed, though only the chunker reads

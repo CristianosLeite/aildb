@@ -84,7 +84,9 @@ which `Ailfile` names as a dependency:
   `.pdf` says that the two numbers of a result are a page; the result
   of a search does not have the language.
 - **The most bytes** of a PDF file are 33554432, the constant `maxpdf`,
-  since such a file has pictures where another has text.
+  since such a file has pictures where another has text. The memory a
+  file is read into is what the file has, not that most, so a short
+  file is read where there is no memory for the longest.
 - **A page that cannot be read**, because its contents are not well
   formed or a stream of them has a filter that the module does not know,
   is passed over, with `chunk: passed over, the page N ...: <path>` on
@@ -97,6 +99,12 @@ which `Ailfile` names as a dependency:
   (`pdf/README.md` of ail-extensions says what a unit is); if a file
   uses that up after pages of it were cut, their chunks are taken back,
   so that an index has all the readable pages of a file or none.
+- **The most that is kept of one file** is 16777216 bytes of metadata
+  and text, the constant `pdfkept`: the chunks of every file are held
+  in memory until the last is cut, and the memory of the module does
+  not count them. A file whose chunks come to more is passed over
+  whole, as one that is spent, with `chunk: passed over, a PDF file
+  with more text than is kept of one: <path>`.
 - **A name and a header that do not agree** are passed over with a line:
   a file named `.pdf` without the header, and a file with the header
   under another name.

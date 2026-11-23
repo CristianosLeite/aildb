@@ -210,6 +210,34 @@ mid.pdf	4	4	pdf
 "before"
 "after"
 
+# the chunks of a PDF file may be 16777216 bytes of metadata and text: one is kept, and nothing of one with more
+$ chunk . meta.tsv text.jsonl < list.txt
+--- stdout
+3 files, 10252 chunks
+--- stderr
+--- status 0
+$ chunk . meta.tsv text.jsonl < list.txt
+--- stdout
+2 files, 2 chunks
+--- stderr
+chunk: passed over, a PDF file with more text than is kept of one: much.pdf
+--- status 0
+--- meta.tsv
+notes.txt	1	1	text
+notes.txt	1	1	text
+--- text.jsonl
+"a note"
+"a note"
+
+# a short PDF file is read with 32 MiB of memory, less than the longest may have
+$ chunk . meta.tsv text.jsonl < list.txt, with 32 MiB of memory
+2 files, 3 chunks
+status 0
+--- meta.tsv
+two.pdf	1	1	pdf
+two.pdf	2	2	pdf
+notes.txt	1	1	text
+
 # what it refuses
 $ chunk . meta.tsv
 --- stdout
