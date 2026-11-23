@@ -165,8 +165,22 @@ chunk and the name of the revision that `git rev-parse` prints, a second
 commit replaces it and a file that is not committed is not in it, an
 older revision is indexed by its name, and a revision or a repository
 that is not there, a repository with nothing to index and a service that
-is gone leave the index as it was. `make index` was not run against
-Ollama itself: the machine of 2026-11-23 had none running.
+is gone leave the index as it was.
+
+Against the model itself, on 2026-11-23 (Ollama 0.40.17,
+nomic-embed-text F16, digest `0a109f422b47`, on an NVIDIA RTX 3050
+Laptop GPU and a Core i7-12700H, AIL 0.1.1 at `d9e069e`): `make index`
+in a checkout of aildb at `39fcca3` printed `87 files, 648 chunks`, `648
+vectors of 768 dimensions` and the line of `aildb build` with 648
+records and `39fcca3a77103fcbc604c1846999ee97cea320bb` as the revision,
+which `aildb check build/index/aildb.idx` printed again. A server
+started with that index and asked by a client written as lines for
+"make the index of a repository for the MCP server" with `k` 3 gave
+`AGENTS.md` 32, `.agents/knowledge/status/open-items.md` 43 to 45 and
+`docs/mcp.md` 100 to 128, the three lines, with the same `score_bits`,
+that `aildb search -k 3` printed for the vector `build/embed query` made
+of the same words: the paragraph, the open item and the section about
+`make index` at that revision.
 
 Against the model itself, on 2026-11-22 (Ollama 0.40.17, nomic-embed-text,
 the index of AIL at `a5b4559` that `make eval` built): the three hits of

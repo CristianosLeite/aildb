@@ -322,4 +322,5 @@ mapped pages contribute to reported peak resident memory.
   [REVISION]`, the steps of the example for a repository of git at a
   revision, and `docs/mcp.md` with the installation from a clone, the
   index first. `tests/tools_index.aiw`, against the service of
-  `tests/lib/embedfake.aiw`. Not run against Ollama itself.
+  `tests/lib/embedfake.aiw`, and a run against Ollama on 2026-11-23,
+  aildb itself at `39fcca3`, searched through the server (`docs/mcp.md`).
