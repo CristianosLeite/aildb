@@ -455,7 +455,7 @@ ifz same
 end
 store server "aildb-mcp"
 store server+8 9
-store server+16 "0.1.0"
+store server+16 "0.1.1"
 store server+24 5
 store server+32 notes
 store server+40 notesend-notes

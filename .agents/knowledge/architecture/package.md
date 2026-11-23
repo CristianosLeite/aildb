@@ -78,3 +78,14 @@ cloned AIL and the two test scripts are gone.
 ## Not checked
 - A build with an installed AIL (`make install` there) in place of the checkout: the
   tests of AIL do that with a new package, not with aildb.
+
+## 0.1.1 (user, 2026-11-22)
+- AIL got the version 0.1.1 for the libraries the MCP server needs, and the user asked for
+  every package of the family to be 0.1.1, the line `ail` and the version of each. Here:
+  `Ailfile`, `mcp/Ailfile` and `example/consumer/Ailfile` are 0.1.1 and ask for AIL 0.1.1;
+  the server names ail-extensions 0.1.1 (`3d02922`). The tag `v0.1.1` is on the merge of
+  the pull request 11.
+- `example/consumer` still names aildb 0.1.0 at that tag: a package cannot name a version
+  of the repository it is in before that version is tagged, as it was with 0.1.0, where
+  the consumer named the directory first and the address afterwards. A change after the
+  tag names 0.1.1.

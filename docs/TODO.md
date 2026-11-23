@@ -28,12 +28,16 @@ Nothing is left of this step (`BACKLOG.md`).
 
 ## 11. Release
 
-Version 0.1.0 is tagged (`BACKLOG.md`).
+Versions 0.1.0 and 0.1.1 are tagged (`BACKLOG.md`).
 
-- [ ] Attach the archive of `make dist` and its `.sha256` to the release
-  `v0.1.0` (user, 2026-11-22: the archive is for `v0.1.0`), which is a
-  draft without files; it is done at the user's word. The archive is
-  made and tried (`BACKLOG.md`).
+- [ ] Attach the archive of `make dist` and its `.sha256` to a release
+  (user, 2026-11-22: the archive is for `v0.1.0`, whose release is a
+  draft without files; `v0.1.1` has no release yet). The archive of
+  `v0.1.0` is made and tried (`BACKLOG.md`); it is done at the user's
+  word.
+- [ ] Name aildb 0.1.1 in `example/consumer`, which still names 0.1.0:
+  the tag `v0.1.1` is needed first, and is on the merge of the change
+  that made the version.
 
 ## 13. The measurements in a repository of their own
 

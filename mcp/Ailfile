@@ -3,7 +3,7 @@
 # module mcp of the package ail-extensions, named by its address and a
 # version; Ailfile.lock has the revision of that version.
 name aildb-mcp
-version 0.1.0
+version 0.1.1
 ail 0.1.1
 
 bin aildb-mcp src/main.aiw
@@ -12,4 +12,4 @@ testbin embed-fake tests/lib/fake.aiw
 # and a command run with a limit of open descriptors
 testbin nofile tests/lib/nofile.aiw
 dep aildb ..
-dep ail-extensions 0.1.0 https://github.com/CristianosLeite/ail-extensions.git
+dep ail-extensions 0.1.1 https://github.com/CristianosLeite/ail-extensions.git

@@ -211,6 +211,12 @@ mapped pages contribute to reported peak resident memory.
   `search` of the unpacked executable in a Docker container without AIL.
   The archive is for `v0.1.0` (user, 2026-11-22). Attaching it to the
   release is left in `TODO.md`.
+- [x] The version 0.1.1 (user, 2026-11-22: every package of the family
+  to 0.1.1, with AIL): `Ailfile`, `mcp/Ailfile` and
+  `example/consumer/Ailfile` say it and ask for AIL 0.1.1, the server
+  names ail-extensions 0.1.1, and the tag `v0.1.1` names the merge of
+  the change. It is the first version with the fix of the named pipe,
+  the evaluation, the archive of a release and the MCP server.
 
 ## 12. aildb as a package
 

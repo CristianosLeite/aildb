@@ -87,7 +87,7 @@ a query, which [performance.md](performance.md) measures.
 version 0.1.1 of AIL is the first to have and `mcp/Ailfile` asks for, and
 the server SDK, the module `mcp` of
 the package [ail-extensions](https://github.com/CristianosLeite/ail-extensions),
-which `mcp/Ailfile` names by its address and the version 0.1.0, with the
+which `mcp/Ailfile` names by its address and the version 0.1.1, with the
 revision in `mcp/Ailfile.lock`; the first build fetches it into
 `mcp/deps/` with git:
 
