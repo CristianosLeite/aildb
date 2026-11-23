@@ -4,21 +4,25 @@
 # repository in the directory REPO has at REVISION, HEAD if none is
 # given. It is what the example does (docs/example.md) for a repository
 # of one's own: the files of the revision are cut into chunks by
-# build/chunk, which takes the sources of AIL and Markdown and passes
-# over the rest, build/embed asks a running Ollama for their embeddings
-# from nomic-embed-text, and "aildb build" publishes OUT with that model
-# and the whole name of the revision. What is not committed is not
-# indexed. An OUT that is there is replaced as build replaces one, so a
-# reader of it, the MCP server among them, has the old index or the new.
+# build/chunk, which takes every file that is text and passes over the
+# rest, build/embed asks a running Ollama for their embeddings from
+# nomic-embed-text, and "aildb build" publishes OUT with that model and
+# the whole name of the revision. What is not committed is not indexed.
+# An OUT that is there is replaced as build replaces one, so a reader of
+# it, the MCP server among them, has the old index or the new.
 #
 # A file is indexed as the bytes git has for it at the revision: each is
 # written from its blob, so nothing an attribute would do to an archive
 # or a checkout (export-ignore, export-subst, a filter, line ends) is
 # done to it. Only a regular file is taken. A symbolic link is passed
 # over, since what it names may be outside the revision, and so is a
-# submodule. A path with a double quote, a backslash or a byte below
-# 0x20 in it, which git prints quoted, is passed over with a line on
-# standard error, and so is one that would lead out of the directory.
+# submodule. Passed over with a line on standard error are a path with a
+# double quote, a backslash or a byte below 0x20 in it, which git prints
+# quoted, one that would lead out of the directory, and a file of more
+# bytes than the chunker reads, which is not written: git says how long
+# a blob is. The most are maxfile of example/chunk.aiw, and maxpdf for a
+# PDF file, one whose path ends in ".pdf" and whose first bytes are
+# "%PDF-".
 #
 # Standard output has the line of "aildb build" and standard error what
 # the steps said. The status is 0, 2 for wrong usage, 1 if a program of
@@ -53,19 +57,21 @@ mkdir -p "$(dirname "$out")"
 w=$(mktemp -d "$out.XXXXXX")
 trap 'rm -rf "$w"' EXIT
 mkdir "$w/src"
-# "mode type name<tab>path" for each entry, a path of other bytes than
-# ASCII as it is. The list is every regular file, of which the chunker
-# takes what it knows; the files written are those it reads, the
-# sources of AIL and Markdown (example/chunk.aiw). It fails for a path
-# of the list that it takes and does not find, so the two cannot come
-# to differ unseen.
+# "mode type name size<tab>path" for each entry, a path of other bytes
+# than ASCII as it is. Every regular file that is not too long is written
+# and listed; which of them is text, and so indexed, the chunker says. It
+# fails for a path of the list that it does not find, so the two cannot
+# come to differ unseen.
+max=$(sed -n 's/^const maxfile //p' "$b/../example/chunk.aiw")
+maxpdf=$(sed -n 's/^const maxpdf //p' "$b/../example/chunk.aiw")
 tab=$(printf '\t')
-git -C "$repo" -c core.quotePath=false ls-tree -r --full-tree "$pin" > "$w/tree"
+git -C "$repo" -c core.quotePath=false ls-tree -r -l --full-tree "$pin" > "$w/tree"
 : > "$w/list"
 while IFS= read -r line; do
-	meta=${line%%"$tab"*}
 	path=${line#*"$tab"}
-	case ${meta%% *} in
+	# shellcheck disable=SC2086
+	set -- ${line%%"$tab"*}
+	case $1 in
 	100644|100755) ;;
 	*) continue ;;
 	esac
@@ -77,16 +83,26 @@ while IFS= read -r line; do
 		echo "index: passed over, a path that leaves the repository: $path" >&2
 		continue ;;
 	esac
+	if [ "$4" -gt "$max" ]; then
+		most=$max
+		case $path in
+		*.[Pp][Dd][Ff])
+			if [ "$(git -C "$repo" cat-file blob "$3" | head -c 5)" = %PDF- ]; then
+				most=$maxpdf
+			fi ;;
+		esac
+		if [ "$4" -gt "$most" ]; then
+			echo "index: passed over, a file of more than $most bytes: $path" >&2
+			continue
+		fi
+	fi
 	printf '%s\n' "$path" >> "$w/list"
-	case $path in
-	*.aiw|*.md)
-		mkdir -p "$(dirname "$w/src/$path")"
-		git -C "$repo" cat-file blob "${meta##* }" > "$w/src/$path" ;;
-	esac
+	mkdir -p "$(dirname "$w/src/$path")"
+	git -C "$repo" cat-file blob "$3" > "$w/src/$path"
 done < "$w/tree"
 "$b/chunk" "$w/src" "$w/meta.tsv" "$w/text.jsonl" < "$w/list" >&2
 if [ ! -s "$w/meta.tsv" ]; then
-	echo "index: $repo has no source of AIL and no Markdown at $rev" >&2
+	echo "index: $repo has nothing to index at $rev" >&2
 	exit 1
 fi
 "$b/embed" document "$w/text.jsonl" "$w/vectors.bin" >&2

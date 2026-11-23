@@ -74,6 +74,11 @@ equal scores.
 | 16 | 4 | the first line, counted from 1 |
 | 20 | 4 | the last line, not below the first |
 
+The two lines are numbers that a reader gives back as they are: what
+they count is the producer's to say. In the snapshots of `make index`
+they are lines of a text file and, for a record whose language is `pdf`,
+the number of a page ([example.md](example.md#pdf-files)).
+
 ## Strings
 
 The strings are bytes without terminators; a record and the header name one

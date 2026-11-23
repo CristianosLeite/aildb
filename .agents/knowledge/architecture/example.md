@@ -1,6 +1,6 @@
 ---
 title: The example
-last-verified: 2026-11-22
+last-verified: 2026-11-23
 sources: [conversation 2026-11-21, docs/example.md, example/chunk.aiw, example/embed.aiw, tests/example_embed.aiw, example/check.aiw, example/queries.tsv, tests/example_chunk.aiw]
 status: current
 ---
@@ -21,6 +21,8 @@ without overlap.
   revision, so the files and their order are those of the revision and not of whatever
   lies in a checkout. Rejected: reading the directory in AIL, which needs a sort and
   takes in files that are not of the revision.
+- **Since 2026-11-23 these are the rules of `chunk -c`**, which `make example` and `make
+  eval` run; without the option the chunker takes every text file ([page](chunker.md)).
 - **Two kinds of file, by the end of the path** (agent, 2026-11-21): `.aiw` as `ail`
   and `.md` as `markdown`. The expected outputs of the tests of AIL (`.out`, `.err`),
   the shell scripts and the seed are left out: they are not what a query about the

@@ -1,7 +1,19 @@
-# the chunker of the example, build/chunk: how it cuts a source of AIL
-# and a Markdown file into chunks, as docs/example.md says, the lines of
-# metadata and of text it writes, and what it says of wrong arguments, a
-# path that build would not take and a file that is not there.
+# the chunker, build/chunk: how it cuts a source of AIL and a Markdown
+# file into chunks, as docs/example.md says, the lines of metadata and of
+# text it writes, and what it says of wrong arguments, a path that build
+# would not take and a file that is not there. The first cases are run
+# with -c, as the corpora of the example are; then come the files that
+# are taken without it: every text file with the language its name
+# says, what is not text, a line longer than a chunk, a file of the
+# most bytes that are read, and PDF files, written for the test by a
+# Python program that also wrote what their pages are to give: chunks
+# with the number of the page, a page and a file that cannot be read,
+# a file that is spent after a page of it was cut, a file with the
+# most bytes of chunks that are kept of one (16 pages of 15739 lines of
+# 60 letters and one of 38, all with one stream as their contents), one
+# with a letter more in that line, whose last chunk goes over, and one
+# of 42 pages of 6000 lines, which is over in its last page, and a
+# short file read with less memory than the longest file may have.
 use "lib/std/io.aiw"
 use "lib/std/bytes.aiw"
 use "lib/std/file.aiw"
@@ -9,23 +21,36 @@ use "lib/std/proc.aiw"
 use "tests/lib/cmd.aiw"
 buf b 24
 buf f 24
-# run the chunker on the list at list.txt and print what it wrote
-fn run
-	call fileunlink "meta.tsv"
-	call fileunlink "text.jsonl"
-	call cmdshowin "chunk . meta.tsv text.jsonl" "list.txt"
+# print what the chunker wrote; text says whether the lines of text too
+fn wrote text
 	call bycut b 0
 	call fileread "meta.tsv" b
 	call print "--- meta.tsv\n"
 	load b as p
 	load b+8 as n
 	call print p n
-	call bycut b 0
-	call fileread "text.jsonl" b
-	call print "--- text.jsonl\n"
-	load b as p
-	load b+8 as n
-	call print p n
+	if text
+		call bycut b 0
+		call fileread "text.jsonl" b
+		call print "--- text.jsonl\n"
+		load b as p
+		load b+8 as n
+		call print p n
+	end
+end
+# run the chunker with -c on the list at list.txt and print what it wrote
+fn run
+	call fileunlink "meta.tsv"
+	call fileunlink "text.jsonl"
+	call cmdshowin "chunk -c . meta.tsv text.jsonl" "list.txt"
+	call wrote 1
+end
+# the same without -c
+fn all text
+	call fileunlink "meta.tsv"
+	call fileunlink "text.jsonl"
+	call cmdshowin "chunk . meta.tsv text.jsonl" "list.txt"
+	call wrote text
 end
 # write the bytes of f to the file at p n and empty f
 fn save p n
@@ -33,6 +58,24 @@ fn save p n
 	load f+8 as m
 	call filewrite p n q m
 	call bycut f 0
+end
+# write the PDF file at p n: the bytes at hp, c lines of 60 letters
+# that a page shows, and the bytes at tp
+fn lines p n hp hn tp tn c
+	call byadd f hp hn
+	i=0
+	while i<c
+		call byaddb f 40
+		j=0
+		while j<60
+			call byaddb f 119
+			j+=1
+		end
+		call byadd f ") '\n"
+		i+=1
+	end
+	call byadd f tp tn
+	call save p n
 end
 
 call print "# AIL: a function starts a chunk, with the comment above it\n"
@@ -95,8 +138,120 @@ call filewrite "crlf.aiw" "fn a\x0d\nend\x0d\n\x0d\nfn b\x0d\nend\x0d\n"
 call filewrite "list.txt" "empty.aiw\nMakefile\nblank.md\n.aiw\n.md\nnone.txt\n\ncrlf.aiw\nlib/a.aiw"
 call run
 
+call print "\n# without -c: every text file, in the language the end of its path names\n"
+call filemkdir "src" 493
+call filemkdir "a.b" 493
+call filewrite "src/m.py" "def f():\n    return 1\n\nx = f()\n"
+call filewrite "notes.txt" "a note\n"
+call filewrite "Makefile" "all:\n\techo\n"
+call filewrite ".gitignore" "build\n"
+call filewrite "a.b/c" "no end\n"
+call filewrite "x." "an empty end\n"
+call filewrite "UP.PY" "an end that is not in the table\n"
+call filewrite "ff.c" "int a;\x0cint b;\n"
+call filewrite "list.txt" "lib/a.aiw\ndoc.md\nsrc/m.py\nnotes.txt\nMakefile\n.gitignore\na.b/c\nx.\nUP.PY\nff.c\nempty.aiw\n"
+call all 1
+
+call print "\n# what is not text is passed over, with a line if its name says text\n"
+call filewrite "bin.dat" "a\0b"
+call filewrite "img.png" "\x89PNG\x0d\x0a\x1a\x0a"
+call filewrite "bad.py" "x=\"\xa0\"\n"
+call filewrite "del.txt" "a\x7fb\n"
+call filewrite "esc.sh" "echo \x1b[0m\n"
+call filewrite "cut.md" "caf\xc3"
+call filewrite "list.txt" "bin.dat\nimg.png\nbad.py\ndel.txt\nesc.sh\ncut.md\n../lib/a.aiw\nli\x01b/a.aiw\n/etc/a.md\nnotes.txt\n"
+call all 1
+
+call print "\n# a line longer than 1500 bytes is cut where a character ends\n"
+# 1499 bytes and a character of two, 1497 bytes and one of three, ten bytes
+call byadd f "first\n"
+i=0
+while i<1499
+	call byaddb f 97
+	i+=1
+end
+call byadd f "\xc3\xa9"
+i=0
+while i<1497
+	call byaddb f 98
+	i+=1
+end
+call byadd f "\xe2\x82\xac"
+call byadd f "cccccccccc\nlast\n"
+call save "wide.txt"
+call filewrite "list.txt" "wide.txt\nwide.md\n"
+call all 1
+
+call print "\n# 1048576 bytes are read, and a file of a byte more is passed over\n"
+call byadd f "x\n"
+i=2
+while i<1048576
+	call byaddb f 10
+	i+=1
+end
+load f as q
+load f+8 as m
+call filewrite "most.txt" q m
+call byaddb f 10
+call save "more.txt"
+call filewrite "list.txt" "most.txt\nmore.txt\n"
+call all 0
+
+call print "\n# PDF files: a chunk has the number of its page; pages and files that cannot be read\n"
+call filewrite "two.pdf" "%PDF-1.4\x0a1 0 obj\x0a<</Type /Catalog /Pages 2 0 R>>\x0aendobj\x0a3 0 obj\x0a<</Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding /FirstChar 32 /LastChar 126 /Widths [500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500]>>\x0aendobj\x0a10 0 obj\x0a<< /Length 72>>\x0astream\x0aBT /F1 10 Tf 72 700 Td 12 TL (The first page.) ' (Its second line.) ' ET\x0aendstream\x0aendobj\x0a11 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a12 0 obj\x0a<</Filter /FlateDecode /Length 53>>\x0astream\x0ax\x9cs\x0aQ\xd0w3T04P\x08IS07R07\x00\xb2R\x144B2R\x15\x8aS\x93\xf3\xf3R\x14\x0a\x12\xd3S\xf54\x15B\xb2\x14\x5cC\x00\x14Q\x0c\x80\x0aendstream\x0aendobj\x0a13 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 12 0 R>>\x0aendobj\x0a2 0 obj\x0a<</Type /Pages /Count 2 /Kids [11 0 R 13 0 R] /Resources <</Font <</F1 3 0 R>> /XObject <<>>>>>>\x0aendobj\x0axref\x0a0 4\x0a0000000000 65535 f \x0a0000000009 00000 n \x0a0000000940 00000 n \x0a0000000056 00000 n \x0a10 4\x0a0000000569 00000 n \x0a0000000691 00000 n \x0a0000000754 00000 n \x0a0000000877 00000 n \x0atrailer\x0a<</Size 14 /Root 1 0 R>>\x0astartxref\x0a1052\x0a%%EOF\x0a"
+call filewrite "Wide.PDF" "%PDF-1.4\x0a1 0 obj\x0a<</Type /Catalog /Pages 2 0 R>>\x0aendobj\x0a3 0 obj\x0a<</Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding /FirstChar 32 /LastChar 126 /Widths [500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500]>>\x0aendobj\x0a10 0 obj\x0a<< /Length 1644>>\x0astream\x0aBT /F1 10 Tf 72 700 Td 12 TL (wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww) ' (end) ' ET\x0aendstream\x0aendobj\x0a11 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a2 0 obj\x0a<</Type /Pages /Count 1 /Kids [11 0 R] /Resources <</Font <</F1 3 0 R>> /XObject <<>>>>>>\x0aendobj\x0axref\x0a0 4\x0a0000000000 65535 f \x0a0000000009 00000 n \x0a0000002328 00000 n \x0a0000000056 00000 n \x0a10 2\x0a0000000569 00000 n \x0a0000002265 00000 n \x0atrailer\x0a<</Size 12 /Root 1 0 R>>\x0astartxref\x0a2433\x0a%%EOF\x0a"
+call filewrite "mid.pdf" "%PDF-1.4\x0a1 0 obj\x0a<</Type /Catalog /Pages 2 0 R>>\x0aendobj\x0a3 0 obj\x0a<</Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding /FirstChar 32 /LastChar 126 /Widths [500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500]>>\x0aendobj\x0a10 0 obj\x0a<< /Length 42>>\x0astream\x0aBT /F1 10 Tf 72 700 Td 12 TL (before) ' ET\x0aendstream\x0aendobj\x0a11 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a12 0 obj\x0a<</Filter /DCTDecode /Length 1>>\x0astream\x0ax\x0aendstream\x0aendobj\x0a13 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 12 0 R>>\x0aendobj\x0a14 0 obj\x0a<< /Length 29>>\x0astream\x0aBT /F1 10 Tf (not ended Tj ET\x0aendstream\x0aendobj\x0a15 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 14 0 R>>\x0aendobj\x0a16 0 obj\x0a<< /Length 41>>\x0astream\x0aBT /F1 10 Tf 72 700 Td 12 TL (after) ' ET\x0aendstream\x0aendobj\x0a17 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 16 0 R>>\x0aendobj\x0a2 0 obj\x0a<</Type /Pages /Count 4 /Kids [11 0 R 13 0 R 15 0 R 17 0 R] /Resources <</Font <</F1 3 0 R>> /XObject <<>>>>>>\x0aendobj\x0axref\x0a0 4\x0a0000000000 65535 f \x0a0000000009 00000 n \x0a0000001151 00000 n \x0a0000000056 00000 n \x0a10 8\x0a0000000569 00000 n \x0a0000000661 00000 n \x0a0000000724 00000 n \x0a0000000792 00000 n \x0a0000000855 00000 n \x0a0000000934 00000 n \x0a0000000997 00000 n \x0a0000001088 00000 n \x0atrailer\x0a<</Size 18 /Root 1 0 R>>\x0astartxref\x0a1277\x0a%%EOF\x0a"
+call filewrite "locked.pdf" "%PDF-1.4\x0a1 0 obj\x0a<</Type /Catalog /Pages 2 0 R>>\x0aendobj\x0a3 0 obj\x0a<</Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding /FirstChar 32 /LastChar 126 /Widths [500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500]>>\x0aendobj\x0a10 0 obj\x0a<< /Length 42>>\x0astream\x0aBT /F1 10 Tf 72 700 Td 12 TL (secret) ' ET\x0aendstream\x0aendobj\x0a11 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a2 0 obj\x0a<</Type /Pages /Count 1 /Kids [11 0 R] /Resources <</Font <</F1 3 0 R>> /XObject <<>>>>>>\x0aendobj\x0axref\x0a0 4\x0a0000000000 65535 f \x0a0000000009 00000 n \x0a0000000724 00000 n \x0a0000000056 00000 n \x0a10 2\x0a0000000569 00000 n \x0a0000000661 00000 n \x0atrailer\x0a<</Size 12 /Root 1 0 R /Encrypt 9 0 R>>\x0astartxref\x0a829\x0a%%EOF\x0a"
+call filewrite "broken.pdf" "%PDF-1.4\x0anothing of a PDF file follows\x0a"
+call filewrite "spent.pdf" "%PDF-1.4\x0a1 0 obj\x0a<</Type /Catalog /Pages 2 0 R>>\x0aendobj\x0a3 0 obj\x0a<</Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding /FirstChar 32 /LastChar 126 /Widths [500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500]>>\x0aendobj\x0a40 0 obj\x0a<</Type /XObject /Subtype /Form /BBox [0 0 1 1] /Length 56>>\x0astream\x0a/X1 Do /X1 Do /X1 Do /X1 Do /X1 Do /X1 Do /X1 Do /X1 Do \x0aendstream\x0aendobj\x0a41 0 obj\x0a<</Type /XObject /Subtype /Form /BBox [0 0 1 1] /Length 56>>\x0astream\x0a/X2 Do /X2 Do /X2 Do /X2 Do /X2 Do /X2 Do /X2 Do /X2 Do \x0aendstream\x0aendobj\x0a42 0 obj\x0a<</Type /XObject /Subtype /Form /BBox [0 0 1 1] /Length 56>>\x0astream\x0a/X3 Do /X3 Do /X3 Do /X3 Do /X3 Do /X3 Do /X3 Do /X3 Do \x0aendstream\x0aendobj\x0a43 0 obj\x0a<</Type /XObject /Subtype /Form /BBox [0 0 1 1] /Length 56>>\x0astream\x0a/X4 Do /X4 Do /X4 Do /X4 Do /X4 Do /X4 Do /X4 Do /X4 Do \x0aendstream\x0aendobj\x0a44 0 obj\x0a<</Type /XObject /Subtype /Form /BBox [0 0 1 1] /Length 56>>\x0astream\x0a/X5 Do /X5 Do /X5 Do /X5 Do /X5 Do /X5 Do /X5 Do /X5 Do \x0aendstream\x0aendobj\x0a45 0 obj\x0a<</Type /XObject /Subtype /Form /BBox [0 0 1 1] /Length 56>>\x0astream\x0a/X6 Do /X6 Do /X6 Do /X6 Do /X6 Do /X6 Do /X6 Do /X6 Do \x0aendstream\x0aendobj\x0a46 0 obj\x0a<</Type /XObject /Subtype /Form /BBox [0 0 1 1] /Length 56>>\x0astream\x0a/X7 Do /X7 Do /X7 Do /X7 Do /X7 Do /X7 Do /X7 Do /X7 Do \x0aendstream\x0aendobj\x0a47 0 obj\x0a<</Type /XObject /Subtype /Form /BBox [0 0 1 1] /Length 56>>\x0astream\x0a/X8 Do /X8 Do /X8 Do /X8 Do /X8 Do /X8 Do /X8 Do /X8 Do \x0aendstream\x0aendobj\x0a48 0 obj\x0a<</Type /XObject /Subtype /Form /BBox [0 0 1 1] /Length 56>>\x0astream\x0a/X9 Do /X9 Do /X9 Do /X9 Do /X9 Do /X9 Do /X9 Do /X9 Do \x0aendstream\x0aendobj\x0a49 0 obj\x0a<</Type /XObject /Subtype /Form /BBox [0 0 1 1] /Length 64>>\x0astream\x0a/X10 Do /X10 Do /X10 Do /X10 Do /X10 Do /X10 Do /X10 Do /X10 Do \x0aendstream\x0aendobj\x0a50 0 obj\x0a<</Type /XObject /Subtype /Form /BBox [0 0 1 1] /Length 64>>\x0astream\x0a/X11 Do /X11 Do /X11 Do /X11 Do /X11 Do /X11 Do /X11 Do /X11 Do \x0aendstream\x0aendobj\x0a51 0 obj\x0a<</Type /XObject /Subtype /Form /BBox [0 0 1 1] /Length 64>>\x0astream\x0a/X12 Do /X12 Do /X12 Do /X12 Do /X12 Do /X12 Do /X12 Do /X12 Do \x0aendstream\x0aendobj\x0a52 0 obj\x0a<</Type /XObject /Subtype /Form /BBox [0 0 1 1] /Length 5>>\x0astream\x0aBT ET\x0aendstream\x0aendobj\x0a10 0 obj\x0a<< /Length 50>>\x0astream\x0aBT /F1 10 Tf 72 700 Td 12 TL (kept by no one) ' ET\x0aendstream\x0aendobj\x0a11 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a12 0 obj\x0a<< /Length 6>>\x0astream\x0a/X0 Do\x0aendstream\x0aendobj\x0a13 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 12 0 R>>\x0aendobj\x0a2 0 obj\x0a<</Type /Pages /Count 2 /Kids [11 0 R 13 0 R] /Resources <</Font <</F1 3 0 R>> /XObject << /X0 40 0 R /X1 41 0 R /X2 42 0 R /X3 43 0 R /X4 44 0 R /X5 45 0 R /X6 46 0 R /X7 47 0 R /X8 48 0 R /X9 49 0 R /X10 50 0 R /X11 51 0 R /X12 52 0 R>>>>>>\x0aendobj\x0axref\x0a0 4\x0a0000000000 65535 f \x0a0000000009 00000 n \x0a0000002785 00000 n \x0a0000000056 00000 n \x0a10 4\x0a0000002504 00000 n \x0a0000002604 00000 n \x0a0000002667 00000 n \x0a0000002722 00000 n \x0a40 13\x0a0000000569 00000 n \x0a0000000720 00000 n \x0a0000000871 00000 n \x0a0000001022 00000 n \x0a0000001173 00000 n \x0a0000001324 00000 n \x0a0000001475 00000 n \x0a0000001626 00000 n \x0a0000001777 00000 n \x0a0000001928 00000 n \x0a0000002087 00000 n \x0a0000002246 00000 n \x0a0000002405 00000 n \x0atrailer\x0a<</Size 14 /Root 1 0 R>>\x0astartxref\x0a3043\x0a%%EOF\x0a"
+call filewrite "fake.pdf" "no header\x0a"
+call filewrite "named.txt" "%PDF-1.4\x0aunder another name\x0a"
+call filewrite "empty.pdf" "%PDF-1.4\x0a1 0 obj\x0a<</Type /Catalog /Pages 2 0 R>>\x0aendobj\x0a3 0 obj\x0a<</Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding /FirstChar 32 /LastChar 126 /Widths [500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500]>>\x0aendobj\x0a10 0 obj\x0a<< /Length 3>>\x0astream\x0aq Q\x0aendstream\x0aendobj\x0a11 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a2 0 obj\x0a<</Type /Pages /Count 1 /Kids [11 0 R] /Resources <</Font <</F1 3 0 R>> /XObject <<>>>>>>\x0aendobj\x0axref\x0a0 4\x0a0000000000 65535 f \x0a0000000009 00000 n \x0a0000000684 00000 n \x0a0000000056 00000 n \x0a10 2\x0a0000000569 00000 n \x0a0000000621 00000 n \x0atrailer\x0a<</Size 12 /Root 1 0 R>>\x0astartxref\x0a789\x0a%%EOF\x0a"
+call filewrite "list.txt" "two.pdf\nWide.PDF\nmid.pdf\nlocked.pdf\nbroken.pdf\nspent.pdf\nfake.pdf\nnamed.txt\nempty.pdf\n"
+call all 1
+
+call print "\n# the chunks of a PDF file may be 16777216 bytes of metadata and text: one with as many is kept, and nothing of one whose last chunk has 16 more, or of one with more before its last page\n"
+call lines "kept.pdf" "%PDF-1.4\x0a1 0 obj\x0a<</Type /Catalog /Pages 2 0 R>>\x0aendobj\x0a3 0 obj\x0a<</Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding /FirstChar 32 /LastChar 126 /Widths [500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500]>>\x0aendobj\x0a2 0 obj\x0a<</Type /Pages /Count 16 /Kids [11 0 R 12 0 R 13 0 R 14 0 R 15 0 R 16 0 R 17 0 R 18 0 R 19 0 R 20 0 R 21 0 R 22 0 R 23 0 R 24 0 R 25 0 R 26 0 R] /Resources <</Font <</F1 3 0 R>>>>>>\x0aendobj\x0a11 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a12 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a13 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a14 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a15 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a16 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a17 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a18 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a19 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a20 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a21 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a22 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a23 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a24 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a25 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a26 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a10 0 obj\x0a<< /Length 1023109>>\x0astream\x0aBT /F1 10 Tf 72 700 Td 12 TL\x0a" "(wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww) '\x0aET\x0aendstream\x0aendobj\x0axref\x0a0 27\x0a0000000000 65535 f \x0a0000000009 00000 n \x0a0000000569 00000 n \x0a0000000056 00000 n \x0a0000000000 65535 f \x0a0000000000 65535 f \x0a0000000000 65535 f \x0a0000000000 65535 f \x0a0000000000 65535 f \x0a0000000000 65535 f \x0a0000001774 00000 n \x0a0000000766 00000 n \x0a0000000829 00000 n \x0a0000000892 00000 n \x0a0000000955 00000 n \x0a0000001018 00000 n \x0a0000001081 00000 n \x0a0000001144 00000 n \x0a0000001207 00000 n \x0a0000001270 00000 n \x0a0000001333 00000 n \x0a0000001396 00000 n \x0a0000001459 00000 n \x0a0000001522 00000 n \x0a0000001585 00000 n \x0a0000001648 00000 n \x0a0000001711 00000 n \x0atrailer\x0a<</Size 27 /Root 1 0 R>>\x0astartxref\x0a1024938\x0a%%EOF\x0a" 15739
+call lines "last.pdf" "%PDF-1.4\x0a1 0 obj\x0a<</Type /Catalog /Pages 2 0 R>>\x0aendobj\x0a3 0 obj\x0a<</Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding /FirstChar 32 /LastChar 126 /Widths [500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500]>>\x0aendobj\x0a2 0 obj\x0a<</Type /Pages /Count 16 /Kids [11 0 R 12 0 R 13 0 R 14 0 R 15 0 R 16 0 R 17 0 R 18 0 R 19 0 R 20 0 R 21 0 R 22 0 R 23 0 R 24 0 R 25 0 R 26 0 R] /Resources <</Font <</F1 3 0 R>>>>>>\x0aendobj\x0a11 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a12 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a13 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a14 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a15 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a16 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a17 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a18 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a19 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a20 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a21 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a22 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a23 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a24 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a25 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a26 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a10 0 obj\x0a<< /Length 1023110>>\x0astream\x0aBT /F1 10 Tf 72 700 Td 12 TL\x0a" "(wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww) '\x0aET\x0aendstream\x0aendobj\x0axref\x0a0 27\x0a0000000000 65535 f \x0a0000000009 00000 n \x0a0000000569 00000 n \x0a0000000056 00000 n \x0a0000000000 65535 f \x0a0000000000 65535 f \x0a0000000000 65535 f \x0a0000000000 65535 f \x0a0000000000 65535 f \x0a0000000000 65535 f \x0a0000001774 00000 n \x0a0000000766 00000 n \x0a0000000829 00000 n \x0a0000000892 00000 n \x0a0000000955 00000 n \x0a0000001018 00000 n \x0a0000001081 00000 n \x0a0000001144 00000 n \x0a0000001207 00000 n \x0a0000001270 00000 n \x0a0000001333 00000 n \x0a0000001396 00000 n \x0a0000001459 00000 n \x0a0000001522 00000 n \x0a0000001585 00000 n \x0a0000001648 00000 n \x0a0000001711 00000 n \x0atrailer\x0a<</Size 27 /Root 1 0 R>>\x0astartxref\x0a1024939\x0a%%EOF\x0a" 15739
+call lines "much.pdf" "%PDF-1.4\x0a1 0 obj\x0a<</Type /Catalog /Pages 2 0 R>>\x0aendobj\x0a3 0 obj\x0a<</Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding /FirstChar 32 /LastChar 126 /Widths [500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500]>>\x0aendobj\x0a2 0 obj\x0a<</Type /Pages /Count 42 /Kids [11 0 R 12 0 R 13 0 R 14 0 R 15 0 R 16 0 R 17 0 R 18 0 R 19 0 R 20 0 R 21 0 R 22 0 R 23 0 R 24 0 R 25 0 R 26 0 R 27 0 R 28 0 R 29 0 R 30 0 R 31 0 R 32 0 R 33 0 R 34 0 R 35 0 R 36 0 R 37 0 R 38 0 R 39 0 R 40 0 R 41 0 R 42 0 R 43 0 R 44 0 R 45 0 R 46 0 R 47 0 R 48 0 R 49 0 R 50 0 R 51 0 R 52 0 R] /Resources <</Font <</F1 3 0 R>>>>>>\x0aendobj\x0a11 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a12 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a13 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a14 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a15 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a16 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a17 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a18 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a19 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a20 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a21 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a22 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a23 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a24 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a25 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a26 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a27 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a28 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a29 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a30 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a31 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a32 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a33 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a34 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a35 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a36 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a37 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a38 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a39 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a40 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a41 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a42 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a43 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a44 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a45 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a46 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a47 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a48 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a49 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a50 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a51 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a52 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a10 0 obj\x0a<< /Length 390031>>\x0astream\x0aBT /F1 10 Tf 72 700 Td 12 TL\x0a" "ET\x0aendstream\x0aendobj\x0axref\x0a0 53\x0a0000000000 65535 f \x0a0000000009 00000 n \x0a0000000569 00000 n \x0a0000000056 00000 n \x0a0000000000 65535 f \x0a0000000000 65535 f \x0a0000000000 65535 f \x0a0000000000 65535 f \x0a0000000000 65535 f \x0a0000000000 65535 f \x0a0000003594 00000 n \x0a0000000948 00000 n \x0a0000001011 00000 n \x0a0000001074 00000 n \x0a0000001137 00000 n \x0a0000001200 00000 n \x0a0000001263 00000 n \x0a0000001326 00000 n \x0a0000001389 00000 n \x0a0000001452 00000 n \x0a0000001515 00000 n \x0a0000001578 00000 n \x0a0000001641 00000 n \x0a0000001704 00000 n \x0a0000001767 00000 n \x0a0000001830 00000 n \x0a0000001893 00000 n \x0a0000001956 00000 n \x0a0000002019 00000 n \x0a0000002082 00000 n \x0a0000002145 00000 n \x0a0000002208 00000 n \x0a0000002271 00000 n \x0a0000002334 00000 n \x0a0000002397 00000 n \x0a0000002460 00000 n \x0a0000002523 00000 n \x0a0000002586 00000 n \x0a0000002649 00000 n \x0a0000002712 00000 n \x0a0000002775 00000 n \x0a0000002838 00000 n \x0a0000002901 00000 n \x0a0000002964 00000 n \x0a0000003027 00000 n \x0a0000003090 00000 n \x0a0000003153 00000 n \x0a0000003216 00000 n \x0a0000003279 00000 n \x0a0000003342 00000 n \x0a0000003405 00000 n \x0a0000003468 00000 n \x0a0000003531 00000 n \x0atrailer\x0a<</Size 53 /Root 1 0 R>>\x0astartxref\x0a393679\x0a%%EOF\x0a" 6000
+call filewrite "list.txt" "notes.txt\nkept.pdf\nnotes.txt\n"
+call cmdshowin "chunk . meta.tsv text.jsonl" "list.txt"
+call filewrite "list.txt" "notes.txt\nlast.pdf\nnotes.txt\nmuch.pdf\n"
+call all 1
+
+call print "\n# a short PDF file is read with 32 MiB of memory, less than the longest may have\n"
+call filewrite "list.txt" "two.pdf\nnotes.txt\n"
+call fileunlink "meta.tsv"
+call fileunlink "text.jsonl"
+call bycut f 0
+call byadd f "/usr/bin/prlimit --as=33554432 "
+call byadd f cmdhome cmdhomen
+call byadd f "/build/chunk . meta.tsv text.jsonl"
+load f as q
+load f+8 as m
+call cmdargs q m as av
+call fileopen "list.txt" 0 0 as fd
+call cmdrun av fd cmdso cmdse as st
+sys close fd
+call bycut f 0
+call print "$ chunk . meta.tsv text.jsonl < list.txt, with 32 MiB of memory\n"
+load cmdso as q
+load cmdso+8 as m
+call print q m
+load cmdse as q
+load cmdse+8 as m
+call print q m
+call print "status "
+call putn st
+call print "\n"
+call wrote 0
+
 call print "\n# what it refuses\n"
 call cmdshow "chunk . meta.tsv"
+call cmdshow "chunk -c . meta.tsv"
+call cmdshow "chunk -c . meta.tsv text.jsonl more"
+call filewrite "list.txt" "notes.txt\nnone.txt\n"
+call all 1
 call filewrite "list.txt" "lib/a.aiw\nlib/none.aiw\n"
 call run
 call filewrite "list.txt" "../lib/a.aiw\n"

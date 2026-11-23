@@ -87,7 +87,7 @@ a query, which [performance.md](performance.md) measures.
 version 0.1.1 of AIL is the first to have and `mcp/Ailfile` asks for, and
 the server SDK, the module `mcp` of
 the package [ail-extensions](https://github.com/CristianosLeite/ail-extensions),
-which `mcp/Ailfile` names by its address and the version 0.1.1, with the
+which `mcp/Ailfile` names by its address and the version 0.1.2, with the
 revision in `mcp/Ailfile.lock`; the first build fetches it into
 `mcp/deps/` with git:
 
@@ -122,9 +122,23 @@ revision are cut into chunks, nomic-embed-text gives their vectors, and
 `aildb build -r` publishes the index with the whole name of the
 revision. Two things follow from those steps:
 
-- The chunker takes the sources of AIL (`.aiw`) and Markdown (`.md`) and
-  passes over every other file, so of a repository in another language
-  its documents are indexed. A revision with neither is an error.
+- The chunker takes every file that is text, whatever the language: a
+  source of AIL is cut at its functions, Markdown at its headings, and
+  any other file by its lines alone, with the language that the end of
+  its path names, `python` for `.py` and `text` for an end it does not
+  know ([example.md](example.md#every-text-file)). A file that is not
+  text is passed over, and so is one of more than 1048576 bytes, which
+  is not taken out of git at all; the second has a line on standard
+  error. A revision with no text in it is an error.
+- A PDF file, one named `.pdf` that starts with `%PDF-`, is indexed by
+  its pages, up to 33554432 bytes: `start_line` and `end_line` of a
+  result in it are the number of the page, and its language is `pdf`
+  ([example.md](example.md#pdf-files)). A result has no language, so in
+  a search of all languages it is the end of the path that says whether
+  the two numbers are lines or a page; `language` set to `pdf` gives
+  pages alone. A page or a file that cannot be read, an encrypted one
+  among them, is passed over with a line on standard error. There is no
+  OCR.
 - A file is indexed as the bytes git has for it at the revision, each
   written from its blob: what an attribute would do to an archive or a
   checkout (`export-ignore`, `export-subst`, a filter, line ends) is not
@@ -179,10 +193,11 @@ commit replaces it and a file that is not committed is not in it, an
 older revision is indexed by its name, a repository with a document
 whose path is not ASCII, a source in a directory with a space, a
 document that `export-ignore` keeps out of an archive, a symbolic link
-to a document outside it and a path that git quotes gives the two
-records of its two regular files, and a revision or a repository
-that is not there, a repository with nothing to index and a service that
-is gone leave the index as it was.
+to a document outside it and a path that git quotes, a file that is not text and one of more than
+1048576 bytes gives the three records of its three regular files of
+text, and a revision or a repository that is not there, a repository
+with no text in it and a service that is gone leave the index as it
+was.
 
 Against the model itself, on 2026-11-23 (Ollama 0.40.17,
 nomic-embed-text F16, digest `0a109f422b47`, on an NVIDIA RTX 3050
@@ -227,3 +242,27 @@ against the source at the returned revision; and the user validated a
 session of Codex itself and reported that it passed in full. A session
 of `codex exec` that is not interactive lists the tool and does not call
 it, since a call of an MCP tool needs an approval there.
+
+With the chunker that takes every text file, the same day, the same
+machine and the same Ollama: `make index` in a checkout of aildb at
+`510bf11` printed `139 files, 768 chunks`, `768 vectors of 768
+dimensions` and the line of `aildb build` with 768 records and
+`510bf11cd9e0e26b8657a9dd3ba54c603d488d04`. A server started with that
+index gave `tools/dist-check.sh` 1 to 32 as the third of three results
+for "unpack the release archive in a Docker container without AIL and
+compare what the commands print", after two passages of
+`docs/BACKLOG.md` about the same script, and `.github/workflows/test.yml`
+1 to 36 as the one result of the language `yaml` for "run make test on a
+pull request with the released AIL": a script of the shell and a
+workflow, which the index of before did not have.
+
+With a PDF file, the same day and machine: a repository of one commit
+with a `README.md` and `docs/bzip2-manual.pdf`, the manual of bzip2
+1.0.8 as pdfTeX 1.40.14 wrote it, 38 pages and 183803 bytes. `make
+index` printed `2 files, 84 chunks` and built 84 records in 4.3
+seconds. A server on that index, asked with `language` set to `pdf` and
+`k` 3 for "how much memory does decompression need with the small
+option", gave the pages 8, 19 and 10 of the manual, and `pdftotext -f 8
+-l 8` shows on page 8 the heading "2.5. MEMORY MANAGEMENT"; asked for
+"recovering data from a damaged compressed file" it gave the pages 9,
+29 and 7, and `bzip2recover` is on the pages 5, 7, 9 and 10.

@@ -12,4 +12,4 @@ testbin embed-fake tests/lib/fake.aiw
 # and a command run with a limit of open descriptors
 testbin nofile tests/lib/nofile.aiw
 dep aildb ..
-dep ail-extensions 0.1.1 https://github.com/CristianosLeite/ail-extensions.git
+dep ail-extensions 0.1.2 https://github.com/CristianosLeite/ail-extensions.git

@@ -7,9 +7,12 @@
 # whose files are not what an archive or a list of names would give (a
 # path that is not ASCII, a directory with a space, a document that
 # export-ignore keeps out of an archive, a symbolic link to a document
-# outside the repository, a path that git quotes); and what
-# cannot be done: a revision and a repository that are not there, a
-# repository with nothing to index, wrong usage, and a service that is
+# outside the repository, a path that git quotes, a file that is not
+# text and one of more bytes than are read, a PDF file and one of more
+# than a mebibyte, which is still read, and a file of that size that
+# is a PDF file in name alone); and what cannot be done: a
+# revision and a repository that are not there, a repository with no
+# text in it, wrong usage, and a service that is
 # gone, after which the index is the one that was there and nothing
 # else is left beside it.
 use "lib/std/io.aiw"
@@ -80,7 +83,7 @@ end
 # commit has the same name wherever the test runs.
 call filewrite "git.sh" "export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1\nexport GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@example.com\nexport GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@example.com\nexport GIT_AUTHOR_DATE=2026-01-01T00:00:00Z GIT_COMMITTER_DATE=2026-01-01T00:00:00Z\n"
 
-call print "# two functions, two sections and a file that is passed over\n"
+call print "# two functions, two sections and a file of text\n"
 call sh ". ./git.sh\ngit init -q r\nprintf 'fn a\\n\\tret 0\\nend\\nfn b\\n\\tret 1\\nend\\n' > r/a.aiw\nprintf '# One\\nfirst\\n## Two\\nsecond\\n' > r/README.md\nprintf 'nothing\\n' > r/x.txt\ngit -C r add .\ngit -C r commit -q -m one\n"
 call index "r o/r.idx"
 call cmdshow "/usr/bin/env git -C r rev-parse HEAD"
@@ -96,15 +99,18 @@ call print "# the revision before, into a directory that is not there\n"
 call index "r o/d/one.idx HEAD~1"
 call cmdshow "aildb check o/d/one.idx"
 
-call print "# a document that is not ASCII, a source in \"a b\", export-ignore, a link, a quote\n"
-call sh ". ./git.sh\ngit init -q s\nprintf '# Out\\nnot of the repository\\n' > out.md\nmkdir s/docs 's/a b'\nprintf '# Five\\nfifth\\n' > 's/docs/r\xc3\xa9sum\xc3\xa9.md'\nprintf 'fn c\\n\\tret 2\\nend\\n' > 's/a b/c.aiw'\nprintf 'docs/** export-ignore\\n' > s/.gitattributes\nln -s ../out.md s/link.md\nprintf '# Six\\nsixth\\n' > 's/q\".md'\ngit -C s add .\ngit -C s commit -q -m one\n"
+call filewrite "guide.pdf" "%PDF-1.4\x0a1 0 obj\x0a<</Type /Catalog /Pages 2 0 R>>\x0aendobj\x0a3 0 obj\x0a<</Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding /FirstChar 32 /LastChar 126 /Widths [500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500]>>\x0aendobj\x0a10 0 obj\x0a<< /Length 58>>\x0astream\x0aBT /F1 10 Tf 72 700 Td (A guide that is a PDF file.) Tj ET\x0aendstream\x0aendobj\x0a11 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a2 0 obj\x0a<</Type /Pages /Count 1 /Kids [11 0 R] /Resources <</Font <</F1 3 0 R>>>>>>\x0aendobj\x0axref\x0a0 4\x0a0000000000 65535 f \x0a0000000009 00000 n \x0a0000000740 00000 n \x0a0000000056 00000 n \x0a10 2\x0a0000000569 00000 n \x0a0000000677 00000 n \x0atrailer\x0a<</Size 12 /Root 1 0 R>>\x0astartxref\x0a831\x0a%%EOF\x0a"
+call filewrite "big.head" "%PDF-1.4\x0a1 0 obj\x0a<</Type /Catalog /Pages 2 0 R>>\x0aendobj\x0a3 0 obj\x0a<</Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding /FirstChar 32 /LastChar 126 /Widths [500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500 500]>>\x0aendobj\x0a10 0 obj\x0a<< /Length 66>>\x0astream\x0aBT /F1 10 Tf 72 700 Td (A PDF file of more than a mebibyte.) Tj ET\x0aendstream\x0aendobj\x0a11 0 obj\x0a<</Type /Page /Parent 2 0 R /Contents 10 0 R>>\x0aendobj\x0a2 0 obj\x0a<</Type /Pages /Count 1 /Kids [11 0 R] /Resources <</Font <</F1 3 0 R>>>>>>\x0aendobj\x0a"
+call filewrite "big.tail" "xref\x0a0 4\x0a0000000000 65535 f \x0a0000000009 00000 n \x0a0000000748 00000 n \x0a0000000056 00000 n \x0a10 2\x0a0000000569 00000 n \x0a0000000685 00000 n \x0atrailer\x0a<</Size 12 /Root 1 0 R>>\x0astartxref\x0a1100841\x0a%%EOF\x0a"
+call print "# a document that is not ASCII, a source in \"a b\", export-ignore, a link, a quote, no text, too long, two PDF files and one in name\n"
+call sh ". ./git.sh\ngit init -q s\nprintf '# Out\\nnot of the repository\\n' > out.md\nmkdir s/docs 's/a b'\nprintf '# Five\\nfifth\\n' > 's/docs/r\xc3\xa9sum\xc3\xa9.md'\nprintf 'fn c\\n\\tret 2\\nend\\n' > 's/a b/c.aiw'\nprintf 'docs/** export-ignore\\n' > s/.gitattributes\nln -s ../out.md s/link.md\nprintf '# Six\\nsixth\\n' > 's/q\".md'\nprintf 'a\\0b' > s/bin.dat\nhead -c 1048577 /dev/zero | tr '\\0' x > s/long.txt\ncp guide.pdf s/docs/guide.pdf\n{ cat big.head; printf %%; head -c 1100000 /dev/zero | tr '\\0' x; echo; cat big.tail; } > s/big.pdf\nhead -c 1048577 /dev/zero | tr '\\0' x > s/not.pdf\ngit -C s add .\ngit -C s commit -q -m one\n"
 call index "s o/s.idx"
 call cmdshow "aildb check o/s.idx"
 
 call print "# what cannot be done\n"
 call index "r o/bad.idx absent"
 call index "absent o/bad.idx"
-call sh ". ./git.sh\ngit init -q e\nprintf 'nothing\\n' > e/x.txt\ngit -C e add .\ngit -C e commit -q -m one\n"
+call sh ". ./git.sh\ngit init -q e\nprintf 'a\\0b' > e/x.txt\ngit -C e add .\ngit -C e commit -q -m one\n"
 call index "e o/bad.idx"
 call index "r"
 call index "r o/bad.idx HEAD more"

@@ -1,8 +1,8 @@
-# two functions, two sections and a file that is passed over
+# two functions, two sections and a file of text
 $ tools/index.sh r o/r.idx
-{"records":4,"dimension":768,"model":"nomic-embed-text","source_revision":"be192d9ee1c08077e4d0d32995db33d7c38d12a1"}
-2 files, 4 chunks
-4 vectors of 768 dimensions
+{"records":5,"dimension":768,"model":"nomic-embed-text","source_revision":"be192d9ee1c08077e4d0d32995db33d7c38d12a1"}
+3 files, 5 chunks
+5 vectors of 768 dimensions
 status 0
 $ /usr/bin/env git -C r rev-parse HEAD
 --- stdout
@@ -11,14 +11,14 @@ be192d9ee1c08077e4d0d32995db33d7c38d12a1
 --- status 0
 $ aildb check o/r.idx
 --- stdout
-{"records":4,"dimension":768,"model":"nomic-embed-text","source_revision":"be192d9ee1c08077e4d0d32995db33d7c38d12a1"}
+{"records":5,"dimension":768,"model":"nomic-embed-text","source_revision":"be192d9ee1c08077e4d0d32995db33d7c38d12a1"}
 --- stderr
 --- status 0
 # another commit, and a file that is not committed
 $ tools/index.sh r o/r.idx
-{"records":5,"dimension":768,"model":"nomic-embed-text","source_revision":"07f45a448071c7f5c460f5a7ea82f899ce10c375"}
-3 files, 5 chunks
-5 vectors of 768 dimensions
+{"records":6,"dimension":768,"model":"nomic-embed-text","source_revision":"07f45a448071c7f5c460f5a7ea82f899ce10c375"}
+4 files, 6 chunks
+6 vectors of 768 dimensions
 status 0
 $ /usr/bin/env git -C r rev-parse HEAD
 --- stdout
@@ -27,30 +27,32 @@ $ /usr/bin/env git -C r rev-parse HEAD
 --- status 0
 $ aildb check o/r.idx
 --- stdout
-{"records":5,"dimension":768,"model":"nomic-embed-text","source_revision":"07f45a448071c7f5c460f5a7ea82f899ce10c375"}
+{"records":6,"dimension":768,"model":"nomic-embed-text","source_revision":"07f45a448071c7f5c460f5a7ea82f899ce10c375"}
 --- stderr
 --- status 0
 # the revision before, into a directory that is not there
 $ tools/index.sh r o/d/one.idx HEAD~1
-{"records":4,"dimension":768,"model":"nomic-embed-text","source_revision":"be192d9ee1c08077e4d0d32995db33d7c38d12a1"}
-2 files, 4 chunks
-4 vectors of 768 dimensions
+{"records":5,"dimension":768,"model":"nomic-embed-text","source_revision":"be192d9ee1c08077e4d0d32995db33d7c38d12a1"}
+3 files, 5 chunks
+5 vectors of 768 dimensions
 status 0
 $ aildb check o/d/one.idx
 --- stdout
-{"records":4,"dimension":768,"model":"nomic-embed-text","source_revision":"be192d9ee1c08077e4d0d32995db33d7c38d12a1"}
+{"records":5,"dimension":768,"model":"nomic-embed-text","source_revision":"be192d9ee1c08077e4d0d32995db33d7c38d12a1"}
 --- stderr
 --- status 0
-# a document that is not ASCII, a source in "a b", export-ignore, a link, a quote
+# a document that is not ASCII, a source in "a b", export-ignore, a link, a quote, no text, too long, two PDF files and one in name
 $ tools/index.sh s o/s.idx
-{"records":2,"dimension":768,"model":"nomic-embed-text","source_revision":"deeab316a2936dcd8574b1fb2537d4fcfca4b1a5"}
+{"records":5,"dimension":768,"model":"nomic-embed-text","source_revision":"673113b513abb38acec6e5439b1b675302cc7b72"}
+index: passed over, a file of more than 1048576 bytes: long.txt
+index: passed over, a file of more than 1048576 bytes: not.pdf
 index: passed over, a path that git quotes: "q\".md"
-2 files, 2 chunks
-2 vectors of 768 dimensions
+5 files, 5 chunks
+5 vectors of 768 dimensions
 status 0
 $ aildb check o/s.idx
 --- stdout
-{"records":2,"dimension":768,"model":"nomic-embed-text","source_revision":"deeab316a2936dcd8574b1fb2537d4fcfca4b1a5"}
+{"records":5,"dimension":768,"model":"nomic-embed-text","source_revision":"673113b513abb38acec6e5439b1b675302cc7b72"}
 --- stderr
 --- status 0
 # what cannot be done
@@ -61,8 +63,9 @@ $ tools/index.sh absent o/bad.idx
 index: absent is no repository of git
 status 1
 $ tools/index.sh e o/bad.idx
+chunk: passed over, a file that is not text: x.txt
 0 files, 0 chunks
-index: e has no source of AIL and no Markdown at HEAD
+index: e has nothing to index at HEAD
 status 1
 $ tools/index.sh r
 usage: tools/index.sh REPO OUT [REVISION]
@@ -71,12 +74,12 @@ $ tools/index.sh r o/bad.idx HEAD more
 usage: tools/index.sh REPO OUT [REVISION]
 status 2
 $ tools/index.sh r o/r.idx HEAD~1
-2 files, 4 chunks
+3 files, 5 chunks
 embed: Ollama cannot be asked: error 111
 status 1
 $ aildb check o/r.idx
 --- stdout
-{"records":5,"dimension":768,"model":"nomic-embed-text","source_revision":"07f45a448071c7f5c460f5a7ea82f899ce10c375"}
+{"records":6,"dimension":768,"model":"nomic-embed-text","source_revision":"07f45a448071c7f5c460f5a7ea82f899ce10c375"}
 --- stderr
 --- status 0
 $ /usr/bin/env LC_ALL=C ls o o/d

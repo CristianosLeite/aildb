@@ -324,3 +324,31 @@ mapped pages contribute to reported peak resident memory.
   index first. `tests/tools_index.aiw`, against the service of
   `tests/lib/embedfake.aiw`, and a run against Ollama on 2026-11-23,
   aildb itself at `39fcca3`, searched through the server (`docs/mcp.md`).
+- [x] Every text file in the index of a repository (user, 2026-11-23:
+  the chunker took `.aiw` and `.md` and no other file): without `-c`,
+  `build/chunk` cuts every file that is well-formed UTF-8 without
+  control bytes, by its lines and with the language its path names,
+  passes over a file above 1048576 bytes, which `tools/index.sh` does
+  not take out of git, and cuts a line above 1500 bytes where a
+  character ends; `-c` is the chunker of before, for `make example` and
+  `make eval`, whose three lists it cuts into the same bytes
+  (`docs/example.md`). `textutf8` of `src/lib/text.aiw` is the check of
+  UTF-8 that `textvalid` shares. A run against Ollama on 2026-11-23,
+  aildb at `510bf11`, searched through the server (`docs/mcp.md`).
+- [x] The text of a PDF file in the index of a repository (user,
+  2026-11-23): a file named `.pdf` that starts with `%PDF-` is read by
+  the module `pdf` of ail-extensions, which `Ailfile` names as a
+  dependency, and each page is cut into chunks that have the number of
+  the page as their lines and the language `pdf`. A page that cannot
+  be read is passed over, a file that cannot be read or costs too much
+  is passed over whole, with what was cut of it, and a PDF file may
+  have 33554432 bytes, which `tools/index.sh` knows. Tests in
+  `tests/example_chunk.aiw` and `tests/tools_index.aiw`; a run against
+  Ollama on 2026-11-23, the manual of bzip2, searched by page through
+  the server (`docs/mcp.md`).
+- [x] Two findings of a review of the pull request 17 at `50c4fe2`
+  (2026-11-23): the chunker reads a file into the room the file has,
+  not into that of the longest, so a short PDF file is read under a
+  limit of 32 MiB; and the chunks of one PDF file may be 16777216
+  bytes of metadata and text, `pdfkept`, above which the file is
+  passed over whole. Tests in `tests/example_chunk.aiw`.

@@ -13,27 +13,124 @@ one file. `build/chunk`, an AIL program compiled from `example/chunk.aiw`
 by `make test`, cuts the files:
 
 ```
-build/chunk ROOT META TEXT < LIST
+build/chunk [-c] ROOT META TEXT < LIST
 ```
 
 `LIST` is paths relative to the directory `ROOT`, one a line, as `git
-ls-tree -r --name-only` prints them. A path that ends in `.aiw` is taken
-as a source of AIL and one that ends in `.md` as Markdown; every other
-path is passed over. `META` gets a line for each chunk, in the form
-`build` takes as metadata: the path as the list has it, the first line,
-the last line and the language, `ail` or `markdown`. `TEXT` gets a line
-for each chunk in the same order, the bytes of its lines as a string of
-JSON, for the program that makes the embeddings. A line feed is between
-the lines of a chunk and none is at its end. The bytes are those of the
-file: a carriage return stays, and a file that is not UTF-8 gives a
-string that is not.
+ls-tree -r --name-only` prints them. `META` gets a line for each chunk,
+in the form `build` takes as metadata: the path as the list has it, the
+first line, the last line and the language. `TEXT` gets a line for each
+chunk in the same order, the bytes of its lines as a string of JSON, for
+the program that makes the embeddings. A line feed is between the lines
+of a chunk and none is at its end. The bytes are those of the file: a
+carriage return stays.
 
-The status is 0, with the number of files and chunks on standard output;
-2 for wrong usage; 3 for a path that `build` would not take (a byte
-below 0x20, or a path that is absolute or leads out of `ROOT`); 4 for a
-file that cannot be read or written. Nothing is written after a failure.
+It has two ways of taking the files. Without `-c` it is the chunker of
+an index of any repository, which `make index` runs
+([mcp.md](mcp.md)); with `-c` it is the chunker of the corpora of this
+example and of [the evaluation](evaluation.md), which `make example` and
+`make eval` run.
 
-How a file is cut:
+### Every text file
+
+Without `-c`, every file of the list that is text is cut:
+
+- **What is text.** The bytes of the file are well-formed UTF-8, with no
+  byte below 0x20 but a tab, a line feed, a form feed and a carriage
+  return, and no byte 0x7F. It is a rule of its own, for contents: a
+  string of a snapshot ([format.md](format.md)) has none of those four
+  either. A file that is not text is passed over; standard error has
+  `chunk: passed over, a file that is not text: <path>` if the end of
+  its path is one of the table below, and nothing if it is not, as for
+  an image.
+- **The language** is named by the end of the path, what follows the
+  last dot of its last part when that dot is not the first byte of the
+  part: `aiw` is `ail`, `md` is `markdown`, and a table at the top of
+  `example/chunk.aiw` has the others (`c`, `cpp`, `python`, `rust`,
+  `go`, `java`, `javascript`, `typescript`, `csharp`, `kotlin`, `swift`,
+  `ruby`, `php`, `lua`, `shell`, `sql`, `json`, `yaml`, `toml`, `xml`,
+  `html`, `css`, and `text` for `txt`). A path with another end or with
+  none, as `Makefile`, is `text`. The ends are compared byte for byte,
+  so `A.PY` is `text`.
+- **The most bytes of a file** are 1048576, the constant `maxfile`. The
+  chunker reads one byte more than that at most, and a file that has it
+  is passed over with `chunk: passed over, a file of more than 1048576
+  bytes: <path>`.
+- **A path** that `build` would not take (a byte below 0x20, a byte
+  0x7F, what is not UTF-8) or that is absolute or leads out of `ROOT` is
+  passed over with a line and is not opened.
+- **A line of more than 1500 bytes** is cut into chunks of 1500 bytes at
+  most, each of which ends where a character ends, and each has that
+  one line as its first and its last: several records then name the
+  same place.
+
+The status is 0, with the number of files cut and of chunks on standard
+output; 2 for wrong usage; 4 for a file of the list that cannot be read,
+or one that cannot be written. Nothing is written after a failure.
+
+### PDF files
+
+Without `-c`, a file whose path ends in `.pdf`, in letters of either
+case, and whose first bytes are `%PDF-` is read as a PDF file, by the
+module `pdf` of the package
+[ail-extensions](https://github.com/CristianosLeite/ail-extensions/tree/main/pdf),
+which `Ailfile` names as a dependency:
+
+- **A chunk is of one page.** The text of each page, as the module gives
+  it, is cut as a file with no units is, by the limits of 40 lines and
+  1500 bytes, and each chunk has the number of its page, from 1, as its
+  first and as its last line, with the language `pdf`. So a page of much
+  text is several records that name the same page. A path that ends in
+  `.pdf` says that the two numbers of a result are a page; the result
+  of a search does not have the language.
+- **The most bytes** of a PDF file are 33554432, the constant `maxpdf`,
+  since such a file has pictures where another has text. The memory a
+  file is read into is what the file has, not that most, so a short
+  file is read where there is no memory for the longest.
+- **A page that cannot be read**, because its contents are not well
+  formed or a stream of them has a filter that the module does not know,
+  is passed over, with `chunk: passed over, the page N ...: <path>` on
+  standard error, and the other pages are cut. The module gives all of
+  the text of a page or none.
+- **A file that cannot be read** is passed over whole, with a line: one
+  that is encrypted, one whose structure cannot be read, and one that
+  costs more than it may. What it may cost is 64 units of work for each
+  of its bytes and a million more, and 256 MiB of memory at a time
+  (`pdf/README.md` of ail-extensions says what a unit is); if a file
+  uses that up after pages of it were cut, their chunks are taken back,
+  so that an index has all the readable pages of a file or none.
+- **The most that is kept of one file** is 16777216 bytes of metadata
+  and text, the constant `pdfkept`: the chunks of every file are held
+  in memory until the last is cut, and the memory of the module does
+  not count them. A file whose chunks come to more is passed over
+  whole, as one that is spent, with `chunk: passed over, a PDF file
+  with more text than is kept of one: <path>`.
+- **A name and a header that do not agree** are passed over with a line:
+  a file named `.pdf` without the header, and a file with the header
+  under another name.
+- A page with no text, as one that is a picture, has no chunk; nothing
+  is read out of pictures. A file of which no page gave a chunk is
+  passed over with `chunk: passed over, a PDF file with no text:
+  <path>`, and is not among the files counted.
+
+### The corpora, `-c`
+
+With `-c` only a path that ends in `.aiw` or `.md` is taken, whatever
+bytes the file holds and however long it and its lines are: a line
+above 1500 bytes is a chunk of its own, and a file that is not UTF-8
+gives a string that is not. Every other path is passed over without a
+line, and a path that `build` would not take is the status 3. This is
+what the chunker did when the results of this page and of
+[evaluation.md](evaluation.md) were written, and the option keeps
+them: one of the files of AIL at `a5b4559`, `tests/infix/edge.aiw`, is
+not UTF-8, and its chunks are records of both corpora. On 2026-11-23 the
+chunker of before the option and this one with `-c` wrote the same bytes
+of `META` and of `TEXT` for the three lists that `make example` and
+`make eval` had made (AIL at `a5b4559` twice, 1242 files and 3266
+chunks, and aildb at `467b91b`, 78 files and 554 chunks), compared with
+`cmp`.
+
+### How a file is cut
 
 - The lines of a file are taken in order and each belongs to one chunk at
   most; chunks do not overlap.
@@ -46,10 +143,11 @@ How a file is cut:
     that the comment above a function is in the chunk of the function;
   - in Markdown, a heading, one to six `#` and a space at the start of a
     line, unless the line is inside a fence, between two lines that start
-    with three backquotes.
+    with three backquotes;
+  - in every other language nothing: such a file is cut by the limits
+    alone.
 - A chunk also ends before a line that would make it longer than 40 lines,
-  counted from its first line, or longer than 1500 bytes. A single line
-  above 1500 bytes is a chunk of its own.
+  counted from its first line, or longer than 1500 bytes.
 
 What comes before the first function of a source, or the first heading of
 a document, is a chunk as well, and statements after the last function
@@ -60,8 +158,9 @@ text that the model reads at once, and a chunk that is one function or one
 section says where to open the file. They are constants at the top of
 `example/chunk.aiw`.
 
-`tests/example_chunk.aiw` shows each rule on small files. On the AIL
-repository at `a5b4559`, `build/chunk` printed on 2026-11-21:
+`tests/example_chunk.aiw` shows each rule on small files, with `-c` and
+without. On the AIL repository at `a5b4559`, `build/chunk` printed on
+2026-11-21, and `build/chunk -c` on 2026-11-23:
 
 ```
 1242 files, 3266 chunks
