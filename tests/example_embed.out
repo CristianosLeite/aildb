@@ -46,6 +46,10 @@ $ embed other q.tsv q.bin
     embed model
 status 2
 bad.bin or its part is there: 0
+$ embed document big.jsonl bad.bin, with 32 MiB of memory
+embed: no memory
+status 1
+bad.bin or its part is there: 0
 $ embed document t.jsonl bad.bin
 embed: Ollama cannot be asked: error 111
 status 1

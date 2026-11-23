@@ -68,6 +68,8 @@ end
 # Add the n bytes at p to text as well-formed UTF-8: a run of bytes that
 # is the start of a character and not the whole of one, or a byte that
 # starts none, becomes one U+FFFD, as a decoder that replaces does it.
+# The caller has asked for the room of three times n bytes, the most
+# this adds, so no append here can fail.
 fn clean p n
 	e=p+n
 	label more
@@ -373,6 +375,12 @@ ifslt r 0
 end
 load raw as p
 load raw+8 as n
+# room for the text at its longest, three bytes for one, so that clean
+# cannot leave a byte out for want of memory
+call byneed text n*3 as ok
+ifz ok
+	call fail "no memory" ""
+end
 call clean p n
 load text as p
 load text+8 as n
@@ -397,7 +405,7 @@ while n
 		if kind!=5
 			call fail "a line of the text is no string of JSON" ""
 		end
-		call jsonstr line a an
+		call jsonstr line a an as ok
 		take=1
 	else
 		call byadd line "search_query: "
@@ -411,8 +419,12 @@ while n
 				jmp tab
 			end
 		end
-		call byadd line p m
+		call byadd line p m as ok
 		take=l!=0
+	end
+	ifz ok
+		# no text is sent in part
+		call fail "no memory" ""
 	end
 	if take
 		if k

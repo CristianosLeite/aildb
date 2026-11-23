@@ -15,6 +15,7 @@ use "tests/lib/cmd.aiw"
 buf b 24
 buf line 24
 buf ts 16
+buf big 24
 var port
 # run embed with the arguments p n and show what it did
 fn embed p n
@@ -134,6 +135,49 @@ call embed "document t.jsonl bad.bin"
 call embed "document absent.jsonl bad.bin"
 call embed "query q.tsv"
 call embed "other q.tsv q.bin"
+call fileopen "bad.bin" 0 0 as fd
+call fileopen "bad.bin.part" 0 0 as fd2
+call print "bad.bin or its part is there: "
+call putn (fd!=-2)|(fd2!=-2)
+call print "\n"
+# No memory for the text: 3000 chunks of 4 KiB, 12 MiB, under a limit
+# of 32 MiB for the process, which prlimit of util-linux sets. Nothing
+# is embedded of a text that is not whole.
+call bycut big 0
+i=0
+while i<3000
+	j=0
+	call byaddb big 34
+	while j<4092
+		call byaddb big 120
+		j+=1
+	end
+	call byadd big "\"\n"
+	i+=1
+end
+load big as p
+load big+8 as n
+call filewrite "big.jsonl" p n
+call bycut line 0
+call byadd line "/usr/bin/env OLLAMA_HOST=127.0.0.1:"
+call byaddn line port
+call byadd line " /usr/bin/prlimit --as=33554432 "
+call byadd line cmdhome cmdhomen
+call byadd line "/build/embed document big.jsonl bad.bin"
+load line as q
+load line+8 as m
+call cmdargs q m as av
+call cmdrun av -1 cmdso cmdse as st
+call print "$ embed document big.jsonl bad.bin, with 32 MiB of memory\n"
+load cmdso as q
+load cmdso+8 as m
+call print q m
+load cmdse as q
+load cmdse+8 as m
+call print q m
+call print "status "
+call putn st
+call print "\n"
 call fileopen "bad.bin" 0 0 as fd
 call fileopen "bad.bin.part" 0 0 as fd2
 call print "bad.bin or its part is there: "
