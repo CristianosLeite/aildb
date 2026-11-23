@@ -69,6 +69,8 @@ What AIL gives this project, as of its version 0.1.0 (2026-11-22):
 
 A library function here follows the rules of the AIL libraries: every name starts with the prefix of its file, a descriptor is bytes owned by the caller, and an error is returned, not a reason to end the program. Only the entry point of a command prints and exits.
 
+A pull request to `main` runs `make test` on GitHub (`.github/workflows/test.yml`), and nothing else starts it: the command is the one of the release of AIL that the line `ail` of `Ailfile` asks for, its archive checked against its `.sha256`, so a change of that line needs the release to exist. The example and the evaluation, which need Ollama, and `make dist-check`, which needs Docker, are not run there.
+
 ## Knowledge base
 
 `.agents/knowledge/INDEX.md` lists the pages: `architecture/` for decisions and their reasons, `testing/` for how things are checked and what goes unchecked, `status/open-items.md` for pending decisions (the work itself is in `docs/TODO.md`). A page starts with front matter (`title`, `last-verified`, `sources`, `status`), then a summary and the decisions, each with who took it and when, and what was rejected and why. Write a page when a decision is taken or something non-obvious is learned, add its line to the index, and tick or add open items in the same change.
