@@ -211,6 +211,12 @@ mapped pages contribute to reported peak resident memory.
   `search` of the unpacked executable in a Docker container without AIL.
   The archive is for `v0.1.0` (user, 2026-11-22). Attaching it to the
   release is left in `TODO.md`.
+- [x] The version 0.1.1 (user, 2026-11-22: every package of the family
+  to 0.1.1, with AIL): `Ailfile`, `mcp/Ailfile` and
+  `example/consumer/Ailfile` say it and ask for AIL 0.1.1, the server
+  names ail-extensions 0.1.1, and the tag `v0.1.1` names the merge of
+  the change. It is the first version with the fix of the named pipe,
+  the evaluation, the archive of a release and the MCP server.
 
 ## 12. aildb as a package
 
@@ -300,3 +306,10 @@ mapped pages contribute to reported peak resident memory.
   full. A session of `codex exec` run by the agent had discovered the
   tool and been stopped at the approval of the call, which a session
   that is not interactive cannot give.
+- [x] The server SDK named by its address and a version:
+  ail-extensions is a package since 2026-11-22 and has the tag `v0.1.0`
+  (user, 2026-11-22); `ail add` with the address wrote the line `dep`
+  of `mcp/Ailfile` and `mcp/Ailfile.lock`, with the revision `4493f9d`.
+- [x] aildb asks for AIL 0.1.1 (user, 2026-11-22), the first version
+  with the libraries of the MCP server, in `Ailfile` and `mcp/Ailfile`;
+  the test of `mcp/` is a part of `make test`.

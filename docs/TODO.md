@@ -28,12 +28,16 @@ Nothing is left of this step (`BACKLOG.md`).
 
 ## 11. Release
 
-Version 0.1.0 is tagged (`BACKLOG.md`).
+Versions 0.1.0 and 0.1.1 are tagged (`BACKLOG.md`).
 
-- [ ] Attach the archive of `make dist` and its `.sha256` to the release
-  `v0.1.0` (user, 2026-11-22: the archive is for `v0.1.0`), which is a
-  draft without files; it is done at the user's word. The archive is
-  made and tried (`BACKLOG.md`).
+- [ ] Attach the archive of `make dist` and its `.sha256` to a release
+  (user, 2026-11-22: the archive is for `v0.1.0`, whose release is a
+  draft without files; `v0.1.1` has no release yet). The archive of
+  `v0.1.0` is made and tried (`BACKLOG.md`); it is done at the user's
+  word.
+- [ ] Name aildb 0.1.1 in `example/consumer`, which still names 0.1.0:
+  the tag `v0.1.1` is needed first, and is on the merge of the change
+  that made the version.
 
 ## 13. The measurements in a repository of their own
 
@@ -69,12 +73,6 @@ The fixed queries, their places and the measures are done (`BACKLOG.md`,
 
 The server is written (`BACKLOG.md`, [mcp.md](mcp.md)).
 
-- [ ] Give the server SDK an address: `mcp/Ailfile` names the module
-  `mcp` of ail-extensions by its directory beside this repository,
-  since a dependency by address is a repository with the package at its
-  top. Until then `make mcp-test` is no part of `make test`. It also
-  needs a version of AIL that has the libraries (an item of the TODO of
-  AIL).
 - [ ] If the measurements of aildb-bench justify keeping a mapping open,
   an AIL worker on `src/lib/search.aiw` in place of a command a query,
   with a test of its reload across atomic replacements.

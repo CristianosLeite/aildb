@@ -6,7 +6,7 @@ The first application is semantic search over a source repository: given the emb
 
 ## Status
 
-Version 1 is written: the three commands, the snapshot format, the way a snapshot is published, and the four acceptance checks it was to meet, each shown by a test, by the example or by the measurements. Version 0.1.0 is the tag `v0.1.0`, and work reaches `main` through pull requests; [docs/TODO.md](docs/TODO.md) has what is left, and the choices that still wait for a review are in [.agents/knowledge/status/open-items.md](.agents/knowledge/status/open-items.md).
+Version 1 is written: the three commands, the snapshot format, the way a snapshot is published, and the four acceptance checks it was to meet, each shown by a test, by the example or by the measurements. Version 0.1.1 is the tag `v0.1.1`, the first with the MCP server and made for AIL 0.1.1, after 0.1.0, the tag `v0.1.0`; work reaches `main` through pull requests; [docs/TODO.md](docs/TODO.md) has what is left, and the choices that still wait for a review are in [.agents/knowledge/status/open-items.md](.agents/knowledge/status/open-items.md).
 
 ## Version 1 in short
 
@@ -26,16 +26,16 @@ ail build       # build/aildb
 ail test        # the tests: 26 programs
 ```
 
-`make` and `make test` do the same, and `make test` also checks the indentation and runs the package of `example/consumer`; `make AIL=../ail/build/ail` uses the command of a checkout of AIL that is not installed. `build/aildb` is one static executable that can be copied anywhere.
+`make` and `make test` do the same, and `make test` also checks the indentation and runs the packages of `example/consumer` and of `mcp`, the MCP server; AIL is to be 0.1.1 or later; `make AIL=../ail/build/ail` uses the command of a checkout of AIL that is not installed. `build/aildb` is one static executable that can be copied anywhere.
 
 ## The executable
 
 A release has the executable for x86-64 Linux as an archive, `aildb-<version>-x86_64-linux.tar.gz`, and the SHA-256 of the archive in a file beside it. It needs no AIL and nothing installed:
 
 ```
-sha256sum -c aildb-0.1.0-x86_64-linux.tar.gz.sha256
-tar -xzf aildb-0.1.0-x86_64-linux.tar.gz
-aildb-0.1.0-x86_64-linux/aildb check an.idx
+sha256sum -c aildb-0.1.1-x86_64-linux.tar.gz.sha256
+tar -xzf aildb-0.1.1-x86_64-linux.tar.gz
+aildb-0.1.1-x86_64-linux/aildb check an.idx
 ```
 
 The directory has `aildb`, `LICENSE`, `NOTICE`, which goes with the executable to whoever gets it, and `BUILD`, which names the revision of aildb and the revision of AIL that made it. `make dist` makes the archive from the tag of the version in `Ailfile` (`REV=` names another revision) and gives the same bytes each time; `make dist-check` unpacks it in a Docker container that has no AIL and runs the three commands there.

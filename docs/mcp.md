@@ -83,16 +83,18 @@ a query, which [performance.md](performance.md) measures.
 ## Building it
 
 `mcp/` is a package of AIL of its own. It needs an AIL that has
-`lib/std/json.aiw`, `lib/std/num.aiw` and `lib/net/http.aiw`, which came
-after the version 0.1.0 of AIL, and the server SDK, the module `mcp` of
-the repository [ail-extensions](https://github.com/CristianosLeite/ail-extensions),
-which `mcp/Ailfile` names by its directory beside this repository,
-`../../ail-extensions/mcp`:
+`lib/std/json.aiw`, `lib/std/num.aiw` and `lib/net/http.aiw`, which the
+version 0.1.1 of AIL is the first to have and `mcp/Ailfile` asks for, and
+the server SDK, the module `mcp` of
+the package [ail-extensions](https://github.com/CristianosLeite/ail-extensions),
+which `mcp/Ailfile` names by its address and the version 0.1.1, with the
+revision in `mcp/Ailfile.lock`; the first build fetches it into
+`mcp/deps/` with git:
 
 ```
 make                  # build/aildb
 cd mcp && ail build   # mcp/build/aildb-mcp
-make mcp-test         # its test, with the build/aildb above
+make mcp-test         # its test, with the build/aildb above; make test runs it too
 ```
 
 ## In Claude Code and in Codex
