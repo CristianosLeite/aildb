@@ -68,7 +68,7 @@ data "},\"required\":[\"model\",\"source_revision\",\"hits\"]}"
 data outend ""
 data notes "Semantic search over an index of source files: the tool search returns paths and line ranges, at the revision it names, for a query in words."
 data notesend ""
-data about "Find the source locations that are nearest in meaning to a query in words, in a local index of a repository. Returns paths with line ranges, the best first, and the revision of the sources they are of."
+data about "Find the source locations that are nearest in meaning to a query in words, in a local index of a repository. Returns paths with line ranges, the best first, and the revision of the sources they are of. For a PDF file, a path that ends in .pdf, start_line and end_line are the number of the page."
 data aboutend ""
 
 fn usage

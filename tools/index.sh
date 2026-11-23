@@ -19,8 +19,10 @@
 # submodule. Passed over with a line on standard error are a path with a
 # double quote, a backslash or a byte below 0x20 in it, which git prints
 # quoted, one that would lead out of the directory, and a file of more
-# bytes than the chunker reads (maxfile of example/chunk.aiw), which is
-# not written: git says how long a blob is.
+# bytes than the chunker reads, which is not written: git says how long
+# a blob is. The most are maxfile of example/chunk.aiw, and maxpdf for a
+# PDF file, one whose path ends in ".pdf" and whose first bytes are
+# "%PDF-".
 #
 # Standard output has the line of "aildb build" and standard error what
 # the steps said. The status is 0, 2 for wrong usage, 1 if a program of
@@ -61,6 +63,7 @@ mkdir "$w/src"
 # fails for a path of the list that it does not find, so the two cannot
 # come to differ unseen.
 max=$(sed -n 's/^const maxfile //p' "$b/../example/chunk.aiw")
+maxpdf=$(sed -n 's/^const maxpdf //p' "$b/../example/chunk.aiw")
 tab=$(printf '\t')
 git -C "$repo" -c core.quotePath=false ls-tree -r -l --full-tree "$pin" > "$w/tree"
 : > "$w/list"
@@ -81,8 +84,17 @@ while IFS= read -r line; do
 		continue ;;
 	esac
 	if [ "$4" -gt "$max" ]; then
-		echo "index: passed over, a file of more than $max bytes: $path" >&2
-		continue
+		most=$max
+		case $path in
+		*.[Pp][Dd][Ff])
+			if [ "$(git -C "$repo" cat-file blob "$3" | head -c 5)" = %PDF- ]; then
+				most=$maxpdf
+			fi ;;
+		esac
+		if [ "$4" -gt "$most" ]; then
+			echo "index: passed over, a file of more than $most bytes: $path" >&2
+			continue
+		fi
 	fi
 	printf '%s\n' "$path" >> "$w/list"
 	mkdir -p "$(dirname "$w/src/$path")"

@@ -80,7 +80,11 @@ snapshot that is there. `INDEX` is any path whose name does not end in
   top ([format.md](format.md#strings)), so that a result is a place in the
   repository whoever wrote the metadata. The lines are decimal numbers from 1 to 4294967295 without a
   sign, the last not below the first: the lines of the file that the vector
-  stands for, counted from 1. The language is a name of the producer's
+  stands for, counted from 1. What a line is, is the producer's to say, as
+the language is: the engine keeps the two numbers and gives them back.
+For a file that has no lines the chunker of `make index` counts pages,
+so a record of the language `pdf` has the number of its page as both
+([example.md](example.md#pdf-files)). The language is a name of the producer's
   choosing, at most 255 bytes, and may be empty. Fields are well-formed
   UTF-8 and hold no control character, so a path with a tab or a line end
   in it cannot be given. A file without lines makes a snapshot without
@@ -169,7 +173,7 @@ each result:
 | `score` | the score in decimal with six digits after the point: the decimal nearest to the exact value, a tie to the even digit; for reading |
 | `score_bits` | the 64 bits of the score, an IEEE 754 binary64, as sixteen hexadecimal digits in lower case, the sign bit first; for comparing |
 | `path` | the path of the record |
-| `start_line`, `end_line` | its first and last line, counted from 1 |
+| `start_line`, `end_line` | its first and last line, counted from 1, as the metadata had them; for a record that `make index` made of a PDF file, the number of its page |
 
 In a string, `"` and `\` are written `\"` and `\\`; no other byte needs an
 escape, since a snapshot has no control character in a string, and bytes

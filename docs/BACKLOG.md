@@ -335,3 +335,14 @@ mapped pages contribute to reported peak resident memory.
   (`docs/example.md`). `textutf8` of `src/lib/text.aiw` is the check of
   UTF-8 that `textvalid` shares. A run against Ollama on 2026-11-23,
   aildb at `510bf11`, searched through the server (`docs/mcp.md`).
+- [x] The text of a PDF file in the index of a repository (user,
+  2026-11-23): a file named `.pdf` that starts with `%PDF-` is read by
+  the module `pdf` of ail-extensions, which `Ailfile` names as a
+  dependency, and each page is cut into chunks that have the number of
+  the page as their lines and the language `pdf`. A page that cannot
+  be read is passed over, a file that cannot be read or costs too much
+  is passed over whole, with what was cut of it, and a PDF file may
+  have 33554432 bytes, which `tools/index.sh` knows. Tests in
+  `tests/example_chunk.aiw` and `tests/tools_index.aiw`; a run against
+  Ollama on 2026-11-23, the manual of bzip2, searched by page through
+  the server (`docs/mcp.md`).

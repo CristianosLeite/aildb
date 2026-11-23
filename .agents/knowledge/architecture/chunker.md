@@ -9,9 +9,10 @@ status: current
 **Summary.** Since 2026-11-23 `build/chunk` cuts every text file of a repository, not
 only `.aiw` and `.md`, for `make index`; with `-c` it is the chunker of before, which
 `make example` and `make eval` keep so that their published results stay those of
-their corpora. The text of a PDF is the next step: its reader is to be a module of
-ail-extensions, and this page gets its decisions when it is here. The decisions of the
-first chunker are on [the example page](example.md).
+their corpora. A PDF file is cut page by page, its text read by the module `pdf` of
+ail-extensions. The decisions of the first chunker are on [the example
+page](example.md), those of the reader on the page `architecture/pdf-reader.md` of
+ail-extensions.
 
 ## Decisions
 - **Text files and PDF, the reader of PDF in ail-extensions, a page as the line of a
@@ -62,6 +63,36 @@ first chunker are on [the example page](example.md).
   (agent, 2026-11-23), where `-c` ends with the status 3: with every file a
   candidate, one name that is not UTF-8 would otherwise stop the index of a whole
   repository.
+
+- **A PDF file is one by its name and its header, both** (agent, 2026-11-23, for the
+  user to review). The user pointed out that with the header alone deciding, the end of
+  a path would no longer say whether the numbers of a result are lines or a page, and
+  the result of a search has no language. So `.pdf` and `%PDF-` are both asked for, and
+  either without the other is passed over with a line.
+- **The limitation of a search of all languages is recorded, not solved** (user,
+  2026-11-23): the result has a path and two numbers; who reads it tells a page from
+  lines by the `.pdf` of the path, or asks with `language` `pdf`. The language in the
+  result would change the interface of `search` and of the tool, which is the user's to
+  decide.
+- **A page that cannot be read is passed over; a document that is spent is taken back
+  whole** (user, 2026-11-23, for the rule that a caller which drops a document must
+  drop its chunks; agent for which error does which). The module gives a page all or
+  nothing. An error of a page (contents not well formed, a filter not known) loses
+  that page; an error of the document (spent, no memory) after pages were cut cuts
+  `META`, `TEXT` and the count back to where the file began.
+- **A PDF file that gives no chunk has a line** (user, 2026-11-23, reviewing: a valid
+  file with an empty page gave `1 files, 0 chunks` and nothing on standard error). It
+  is passed over with `a PDF file with no text` and not counted.
+- **33554432 bytes for a PDF file, 64 units of work a byte and a million, 256 MiB**
+  (agent, 2026-11-23, for the user to review). The most work a byte among 394 files
+  read on 2026-11-23 was 5.5 (`pdf/README.md` of ail-extensions).
+- **The dependency is in the `Ailfile` of the top** (agent; the user: acceptable for
+  this pull request). A program that uses aildb as a library then fetches
+  ail-extensions too, since dependencies are followed, though only the chunker reads
+  it. The other way was a package of its own for the chunker and `embed`.
+  `mcp/Ailfile` names the same version, since a build takes one version of a package. The version is 0.1.2
+  (`0b06b29`), the first with the module, whose tag `v0.1.2` the agent gave at the
+  user's word on 2026-11-23.
 
 ## What was seen and is not decided
 - The expected outputs of tests (`tests/*.out`) and every other text file of a

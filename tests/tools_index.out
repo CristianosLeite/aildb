@@ -41,17 +41,18 @@ $ aildb check o/d/one.idx
 {"records":5,"dimension":768,"model":"nomic-embed-text","source_revision":"be192d9ee1c08077e4d0d32995db33d7c38d12a1"}
 --- stderr
 --- status 0
-# a document that is not ASCII, a source in "a b", export-ignore, a link, a quote, no text, too long
+# a document that is not ASCII, a source in "a b", export-ignore, a link, a quote, no text, too long, two PDF files and one in name
 $ tools/index.sh s o/s.idx
-{"records":3,"dimension":768,"model":"nomic-embed-text","source_revision":"b74bac57a79f40b8f07431677962bf65d7a0c28c"}
+{"records":5,"dimension":768,"model":"nomic-embed-text","source_revision":"673113b513abb38acec6e5439b1b675302cc7b72"}
 index: passed over, a file of more than 1048576 bytes: long.txt
+index: passed over, a file of more than 1048576 bytes: not.pdf
 index: passed over, a path that git quotes: "q\".md"
-3 files, 3 chunks
-3 vectors of 768 dimensions
+5 files, 5 chunks
+5 vectors of 768 dimensions
 status 0
 $ aildb check o/s.idx
 --- stdout
-{"records":3,"dimension":768,"model":"nomic-embed-text","source_revision":"b74bac57a79f40b8f07431677962bf65d7a0c28c"}
+{"records":5,"dimension":768,"model":"nomic-embed-text","source_revision":"673113b513abb38acec6e5439b1b675302cc7b72"}
 --- stderr
 --- status 0
 # what cannot be done

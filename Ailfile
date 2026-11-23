@@ -18,3 +18,4 @@ testbin embed example/embed.aiw
 testbin embed-fake tests/lib/embedfake.aiw
 testbin example-check example/check.aiw
 testbin example-eval example/eval.aiw
+dep ail-extensions 0.1.2 https://github.com/CristianosLeite/ail-extensions.git

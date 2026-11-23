@@ -13,8 +13,19 @@
 # the same order: the bytes of the chunk as a string of JSON.
 # docs/example.md says what is text and how a file is cut.
 #
+# A file whose path ends in ".pdf", in letters of either case, and that
+# starts with "%PDF-" is a PDF file: the text of each of its pages, as
+# the module pdf of the package ail-extensions gives it, is cut as a
+# file with no units is, and the first and the last line of each of its
+# chunks are the number of the page, from 1, with the language "pdf". A
+# page that cannot be read is passed over with a line; a file that
+# cannot be opened, or that costs more work or memory than it is
+# allowed, is passed over whole, and no chunk of it is kept; a file
+# of which no page gave a chunk is passed over with a line too.
+#
 # A file that is not text is passed over, and so are a file of more than
-# maxfile bytes, which is not read beyond them, and a path that build
+# maxfile bytes, maxpdf for a PDF file, which is not read beyond them, a
+# PDF file under a name that does not say so, and a path that build
 # would not take or that leads out of ROOT; standard error has a line
 # for each, but for a file that is not text and whose name does not say
 # that it should be.
@@ -34,6 +45,7 @@ use "lib/std/bytes.aiw"
 use "lib/std/file.aiw"
 use "src/lib/text.aiw"
 use "src/lib/fmt.aiw"
+use "ail-extensions:pdf/src/pdf.aiw"
 
 # a chunk has at most this many lines and, if it has more than one line,
 # at most this many bytes
@@ -42,6 +54,14 @@ const maxbytes 1500
 # a file of more bytes than this is passed over; tools/index.sh reads the
 # number here
 const maxfile 1048576
+# and a PDF file of more bytes than this, which has pictures in it
+# where another file has text
+const maxpdf 33554432
+# what a PDF file may cost (pdf/README.md of ail-extensions): the work
+# for each of its bytes and besides, and the bytes of memory
+const pdfwork 64
+const pdfmore 1000000
+const pdfheld 268435456
 
 # the ends of paths and the languages they name, each with a NUL byte
 # after it; an end with no byte is the end of the table
@@ -61,7 +81,11 @@ buf src 24
 buf meta 24
 buf text 24
 buf path 24
-var chunks files rootp rootn
+buf doc pdfsize
+buf leaf 24
+# pageno is the page that the chunks being cut are of, 0 for the chunks
+# of a file that has lines
+var chunks files rootp rootn pageno
 
 fn fail st p n q m
 	call eprint "chunk: "
@@ -134,6 +158,10 @@ end
 # add the chunk of the lines first to last, the n bytes at p, of the file
 # at the path pp pn, in the language lp ln
 fn emit pp pn first last lp ln p n
+	if pageno
+		first=pageno
+		last=pageno
+	end
 	call byadd meta pp pn
 	call byaddb meta 9
 	call byaddn meta first
@@ -354,6 +382,90 @@ fn over q m p l
 	call eprint "\n"
 end
 
+# 1 if the path of l bytes at p ends in ".pdf", in letters of either case
+fn pdfname p l
+	if l<4
+		ret 0
+	end
+	load4 p+l-4 as x
+	ret x|0x20202000==0x6664702e
+end
+
+# The PDF file of the r bytes at q, at the path p l: the text of each
+# page cut into chunks of that page. A page that cannot be read is
+# passed over; if the file cannot be opened or is spent, nothing of it
+# is kept.
+fn pdffile p l q r
+	load meta+8 as m0
+	load text+8 as t0
+	c0=chunks
+	call pdfopen q r doc r*pdfwork+pdfmore pdfheld as pages
+	ifslt pages 0
+		if pages==pdfdoclocked
+			call over "an encrypted PDF file" p l
+			ret 0
+		end
+		if (pages==pdfdocspent)|(pages==pdfdocmem)
+			call over "a PDF file that costs more than it may" p l
+			ret 0
+		end
+		call over "a PDF file that cannot be read" p l
+		ret 0
+	end
+	i=1
+	while i<=pages
+		call bycut leaf 0
+		call pdfpage doc i leaf as x
+		if (x==pdfdocspent)|(x==pdfdocmem)
+			# the document, not the page: what was cut of it goes
+			call pdfclose doc
+			pageno=0
+			store meta+8 m0
+			store text+8 t0
+			chunks=c0
+			call over "a PDF file that costs more than it may" p l
+			ret 0
+		end
+		ifslt x 0
+			call eprint "chunk: passed over, the page "
+			call eputn i
+			if x==pdffilter
+				call eprint " with a filter that is not known: "
+			else
+				call eprint " that cannot be read: "
+			end
+			call eprint p l
+			call eprint "\n"
+		else
+			load leaf as a
+			pageno=i
+			call cut p l a x 2 "pdf" 1
+			pageno=0
+		end
+		i+=1
+	end
+	call pdfclose doc
+	if chunks==c0
+		# pages that are pictures, or none that could be read
+		call over "a PDF file with no text" p l
+		ret 0
+	end
+	files+=1
+end
+
+# write the number v to standard error
+fn eputn v
+	local t 24
+	store t 0
+	store t+8 0
+	store t+16 0
+	call byaddn t v
+	load t as a
+	load t+8 as n
+	call eprint a n
+	call byfree t
+end
+
 # the path p l of the list under -c: a source of AIL or Markdown by its
 # end, cut whatever it holds
 fn corpus p l
@@ -404,6 +516,24 @@ fn take p l
 	call bycut src 0
 	load path as q
 	load path+8 as m
+	call pdfname p l as pdf
+	if pdf
+		call readmax q m src maxpdf as r
+		ifslt r 0
+			call fail 4 "cannot read " q m
+		end
+		if r>maxpdf
+			call over "a file of more than 33554432 bytes" p l
+			ret 0
+		end
+		load src as q
+		call textprefix q r "%PDF-" as t
+		ifz t
+			call over "a file that is no PDF file" p l
+			ret 0
+		end
+		tail pdffile p l q r
+	end
 	call readmax q m src maxfile as r
 	ifslt r 0
 		call fail 4 "cannot read " q m
@@ -413,6 +543,11 @@ fn take p l
 		ret 0
 	end
 	load src as q
+	call textprefix q r "%PDF-" as t
+	if t
+		call over "a PDF file whose name does not end in .pdf" p l
+		ret 0
+	end
 	call plain q r as t
 	ifz t
 		if known

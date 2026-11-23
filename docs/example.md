@@ -68,6 +68,43 @@ The status is 0, with the number of files cut and of chunks on standard
 output; 2 for wrong usage; 4 for a file of the list that cannot be read,
 or one that cannot be written. Nothing is written after a failure.
 
+### PDF files
+
+Without `-c`, a file whose path ends in `.pdf`, in letters of either
+case, and whose first bytes are `%PDF-` is read as a PDF file, by the
+module `pdf` of the package
+[ail-extensions](https://github.com/CristianosLeite/ail-extensions/tree/main/pdf),
+which `Ailfile` names as a dependency:
+
+- **A chunk is of one page.** The text of each page, as the module gives
+  it, is cut as a file with no units is, by the limits of 40 lines and
+  1500 bytes, and each chunk has the number of its page, from 1, as its
+  first and as its last line, with the language `pdf`. So a page of much
+  text is several records that name the same page. A path that ends in
+  `.pdf` says that the two numbers of a result are a page; the result
+  of a search does not have the language.
+- **The most bytes** of a PDF file are 33554432, the constant `maxpdf`,
+  since such a file has pictures where another has text.
+- **A page that cannot be read**, because its contents are not well
+  formed or a stream of them has a filter that the module does not know,
+  is passed over, with `chunk: passed over, the page N ...: <path>` on
+  standard error, and the other pages are cut. The module gives all of
+  the text of a page or none.
+- **A file that cannot be read** is passed over whole, with a line: one
+  that is encrypted, one whose structure cannot be read, and one that
+  costs more than it may. What it may cost is 64 units of work for each
+  of its bytes and a million more, and 256 MiB of memory at a time
+  (`pdf/README.md` of ail-extensions says what a unit is); if a file
+  uses that up after pages of it were cut, their chunks are taken back,
+  so that an index has all the readable pages of a file or none.
+- **A name and a header that do not agree** are passed over with a line:
+  a file named `.pdf` without the header, and a file with the header
+  under another name.
+- A page with no text, as one that is a picture, has no chunk; nothing
+  is read out of pictures. A file of which no page gave a chunk is
+  passed over with `chunk: passed over, a PDF file with no text:
+  <path>`, and is not among the files counted.
+
 ### The corpora, `-c`
 
 With `-c` only a path that ends in `.aiw` or `.md` is taken, whatever
