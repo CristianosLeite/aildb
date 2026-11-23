@@ -130,7 +130,8 @@ Against the model itself, on 2026-11-22 (Ollama 0.40.17, nomic-embed-text,
 the index of AIL at `a5b4559` that `make eval` built): the three hits of
 the query "print an unsigned number in decimal" were the three lines, with
 the same `score_bits`, that `aildb search` printed for the vector
-`example/embed.py` made of the same query.
+the embedding program of the example made of the same query (then
+`example/embed.py`, since rewritten in AIL as `example/embed.aiw`).
 
 From Claude Code, on 2026-11-22 (the version that `claude --version`
 printed is in the commit that added this paragraph): `claude mcp add`

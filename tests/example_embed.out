@@ -1,0 +1,51 @@
+# chunks: 17 bytes of prefix before each
+$ embed document t.jsonl v.bin
+3 vectors of 768 dimensions
+status 0
+9216 bytes: (19 1873 1) (22 2246 1) (17 1678 1)
+# bytes that are no UTF-8: a byte, the start of a character, a surrogate
+$ embed document t.jsonl v.bin
+5 vectors of 768 dimensions
+status 0
+15360 bytes: (22 2492 1) (20 2297 1) (21 2417 1) (26 3535 1) (19 2042 1)
+# 35 chunks, more than two requests hold
+$ embed document t.jsonl v.bin
+35 vectors of 768 dimensions
+status 0
+35 vectors in the file
+# queries: 14 bytes of prefix, the field before a tab, no empty line
+$ embed query q.tsv q.bin
+2 vectors of 768 dimensions
+status 0
+6144 bytes: (17 1675 1) (16 1582 1)
+# the model
+$ embed model
+Ollama 9.9.9, nomic-embed-text:latest: digest abc123, F16, a context of 2048 tokens
+status 0
+# what cannot be done
+$ embed document t.jsonl bad.bin
+embed: Ollama refused: status 500 {"error":"the model is not loaded"}
+status 1
+$ embed document t.jsonl bad.bin
+embed: a vector is not 768 finite numbers
+status 1
+$ embed document t.jsonl bad.bin
+embed: a line of the text is no string of JSON
+status 1
+$ embed document absent.jsonl bad.bin
+embed: cannot read absent.jsonl
+status 1
+$ embed query q.tsv
+    embed document TEXT VECTORS
+    embed query QUERIES VECTORS
+    embed model
+status 2
+$ embed other q.tsv q.bin
+    embed document TEXT VECTORS
+    embed query QUERIES VECTORS
+    embed model
+status 2
+bad.bin or its part is there: 0
+$ embed document t.jsonl bad.bin
+embed: Ollama cannot be asked: error 111
+status 1

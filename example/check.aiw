@@ -4,7 +4,7 @@
 #
 # QUERIES has a line for each query: its text, a path and a line number
 # of that path, with tabs between; VECTORS has the embedding of each, 768
-# binary32, as example/embed.py writes them. For each query the program
+# binary32, as build/embed writes them. For each query the program
 # AILDB searches the snapshot INDEX and its copy COPY for the five best
 # results. A query is good if one of the results on INDEX is a record of
 # the path whose lines have the line number, and the search on COPY wrote

@@ -1,0 +1,111 @@
+# embed-fake PORTFILE -- a service for the test of build/embed that
+# answers as Ollama does. POST /api/embed gives each text of "input" a
+# vector of 768 numbers that says what the text was: the number of its
+# bytes, the sum of them, and 0.1 for the rest; a text with "refuse" in
+# it makes the answer the status 500, and one with "short" a vector of
+# three numbers. GET /api/version and /api/tags say a version and one
+# model. It listens on a port the kernel chooses and writes the number
+# to PORTFILE when it does.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/json.aiw"
+use "lib/async/task.aiw"
+use "lib/async/time.aiw"
+use "lib/async/io.aiw"
+use "lib/net/http.aiw"
+use "lib/net/httpd.aiw"
+buf text 24
+buf num 24
+# 1 if the m bytes at q stand somewhere in the n bytes at p
+fn has p n q m
+	i=0
+	while i+m<=n
+		call httpis p+i m q m as same
+		if same
+			ret 1
+		end
+		i+=1
+	end
+	ret 0
+end
+async fn handle x r
+	store r+72 "application/json"
+	store r+80 16
+	load r+16 as p
+	load r+24 as n
+	call httpis p n "/api/version" as y
+	if y
+		call byadd r+88 "{\"version\":\"9.9.9\"}"
+		ret 0
+	end
+	call httpis p n "/api/tags" as y
+	if y
+		call byadd r+88 "{\"models\":[{\"name\":\"other:latest\",\"digest\":\"00\"},{\"name\":\"nomic-embed-text:latest\",\"digest\":\"abc123\",\"details\":{\"quantization_level\":\"F16\",\"context_length\":2048}}]}"
+		ret 0
+	end
+	load r+48 as p
+	load r+56 as n
+	call jsonvalue p n as a an k
+	call jsonget a an "input" as v vn vk
+	call byadd r+88 "{\"embeddings\":["
+	q=v+1
+	first=1
+	label next
+	call jsonelem q v+vn as e en ek q
+	if ek
+		call bycut text 0
+		call jsonstr text e en
+		load text as p
+		load text+8 as n
+		call has p n "refuse" as y
+		if y
+			call bycut r+88 0
+			store r+64 500
+			call byadd r+88 "{\"error\":\"the model is not loaded\"}"
+			ret 0
+		end
+		ifz first
+			call byaddb r+88 44
+		end
+		first=0
+		sum=0
+		i=0
+		while i<n
+			loadb p+i as c
+			sum+=c
+			i+=1
+		end
+		call byaddb r+88 91
+		call byaddn r+88 n
+		call byaddb r+88 44
+		call byaddn r+88 sum
+		call has p n "short" as y
+		if y
+			call byadd r+88 ",0.1"
+		else
+			i=2
+			while i<768
+				call byadd r+88 ",0.1"
+				i+=1
+			end
+		end
+		call byaddb r+88 93
+		jmp next
+	end
+	call byadd r+88 "]}"
+	ret 0
+end
+call argv 1 as fp fn
+ifz fn
+	call die "usage: embed-fake PORTFILE\n"
+end
+call asynclisten 0x7f000001 0 as l
+call asyncport l as port
+call byaddn num port
+load num as p
+load num+8 as n
+call filewrite fp fn p n
+ref handle as f
+call httpdserve l f 0 as h
+await h as r

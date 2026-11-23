@@ -58,10 +58,10 @@ make eval
 
 It works in `build/eval/`, a directory for each corpus, with the steps of
 `make example`: the files of the revision, `build/chunk`,
-`example/embed.py` for the chunks and for the queries, `aildb build`, and
+`build/embed` for the chunks and for the queries, `aildb build`, and
 then `build/example-eval`. `CORPORA="ail"` names the corpora to run.
 `build/eval/report.txt` has what was printed, with the day, the revision
-of aildb, the version of Ollama and the digest of the model (`embed.py
+of aildb, the version of Ollama and the digest of the model (`embed
 model` asks Ollama for them) and the limits of a chunk.
 
 ## Results

@@ -5,7 +5,7 @@
 #
 # QUERIES has a line for each query: its text, a path and a line number
 # of that path, with tabs between; VECTORS has the embedding of each, one
-# after the other, as example/embed.py writes them, all of one dimension.
+# after the other, as build/embed writes them, all of one dimension.
 # For each query the program AILDB searches the snapshot INDEX for every
 # record, best first, and the place of the query is the rank of the first
 # result that is a record of the path whose lines have the line number.

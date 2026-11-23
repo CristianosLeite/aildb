@@ -43,7 +43,7 @@ pushed or merged.
   `score_bits` are the bytes `aildb search` printed, so nothing rounds a second time
   and the comparison with the command is of bytes. This is also why the JSON library
   needs no writer of doubles.
-- **The vector is the bytes `example/embed.py` writes** (checked 2026-11-22): the
+- **The vector is the bytes `example/embed.py` wrote** (the script is AIL since, `example/embed.aiw`; checked 2026-11-22): the
   decimals of the model read by `numdouble`, correctly rounded, and `f8to4`; the 3072
   bytes of a query were the same.
 - **The endpoint is asked as Ollama is** (agent): `/api/embed` with `model`, `truncate`
