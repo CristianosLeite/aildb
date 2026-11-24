@@ -16,7 +16,7 @@ index.lock
 manifest
 
 p/.aildb/cache:
-1c3b0dd7b08a1a4a4daf381efe593a038d007d404de537550c6e023bdf4656ac
+cee84538ae28a1e6746107edc55553f25ad7e03d2792a177ee9e1fdc986f6a35
 1925046263 4156
 # nothing changed: nothing asked, nothing written
 $ aildb index p
@@ -108,7 +108,7 @@ $ aildb index p -i m1 -d 3 -b 2 -t 5000 -- FAKE
 --- stderr
 --- status 0
 --- provider.log
-1c3b0dd7b08a1a4a4daf381efe593a038d007d404de537550c6e023bdf4656ac
+cee84538ae28a1e6746107edc55553f25ad7e03d2792a177ee9e1fdc986f6a35
 # another setting: another identity, all asked, the old vectors removed
 $ aildb index p -i m1 -d 3 -b 4 -s document_prefix=d: -- FAKE
 --- stdout
@@ -118,15 +118,47 @@ $ aildb index p -i m1 -d 3 -b 4 -s document_prefix=d: -- FAKE
 --- provider.log
 documents 4 m1 [d:]
 documents 2 m1 [d:]
-d146b44df7f2c8f76c5c8fc73aa2c38876ca8c7338e583278380dd06a60ea3ae
+49fd31d41283c07d48adb656d1f1eea7d5a81b11315b39af70b1172a8c48dff1
+# another argument of the command: another identity too
+$ aildb index p -i m1 -d 3 -b 4 -s document_prefix=d: -- FAKE spread
+--- stdout
+{"records":9,"dimension":3,"model":"m1","source_revision":null,"files":8,"embedded":6,"published":true}
+--- stderr
+--- status 0
+--- provider.log
+documents 4 m1 [d:]
+documents 2 m1 [d:]
+01e84c0109e7b2fd93a9f788c8739912858b1eee0537b52435369ea95c5def8a
+$ aildb search p/.aildb/index -k 100 -q dir.q
+--- stdout
+{"source_revision":null,"model":"m1"}
+{"rank":1,"score":0.997263,"score_bits":"3fefe9946105e5f0","path":"n1.txt","start_line":1,"end_line":1}
+{"rank":2,"score":0.997263,"score_bits":"3fefe9946105e5f0","path":"n2.txt","start_line":1,"end_line":1}
+{"rank":3,"score":0.994955,"score_bits":"3fefd6ab95ee1746","path":"c.txt","start_line":1,"end_line":1}
+{"rank":4,"score":0.952966,"score_bits":"3fee7eb1b08947a8","path":"docs/z.md","start_line":4,"end_line":5}
+{"rank":5,"score":0.927690,"score_bits":"3fedafa3f48a6a40","path":"b.rb","start_line":1,"end_line":1}
+{"rank":6,"score":0.927690,"score_bits":"3fedafa3f48a6a40","path":"copy.py","start_line":1,"end_line":1}
+{"rank":7,"score":0.927690,"score_bits":"3fedafa3f48a6a40","path":"sub/b.py","start_line":1,"end_line":1}
+{"rank":8,"score":0.857022,"score_bits":"3feb6cb9d94b6fe6","path":"docs/z.md","start_line":1,"end_line":2}
+{"rank":9,"score":0.807635,"score_bits":"3fe9d825aabc63ca","path":"d.md","start_line":1,"end_line":2}
+--- stderr
+--- status 0
+# and another program with the same arguments: the same identity
+$ aildb index p -i m1 -d 3 -b 4 -s document_prefix=d: -- up/FAKE spread
+--- stdout
+{"records":9,"dimension":3,"model":"m1","source_revision":null,"files":8,"embedded":0,"published":false}
+--- stderr
+--- status 0
+--- provider.log
+01e84c0109e7b2fd93a9f788c8739912858b1eee0537b52435369ea95c5def8a
 # a provider that fails at its second request: the snapshot stays
-3603599521 4204
-$ aildb index p -i m1 -d 3 -b 3 -s document_prefix=e: -- FAKE after1
+3251102480 4204
+$ aildb index p -i m1 -d 3 -b 3 -s document_prefix=e: -- FAKE
 --- stdout
 --- stderr
 aildb: p: the provider ended with the status 3: provider-fake: the model is not there
 --- status 7
-3603599521 4204
+3251102480 4204
 2
 --- provider.log
 documents 3 m1 [e:]

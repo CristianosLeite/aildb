@@ -532,3 +532,15 @@ each chose.
   slow provider changes the model answers with the new model and asks
   for its query alone (before the fix: the documents and the query of
   the old model).
+- [x] The identity of a configuration left the command out whole, and
+  `aildb-llama` takes its model file and the options of llama.cpp as
+  arguments: a change of them kept the vectors of the old ones (the
+  review reproduced it, a text as its own query at 0.809026). The
+  arguments after the program are in the identity now, whose text
+  starts `aildb-provider 2`; the program is not, so a provider that
+  moved keeps the index. Tests `tests/lib_config.aiw` (the identities
+  against `hashlib` of Python: the same with another program, another
+  with an argument more and with one changed) and
+  `tests/cli_index_refresh.aiw` (an argument more asks for every text
+  and publishes; the same arguments under another path of the program
+  ask for nothing).

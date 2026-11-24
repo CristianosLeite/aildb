@@ -37,8 +37,10 @@ for review.
   is shorter but which a script of a few lines cannot write as easily as JSON.
 - **The identity is SHA-256 of the provider name, the model, its revision, the dimension
   and the sorted settings** (agent, 2026-11-24), each string with its length before it so
-  that no two configurations give the same text. Not in it: the command and its
-  arguments, the time and the number of texts of a request, which change no vector. It is
+  that no two configurations give the same text. Not in it: the program of the command,
+  the time and the number of texts of a request, which change no vector. The arguments
+  after the program were left out too and are in it since the review of `5eeba0b`
+  ([page](review-5eeba0b.md)): `aildb-llama` takes its model file as one. It is
   what the configuration says, not what the provider runs: aildb cannot see weights, and
   `docs/provider.md` says so.
 - **SHA-256 is `lib/std/sha.aiw` of AIL** (user, 2026-11-24: "SHA256 should live on AIL

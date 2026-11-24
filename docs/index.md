@@ -139,11 +139,12 @@ was written.
   path and the vectors that are kept.
 - **An edit of one file asks for its changed chunks**: the file is cut
   again, and the chunks whose text is the same have their vectors.
-- **Another model, revision, dimension or setting is another identity**:
-  the manifest does not count and no kept vector is used, so every text
-  is asked for again, and the vectors of the old identity are removed
-  when the run has published. The command of the provider, the time and
-  the number of texts of a request are no part of the identity.
+- **Another model, revision, dimension or setting is another identity**,
+  and so is another argument of the command of the provider after its
+  program: the manifest does not count and no kept vector is used, so
+  every text is asked for again, and the vectors of the old identity are
+  removed when the run has published. The program of the command, the
+  time and the number of texts of a request are no part of the identity.
 - **A directory with no file that can be cut** gives a snapshot of no
   records, which is valid; so does the removal of the last file.
 - **A file that is passed over** has its line on standard error when it
@@ -193,7 +194,7 @@ then each file has a line, followed by a line for each of its chunks:
 
 ```
 aildb-manifest	1
-identity	1c3b0dd7b08a1a4a4daf381efe593a038d007d404de537550c6e023bdf4656ac
+identity	cee84538ae28a1e6746107edc55553f25ad7e03d2792a177ee9e1fdc986f6a35
 snapshot	4156	1653381763	2804466236
 started	1795536000123456789
 state	6a09e667f3bcc908bb67ae8584caa73b3c6ef372fe94f82ba54ff53a5f1d36f1

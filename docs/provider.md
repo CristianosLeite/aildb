@@ -82,26 +82,34 @@ number of bytes of a string in decimal, a colon and the bytes, and a
 number is in decimal:
 
 ```
-aildb-provider 1
+aildb-provider 2
 <provider>
 <model>
 <revision>
 dimension
 number of settings
 <name><value>          one line for each setting, in the order of the names
+number of arguments of the command after its program
+<argument>             one line for each of them, in their order
 ```
 
 each line ended by a line feed. What changes the vectors is in it: the
-provider, the model, its revision, the dimension and every setting. What
-does not is not: the command and its arguments, so that a program moved
-to another path keeps the index, and the time and the number of texts of
-a request. A setting is therefore the place for whatever of a provider
-changes its vectors.
+provider, the model, its revision, the dimension and every setting. So
+are the arguments of the command after its program, because a provider
+is told there what aildb cannot know to matter: `aildb-llama` takes its
+model file with `-m` and gives what follows `--` to llama.cpp. An
+argument that changes, a path of a model file that moved among them,
+is therefore another identity, and every text is asked for again; that
+costs time once, where the same vectors under two arguments that differ
+would be an index of two models. What is not in it: the program of the
+command, its first argument, so that a provider moved to another path
+keeps the index, and the time and the number of texts of a request.
 
 aildb cannot see the weights a provider runs. The identity is what the
-configuration **says**: a model that was replaced under the same name
-and revision has the same identity, and its vectors are mixed with the
-old ones. The revision is the line to change then.
+configuration **says**: a model file that was replaced under the same
+path, or a model that a service replaced under the same name, has the
+same identity, and its vectors are mixed with the old ones. The revision
+is the line to change then.
 
 ## The protocol, version 1
 

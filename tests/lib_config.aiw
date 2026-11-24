@@ -2,8 +2,9 @@
 # .aildb/config and read back the same, with its settings in the order
 # of their names whatever order they came in; its identity is the
 # SHA-256 that Python gives for the text docs/provider.md states, changes
-# with the provider, the model, its revision, the dimension and each
-# setting, and not with the command, the time or the number of texts;
+# with the provider, the model, its revision, the dimension, each
+# setting and each argument of the command after its program, and not
+# with the program, the time or the number of texts;
 # and a text that is no configuration is a reason and a line
 use "lib/std/io.aiw"
 use "lib/std/bytes.aiw"
@@ -83,10 +84,32 @@ call ident d
 # what is no part of it
 store d+conftime 5
 store d+confbatch 1
-call confarg d "more"
+call ident d
+call conffree d
+# nor the program of the command: the text of c with another one
+call bycut m 0
+call byadd m p n-43
+call byadd m "arg\t/another/path/of/it\narg\t--flag\narg\ttwo words\n"
+load m as q
+load m+8 as k
+call confparse d q k as w line
+call putn w
+call print " for the text with another program\n"
 call ident d
 call conffree d
 # what is: each line prints another
+call confparse d p n
+call confarg d "more"
+call ident d
+call conffree d
+call bycut m 0
+call byadd m p n-14
+call byadd m "arg\ttwo  words\n"
+load m as q
+load m+8 as k
+call confparse d q k
+call ident d
+call conffree d
 call confparse d p n
 call confput d confname "other"
 call ident d

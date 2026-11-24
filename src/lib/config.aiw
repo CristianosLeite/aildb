@@ -435,15 +435,17 @@ end
 
 # The identity of the configuration, 32 bytes written at confout: the
 # SHA-256 of the name of the provider, the model, its revision, the
-# dimension and the settings in the order of their names, written as
-# docs/provider.md says. The command, the time and the number of texts
-# of a request are no part of it. 1, or 0 without memory.
+# dimension, the settings in the order of their names and the arguments
+# of the command after its program, in their order, written as
+# docs/provider.md says. The program of the command, the time and the
+# number of texts of a request are no part of it. 1, or 0 without
+# memory.
 fn confident confc confout
 	local confb 24
 	store confb 0
 	store confb+8 0
 	store confb+16 0
-	call byadd confb "aildb-provider 1\n"
+	call byadd confb "aildb-provider 2\n"
 	call confstr confc confname as confp confn
 	call confpart confb confp confn
 	call byaddb confb 10
@@ -468,6 +470,25 @@ fn confident confc confout
 		call confpart confb confq confm
 		call byaddb confb 10 as confr
 		jmp each
+	end
+	# the arguments after the program: a provider takes its model file
+	# and what else changes its vectors from them
+	call confargs confc as confp confk
+	confv=0
+	if confk
+		confv=confk-1
+	end
+	call byaddn confb confv
+	call byaddb confb 10 as confr
+	confi=0
+	while confi<confk
+		call strlen confp as confn
+		if confi
+			call confpart confb confp confn
+			call byaddb confb 10 as confr
+		end
+		confp+=confn+1
+		confi+=1
 	end
 	ifz confr
 		call byfree confb

@@ -69,3 +69,24 @@ was chosen by the agent and is for the user to review.
   `provider.started` and waits a second. The test starts the run that changes the
   model, waits for that file and searches; a search that came too late for the lock
   would print the same, so the test cannot fail by timing, only not show the fault.
+
+## Arguments of the provider that change the vectors (P2)
+
+- **Finding.** The identity had the name of the provider, the model, the revision,
+  the dimension and the settings, and nothing of the command, "so that a program moved
+  to another path keeps the index". But `aildb-llama` is given the model file (`-m`)
+  and the options of llama.cpp (after `--`) as arguments, so a change of them kept the
+  vectors and the snapshot of the arguments before.
+- **Decision (agent, 2026-11-24).** The arguments of the command after its program
+  are in the identity, in their order, each with its length; the text of the identity
+  starts `aildb-provider 2`. The program, the first argument, stays out. The review
+  offered this or an identity that the provider states itself; this one needs no
+  change of the protocol and no provider that knows which of its options matter.
+- **What it costs.** An argument that does not change the vectors, `-x` of
+  `aildb-llama` or a model file that moved, asks for every text once more. There is no
+  way to say "the same vectors" yet; the review names one as a later addition, and it
+  is the user's to ask for.
+- **Still declared, not verified.** A model file replaced under its path has the
+  same identity; the revision is the line for it, as before.
+- **Checked.** The eleven identities of `tests/lib_config.aiw` are those `hashlib` of
+  Python gives for the text of `docs/provider.md` (2026-11-24).

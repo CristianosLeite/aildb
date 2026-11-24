@@ -6,8 +6,9 @@
 # moved and one that was copied ask for nothing, and the records have
 # the new paths; with the last file removed the snapshot has no record.
 # Another setting of the provider is another identity: every text is
-# asked for again and the vectors of the first are removed, while
-# another time for a request changes nothing. A provider that fails at
+# asked for again and the vectors of the first are removed, and so is
+# another argument of its command, while another time for a request and
+# another path of its program change nothing. A provider that fails at
 # its second request leaves the snapshot that was there, and the run
 # after it asks only for what the first did not get. Without the kept
 # vectors everything is asked for again, without the manifest nothing
@@ -68,10 +69,21 @@ call print "# another setting: another identity, all asked, the old vectors remo
 call dirrun "index p -i m1 -d 3 -b 4 -s document_prefix=d: -- FAKE"
 call dirasked
 call dirsh "ls p/.aildb/cache\n"
+call print "# another argument of the command: another identity too\n"
+call dirrun "index p -i m1 -d 3 -b 4 -s document_prefix=d: -- FAKE spread"
+call dirasked
+call dirsh "ls p/.aildb/cache\n"
+call dirhits "p"
+call print "# and another program with the same arguments: the same identity\n"
+call dirsh "ln -s / up\n"
+call dirrun "index p -i m1 -d 3 -b 4 -s document_prefix=d: -- up/FAKE spread"
+call dirasked
+call dirsh "ls p/.aildb/cache\n"
 call print "# a provider that fails at its second request: the snapshot stays\n"
 call dirsh "cksum < p/.aildb/index\n"
-call dirrun "index p -i m1 -d 3 -b 3 -s document_prefix=e: -- FAKE after1"
-call dirsh "cksum < p/.aildb/index\nls p/.aildb/cache | wc -l\n"
+call dirsh "printf after1 > provider.fault\n"
+call dirrun "index p -i m1 -d 3 -b 3 -s document_prefix=e: -- FAKE"
+call dirsh "rm provider.fault\ncksum < p/.aildb/index\nls p/.aildb/cache | wc -l\n"
 call dirasked
 call print "# the run after it asks for the rest\n"
 call dirrun "index p -i m1 -d 3 -b 3 -s document_prefix=e: -- FAKE"
