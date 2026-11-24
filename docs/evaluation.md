@@ -28,9 +28,23 @@ answer is at that revision, chosen by reading the file.
   They were committed (`d48f4a7`) before any of them was given to the
   model, and none was changed after the run below.
 
-Twenty queries on two repositories of the same author, in the same two
-languages, are a small measure. They say whether a change makes these
-queries better or worse, not how the model does on other sources.
+- `hiredis`: [hiredis](https://github.com/redis/hiredis), the C client of
+  Redis, at its tag `v1.2.0` (`60e5075`), with ten queries, seven that a
+  function of C answers and three that a section of its `README.md`
+  answers. It is the work of other authors and in a language the chunker
+  has no units for: a file of C is cut by the limits of a chunk alone,
+  so a chunk may begin in the middle of a function. Its files are cut
+  as an index of a directory cuts them, every text file, which the word
+  `text` after the revision in its `.pin` says; the other two corpora
+  keep the chunker of their first results (`build/chunk -c`). The
+  queries were written from the names and the places of the functions
+  and sections, and committed before any of them was given to a model;
+  none is changed for the place it gets.
+
+Thirty queries on three repositories are a small measure, and twenty of
+them are on two repositories of one author, in the same two languages.
+They say whether a change makes these queries better or worse, not how
+the model does on other sources.
 
 ## The measures
 

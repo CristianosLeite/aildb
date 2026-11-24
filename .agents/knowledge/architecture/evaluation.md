@@ -1,6 +1,6 @@
 ---
 title: The retrieval evaluation
-last-verified: 2026-11-22
+last-verified: 2026-11-24
 sources: [conversation 2026-11-22, docs/evaluation.md, docs/TODO.md, example/eval.aiw, tools/eval.sh, example/eval/, tests/example_eval.aiw, architecture/example.md]
 status: current
 ---
@@ -46,3 +46,16 @@ chunk sizes or models was run.
   `docs/TODO.md`. The plan of the conversation had `make eval` take the model and the
   limits of a chunk as variables; that was left to the item, with the comparison.
 - Queries by someone who did not write the sources, and a repository of another author.
+- **A third corpus, hiredis at `v1.2.0`** (step 15 of `docs/TODO.md` asks for queries on
+  a repository of another author, in a language the chunker is taught, before variants
+  are compared; agent, 2026-11-24, proposed in the plan the user approved that day):
+  C, BSD-3-Clause, 72 files, small enough to be embedded in every variant. Ten queries,
+  seven for functions (`sds.c`, `dict.c`, `net.c`, `read.c`, `hiredis.c`) and three for
+  sections of `README.md`, written from the names and places of the functions and
+  sections and committed before they were embedded; the line of a query is the first
+  line of the function or the heading of the section. Its `.pin` has the word `text`
+  after the revision: `tools/eval.sh` then runs `build/chunk` without `-c`, since `-c`
+  takes `.aiw` and `.md` alone. Rejected: a corpus of Python, for which the chunker has
+  no units either and which would add nothing C does not; and changing the two older
+  corpora to the chunker of every text file, which would change their published
+  figures (the decision of 2026-11-23 on the chunker page).

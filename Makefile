@@ -63,7 +63,7 @@ example:
 # finds its lines, how many are among the first 1, 5 and 10, and the mean
 # reciprocal rank. It needs a running Ollama, as the example does, and
 # writes build/eval/report.txt.
-CORPORA ?= ail aildb
+CORPORA ?= ail aildb hiredis
 eval:
 	$(AIL) build
 	$(AIL) build chunk

@@ -3,7 +3,9 @@
 # docs/evaluation.md). For each CORPUS, example/eval/CORPUS.pin names a
 # repository and a revision and example/eval/CORPUS.tsv has queries with
 # the lines each is to find. The files of the revision are cut into
-# chunks by "build/chunk -c", build/embed asks a running Ollama for the
+# chunks by "build/chunk -c", or by "build/chunk" without it, as an index
+# of a directory cuts every text file, if the word "text" stands after
+# the revision in the .pin; build/embed asks a running Ollama for the
 # embeddings of the chunks and of the queries, aildb builds a snapshot,
 # and build/example-eval says at which place each query finds its lines.
 # Everything is in build/eval/, and build/eval/report.txt has what was
@@ -28,13 +30,18 @@ mkdir -p "$e"
 	for c in "$@"; do
 		url=$(awk '!/^#/ && NF {print $1}' "example/eval/$c.pin")
 		pin=$(awk '!/^#/ && NF {print $2}' "example/eval/$c.pin")
+		how=$(awk '!/^#/ && NF {print $3}' "example/eval/$c.pin")
+		mode=-c
+		[ "$how" != text ] || mode=
 		d=$e/$c
 		mkdir -p "$d/src"
-		printf '\n%s: %s at %s\n' "$c" "$url" "$pin"
+		printf '\n%s: %s at %s' "$c" "$url" "$pin"
+		[ -n "$mode" ] || printf ', every text file'
+		printf '\n'
 		git clone -q --no-checkout "$url" "$d/repo"
 		git -C "$d/repo" archive "$pin" | tar -x -C "$d/src"
 		git -C "$d/repo" ls-tree -r --name-only "$pin" > "$d/list"
-		$b/chunk -c "$d/src" "$d/meta.tsv" "$d/text.jsonl" < "$d/list"
+		$b/chunk $mode "$d/src" "$d/meta.tsv" "$d/text.jsonl" < "$d/list"
 		$b/embed document "$d/text.jsonl" "$d/vectors.bin" >/dev/null
 		$b/embed query "example/eval/$c.tsv" "$d/queries.bin" >/dev/null
 		$b/aildb build -o "$d/$c.idx" -v "$d/vectors.bin" -m "$d/meta.tsv" -d 768 -i nomic-embed-text -r "$pin"
