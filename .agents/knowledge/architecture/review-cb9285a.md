@@ -91,3 +91,28 @@ was chosen by the agent and is for the user to review.
   when it is given by a relative path and not named with `-f` (it is then looked for
   from the directory of each search, and a search from elsewhere fails with status 7).
   The adapter does not refuse a relative `-m`; for the user to decide.
+
+## Vectors of a program that changed at its path (P2)
+
+- **Finding.** A program of the checkout that changed is refused until the options
+  are given again; given again, the identity was the one it had, because the name was
+  the path and the bytes were looked at for the permission only. Reproduced by the
+  review: `embedded:0`, `published:false`, a text as its own query at 0.809026.
+- **Decision (agent, 2026-11-24).** Both of what the review offered. A provider
+  without `-n` gets a line `fingerprint` in its configuration, the SHA-256 of the
+  digests of its program and of the files named with `-f` and `-x`, and the identity
+  (`aildb-provider 3`) has that line. `-n NAME` is the explicit compatibility
+  identifier: with it there is no fingerprint, and the user's word stands.
+- **Taken when the options are given, not for every search.** The identity must be
+  known to a search without reading every file of the command, and the case of the
+  review is closed by it: a file of the directory cannot change without the options
+  being given again, which is when the fingerprint is taken. Not closed: a program
+  outside the directory that is replaced at its path (an update of the system) stays
+  allowed and keeps its identity until the options are given again. Rejected: the
+  bytes of every file read for every search, which for an interpreter is megabytes
+  each time, and would end an index on every update of the system.
+- **The paths of the files are no part of the fingerprint**, the bytes are; the path
+  of the program is in the name, and the arguments, with the paths that `-f` and `-x`
+  put there, are in the identity as they were.
+- **Every index made before this is embedded again**: the text of the identity
+  changed. No version has it.

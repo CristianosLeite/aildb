@@ -335,6 +335,54 @@ fn trustprog trustp trustn trustb
 	tail byadd trustb trustz trustm-1
 end
 
+# The fingerprint of the command of the configuration trustc, 32 bytes
+# written at trustout: 1, or 0 if its program or a file it depends on
+# cannot be read, or without memory. It is the SHA-256 of
+# "aildb-fingerprint 1" and, for the program and then for each of those
+# files in their order, the digits of the SHA-256 of its bytes, each on
+# a line: what the command is made of now, wherever its files lie. The
+# paths are no part of it.
+fn trustprint trustc trustout
+	local trustsum 32
+	call bycut trusttext 0
+	call byadd trusttext "aildb-fingerprint 1\n"
+	call confargs trustc as trustfp trustfk
+	if trustfk
+		trustfk=1
+	end
+	trusttwo=0
+	label list
+	while trustfk
+		call strlen trustfp as trustfn
+		# O_PATH, and O_CLOEXEC by fileopen
+		call fileopen trustfp trustfn 0x200000 0 as trustfd
+		ifslt trustfd 0
+			ret 0
+		end
+		call trustbytes trustfd trustsum as trustok
+		sys close trustfd
+		ifz trustok
+			ret 0
+		end
+		call shahex trusttext trustsum
+		call byaddb trusttext 10 as trustok
+		ifz trustok
+			ret 0
+		end
+		trustfp+=trustfn+1
+		trustfk-=1
+	end
+	ifz trusttwo
+		trusttwo=1
+		call conffiles trustc as trustfp trustfk
+		jmp list
+	end
+	load trusttext as trustp
+	load trusttext+8 as trustn
+	call sha256 trustp trustn trustout
+	ret 1
+end
+
 # add to the bytes buffer trustb the trustn bytes at trustp with their
 # length and a colon before them and a line feed after: 1, or 0 without
 # memory

@@ -16,7 +16,7 @@ index.lock
 manifest
 
 p/.aildb/cache:
-cee84538ae28a1e6746107edc55553f25ad7e03d2792a177ee9e1fdc986f6a35
+b11252e981b7a6ee69661fdeb35a4d000d6cf43439915e5a7efa085f845713be
 1925046263 4156
 # nothing changed: nothing asked, nothing written
 $ aildb index p
@@ -108,7 +108,7 @@ $ aildb index p -i m1 -d 3 -n provider-fake -b 2 -t 5000 -- FAKE
 --- stderr
 --- status 0
 --- provider.log
-cee84538ae28a1e6746107edc55553f25ad7e03d2792a177ee9e1fdc986f6a35
+b11252e981b7a6ee69661fdeb35a4d000d6cf43439915e5a7efa085f845713be
 # another setting: another identity, all asked, the old vectors removed
 $ aildb index p -i m1 -d 3 -n provider-fake -b 4 -s document_prefix=d: -- FAKE
 --- stdout
@@ -118,7 +118,7 @@ $ aildb index p -i m1 -d 3 -n provider-fake -b 4 -s document_prefix=d: -- FAKE
 --- provider.log
 documents 4 m1 [d:]
 documents 2 m1 [d:]
-49fd31d41283c07d48adb656d1f1eea7d5a81b11315b39af70b1172a8c48dff1
+fb2356546f0b0fa92222b814075587259cbe703e391d8b1a4d5a65c25cf52c8d
 # another argument of the command: another identity too
 $ aildb index p -i m1 -d 3 -n provider-fake -b 4 -s document_prefix=d: -- FAKE spread
 --- stdout
@@ -128,7 +128,7 @@ $ aildb index p -i m1 -d 3 -n provider-fake -b 4 -s document_prefix=d: -- FAKE s
 --- provider.log
 documents 4 m1 [d:]
 documents 2 m1 [d:]
-01e84c0109e7b2fd93a9f788c8739912858b1eee0537b52435369ea95c5def8a
+921817bf9b961553162ee569a1749266115ba13c0013b134acec62020db9f926
 $ aildb search p/.aildb/index -k 100 -q dir.q
 --- stdout
 {"source_revision":null,"model":"m1"}
@@ -150,7 +150,7 @@ $ aildb index p -i m1 -d 3 -n provider-fake -b 4 -s document_prefix=d: -- up/FAK
 --- stderr
 --- status 0
 --- provider.log
-01e84c0109e7b2fd93a9f788c8739912858b1eee0537b52435369ea95c5def8a
+921817bf9b961553162ee569a1749266115ba13c0013b134acec62020db9f926
 # a provider that fails at its second request: the snapshot stays
 3251102480 4204
 $ aildb index p -i m1 -d 3 -n provider-fake -b 3 -s document_prefix=e: -- FAKE
@@ -263,3 +263,61 @@ $ aildb index w -i m1 -d 3 -n mine -- y/prov
 --- status 0
 --- provider.log
 documents 2 m1
+# no name: the program with other bytes at its path is another provider, all asked
+$ aildb index w -i m1 -d 3 -- x/prov
+--- stdout
+{"records":2,"dimension":3,"model":"m1","source_revision":null,"files":2,"embedded":2,"published":true}
+--- stderr
+--- status 0
+--- provider.log
+documents 2 m1
+1
+$ aildb index w -i m1 -d 3 -- x/prov
+--- stdout
+{"records":2,"dimension":3,"model":"m1","source_revision":null,"files":2,"embedded":2,"published":true}
+--- stderr
+--- status 0
+--- provider.log
+documents 2 m1
+$ aildb index w -i m1 -d 3 -- x/prov
+--- stdout
+{"records":2,"dimension":3,"model":"m1","source_revision":null,"files":2,"embedded":0,"published":false}
+--- stderr
+--- status 0
+--- provider.log
+# under a name it is the provider it was
+$ aildb index w -i m1 -d 3 -n mine -- x/prov
+--- stdout
+{"records":2,"dimension":3,"model":"m1","source_revision":null,"files":2,"embedded":2,"published":true}
+--- stderr
+--- status 0
+--- provider.log
+documents 2 m1
+0
+$ aildb index w -i m1 -d 3 -n mine -- x/prov
+--- stdout
+{"records":2,"dimension":3,"model":"m1","source_revision":null,"files":2,"embedded":0,"published":false}
+--- stderr
+--- status 0
+--- provider.log
+# no name, and a file the command depends on that changed
+$ aildb index w -i m1 -d 3 -f embed.sh -- /bin/sh embed.sh
+--- stdout
+{"records":2,"dimension":3,"model":"m1","source_revision":null,"files":2,"embedded":2,"published":true}
+--- stderr
+--- status 0
+--- provider.log
+documents 2 m1
+$ aildb index w -i m1 -d 3 -f embed.sh -- /bin/sh embed.sh
+--- stdout
+{"records":2,"dimension":3,"model":"m1","source_revision":null,"files":2,"embedded":2,"published":true}
+--- stderr
+--- status 0
+--- provider.log
+documents 2 m1
+$ aildb index w
+--- stdout
+{"records":2,"dimension":3,"model":"m1","source_revision":null,"files":2,"embedded":0,"published":false}
+--- stderr
+--- status 0
+--- provider.log

@@ -128,3 +128,26 @@ call print "# the two under one name: one provider\n"
 call dirrun "index w -i m1 -d 3 -n mine -- x/prov"
 call dirrun "index w -i m1 -d 3 -n mine -- y/prov"
 call dirasked
+call print "# no name: the program with other bytes at its path is another provider, all asked\n"
+call dirrun "index w -i m1 -d 3 -- x/prov"
+call dirasked
+call dirsh "grep -c '^fingerprint.[0-9a-f]*$' w/.aildb/config\nprintf x >> x/prov\n"
+call dirrun "index w -i m1 -d 3 -- x/prov"
+call dirasked
+call dirrun "index w -i m1 -d 3 -- x/prov"
+call dirasked
+call print "# under a name it is the provider it was\n"
+call dirrun "index w -i m1 -d 3 -n mine -- x/prov"
+call dirasked
+call dirsh "grep -c '^fingerprint' w/.aildb/config || true\nprintf x >> x/prov\n"
+call dirrun "index w -i m1 -d 3 -n mine -- x/prov"
+call dirasked
+call print "# no name, and a file the command depends on that changed\n"
+call dirsh "printf 'exec \"%s\"\\n' \"$FAKE\" > embed.sh\n"
+call dirrun "index w -i m1 -d 3 -f embed.sh -- /bin/sh embed.sh"
+call dirasked
+call dirsh "printf '# as it was\\n' >> embed.sh\n"
+call dirrun "index w -i m1 -d 3 -f embed.sh -- /bin/sh embed.sh"
+call dirasked
+call dirrun "index w"
+call dirasked

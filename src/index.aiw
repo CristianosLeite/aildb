@@ -403,6 +403,7 @@ fn ixoptions i
 	seen=0
 	np=0
 	nn=0
+	named=0
 	label option
 	if i<c
 		call argv i as p n
@@ -512,6 +513,7 @@ fn ixoptions i
 		if y==110
 			np=q
 			nn=m
+			named=1
 		end
 		if y==114
 			call confput ixconf confrev q m as ok
@@ -547,6 +549,26 @@ fn ixoptions i
 	call confput ixconf confname np nn as ok
 	ifz ok
 		call nomem
+	end
+	ifz named
+		# a provider that has no name of its own is what its program and
+		# its files are now: their bytes are a part of its identity, so
+		# that vectors of the program as it was are not given out for it
+		call trustprint ixconf ixsha as ok
+		call bycut ixhex 0
+		call shahex ixhex ixsha as a
+		ifz ok&a
+			call confargs ixconf as p n
+			call strlen p as n
+			call about p n
+			call byadd msg "the program of the provider or a file it depends on cannot be read"
+			call fail stio
+		end
+		load ixhex as p
+		call confput ixconf confprint p 64 as ok
+		ifz ok
+			call nomem
+		end
 	end
 	if seen&3!=3
 		# no model or no dimension

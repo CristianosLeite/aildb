@@ -25,6 +25,7 @@ model	m1
 dimension	3
 timeout	120000
 batch	32
+fingerprint	DIGITS
 set	document_prefix	d:
 *
 $ aildb search r/.aildb/index -k 100 -q dir.q

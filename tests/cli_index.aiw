@@ -26,7 +26,7 @@ call dirsh "git init -q r\nmkdir r/sub\nprintf '# One\\nfirst\\n\\n# Two\\nsecon
 call dirrun "index r"
 call dirrun "index r -i m1 -d 3 -s document_prefix=d: -- FAKE"
 call dirasked
-call dirsh "git -C r rev-parse HEAD\ngit -C r status --porcelain\nls -A r/.aildb\ngrep -v '^arg' r/.aildb/config | sed \"s|$FAKE|FAKE|\"\ncat r/.aildb/.gitignore\n"
+call dirsh "git -C r rev-parse HEAD\ngit -C r status --porcelain\nls -A r/.aildb\ngrep -v '^arg' r/.aildb/config | sed -e \"s|$FAKE|FAKE|\" -e 's/^fingerprint\t[0-9a-f]*$/fingerprint\tDIGITS/'\ncat r/.aildb/.gitignore\n"
 call dirhits "r"
 
 call print "# a new file, an edited one, an ignored one and a link, none committed\n"
@@ -50,7 +50,7 @@ call dirrun "check r/.aildb/index"
 call print "# other options take the place of the configuration\n"
 call dirrun "index r -d 2 -i m2 -n other -r rev9 -t 5000 -b 1 -- FAKE"
 call dirasked
-call dirsh "grep -v '^arg' r/.aildb/config\n"
+call dirsh "grep -v '^arg' r/.aildb/config | sed 's/^fingerprint\t[0-9a-f]*$/fingerprint\tDIGITS/'\n"
 
 call print "# wrong usage\n"
 call dirrun "index r -i m1 -- FAKE"

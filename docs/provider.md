@@ -59,13 +59,14 @@ arg	/usr/local/bin/aildb-ollama
 | `dimension` | the elements of a vector, 1 to 65536 |
 | `timeout` | the milliseconds one request may take, 1 to 3600000; 120000 if the line is left out |
 | `batch` | the most texts of one request for documents, 1 to 1024; 32 if the line is left out |
+| `fingerprint` | 64 digits for the bytes of the program of the command and of the files it depends on, as they were when `aildb index` was given the options; written for a provider that was given no name with `-n`, and left out for one that was |
 | `set` | a setting: a name, a tab and a value. The name is 1 to 255 bytes and is there once; the value is up to 4095 bytes and may be empty. Any number of lines |
 | `arg` | an argument of the command that is the provider, up to 4095 bytes; the first is the program, a path from the root. At least one line, in their order |
 | `file` | a file the command depends on, a path from the root of up to 4095 bytes, as `-f` and `-x` of `aildb index` found it. Up to 64 lines, or none |
 
 Every value is a string as a snapshot holds one: well-formed UTF-8
 without control bytes. The file ends with a line feed. Lines of the
-first seven words are there once at most, in any order after the first;
+first eight words are there once at most, in any order after the first;
 the settings are written in the order of the bytes of their names,
 whatever order they were given in. A file that is not this is refused
 with the number of the line at fault.
@@ -85,10 +86,11 @@ number of bytes of a string in decimal, a colon and the bytes, and a
 number is in decimal:
 
 ```
-aildb-provider 2
+aildb-provider 3
 <provider>
 <model>
 <revision>
+<fingerprint>          empty for a provider with a name of its own
 dimension
 number of settings
 <name><value>          one line for each setting, in the order of the names
@@ -107,23 +109,39 @@ costs time once, where the same vectors under two arguments that differ
 would be an index of two models. What is not in it: the time and the
 number of texts of a request.
 
-**The program of the command** is in it through the name of the
-provider. Without `-n`, the name is the path of the program from the
-root, as `aildb index` found it: another program at another path is
+**The program of the command** is in it twice, for a provider that is
+given no name. Without `-n`, the name is the path of the program from
+the root, as `aildb index` found it: another program at another path is
 another provider, even one of the same last name, and starts from no
-vector. With `-n NAME` you say what the provider is, and then its
-program may lie anywhere: the same name, model, settings and arguments
-are the same identity under whatever path. So a provider that you move
-keeps its vectors if it has a name, and one that you replace by another
-under the same name mixes the vectors of the two, which is yours to
-avoid: give the other another name. A name is 1 to 255 bytes, so a
-program whose path is longer needs one.
+vector. And the line `fingerprint` is of its bytes and of the bytes of
+the files named with `-f` and `-x`, as they were when the options were
+given: the SHA-256 of `aildb-fingerprint 1` and, on a line each, the
+digits of the SHA-256 of the program and of each of those files in
+their order. So a program that was changed at its path, or a script of
+it that was, is another provider the next time the options are given,
+and every text is asked for again. That is the moment at which a
+changed file of the indexed directory is allowed again
+([below](#which-commands-are-run)), so what such a file made before it
+changed is never given out as made by what it is now.
+
+With `-n NAME` you say what the provider is, and aildb takes your word:
+there is no fingerprint, and the same name, model, settings and
+arguments are the same identity under whatever path and with whatever
+bytes. So a provider that you move or update keeps its vectors if it
+has a name, and one that you replace by another under the same name
+mixes the vectors of the two, which is yours to avoid: give the other
+another name. A name is 1 to 255 bytes, so a program whose path is
+longer needs one.
 
 aildb cannot see the weights a provider runs. The identity is what the
-configuration **says**: a program that was replaced under the same
-path, a model file that was replaced under the same path, or a model that a service replaced under the same name, has the
-same identity, and its vectors are mixed with the old ones. The revision
-is the line to change then.
+configuration **says**: a model file that was replaced under the same
+path and is not named with `-f`, or a model that a service replaced
+under the same name, has the same identity, and its vectors are mixed
+with the old ones. The revision is the line to change then. And the
+fingerprint is taken when the options are given, not for every search:
+a program outside the indexed directory that an update of the system
+replaced at its path stays allowed, and keeps its identity until the
+options are given again.
 
 ## Which commands are run
 

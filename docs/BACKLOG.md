@@ -719,3 +719,19 @@ chose.
   searched with another where that name leaves a file, which is not
   run) and `tests/adapter_llama.aiw` (a program that is no path from
   the root, and none).
+- [x] A program of the indexed directory that changed is refused until
+  the options are given again, and those options then left the
+  identity what it was: the name of a provider without `-n` is the
+  path of its program, and the bytes were looked at for the permission
+  only. The vectors of the program as it was were given out for the
+  one it had become (the review reproduced it: nothing embedded,
+  nothing published, a text as its own query at 0.809026). A provider
+  that is given no name now has a line `fingerprint` in its
+  configuration, the SHA-256 of the bytes of its program and of the
+  files named with `-f` and `-x` as they are when the options are
+  given (`trustprint`), and the identity, `aildb-provider 3`, has it.
+  With `-n NAME` there is none: the name is the user's word that the
+  provider is the same. Tests `tests/cli_index_refresh.aiw` (a
+  program with a byte more at its path, and a script named with `-f`
+  with a line more: every text asked for and a snapshot published;
+  under a name, nothing asked) and `tests/lib_config.aiw`.
