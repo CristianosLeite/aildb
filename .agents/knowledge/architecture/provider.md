@@ -1,7 +1,7 @@
 ---
 title: The embedding provider
 last-verified: 2026-11-24
-sources: [conversation 2026-11-24, docs/TODO.md (step 17), docs/provider.md, src/lib/config.aiw, src/lib/provider.aiw, src/lib/sha.aiw, tests/lib_config.aiw, tests/lib_provider.aiw, tests/lib_sha.aiw]
+sources: [conversation 2026-11-24, docs/TODO.md (step 17), docs/provider.md, src/lib/config.aiw, src/lib/provider.aiw, src/lib/sha.aiw, adapters/llama.aiw, adapters/ollama.aiw, adapters/lib/ollama.aiw, tests/lib_config.aiw, tests/lib_provider.aiw, tests/lib_sha.aiw, tests/provider_command.aiw, tests/adapter_llama.aiw, tests/adapter_ollama.aiw, llama.cpp b12676]
 status: current
 ---
 # The embedding provider
@@ -53,7 +53,48 @@ for review.
   vectors.
 - **One reason for the whole answer** (agent, 2026-11-24): a batch with one bad vector
   is refused whole, and no vector of it is kept.
+- **One process a request, with files in memory** (agent, 2026-11-24): the request is
+  the stdin of the command and the answer its stdout, both files of `memfd_create`, and
+  `procwait` with the time of the configuration ends a run that takes too long, as
+  `mcp/src/run.aiw` runs `aildb search`. Rejected: one process for a whole run of aildb
+  that is written to and read from over pipes, which saves the loading of a model for
+  each batch but needs a read with a limit of time that the library of AIL has only for
+  tasks, and `llama-embedding` is a process a run in any case. What it costs is that a
+  provider which loads a model loads it for each batch; `batch` is the number to raise.
+- **32 texts a request and 120000 ms, when the configuration does not say** (agent,
+  2026-11-24, for the user to review); 1024 texts and 3600000 ms at most.
+- **A failed request keeps nothing and ends the run** (agent, 2026-11-24): `provdocs`
+  gives all vectors or none. The first line of what the provider said, 400 bytes at
+  most, goes after the reason; what a provider says when it succeeds is not shown.
+- **`llama-embedding` is not in the release archives of llama.cpp** (found 2026-11-24,
+  `b12676`: `llama-server`, `llama-cli` and others, and nothing that prints embeddings
+  without a server). The user chose llama.cpp for the runner without a socket, wrapped
+  by an adapter that starts `llama-embedding`; that program is made from the sources
+  (`examples/embedding`, the target `llama-embedding`), which `docs/provider.md` says.
+  The agent built it at `b12676` in `~/.local/opt/llama.cpp/` of the user's machine,
+  with cmake from a Python environment there, and ran the adapter against it. Rejected:
+  `llama-server` on a socket of UNIX started for each request, which is a socket that
+  listens. For the user to decide: whether a runner that must be built is good enough,
+  or another runner is to be shipped.
+- **`aildb-llama` asks for vectors that are not divided by their norm** (agent,
+  2026-11-24): the program prints seven decimals, so a number near 1 keeps more digits
+  than one near 0.03, and aildb normalizes.
+- **The program of `aildb-llama` dies with it** (agent, 2026-11-24): the adapter forks
+  itself, asks the kernel to kill the child when the parent dies (`prctl`,
+  `PR_SET_PDEATHSIG`), and starts the program through `/usr/bin/env`, which looks for it
+  in `PATH`; `procstart` of AIL has no place for the request between its fork and its
+  exec. Checked by hand: a program that sleeps was gone after `kill -9` of the adapter.
+  Rejected: a process group of the provider that aildb kills, which takes the provider
+  out of the group that Ctrl-C of a terminal ends.
+- **The adapters pass the numbers on as text** (agent, 2026-11-24): they copy the bytes
+  of each vector into the answer, and aildb reads and checks them once.
+- **`adapters/lib/ollama.aiw` is shared with `build/embed`** (agent, 2026-11-24): the
+  address and the request of HTTP; `example/embed.aiw` keeps its messages, and
+  `tests/example_embed.out` did not change.
 
 ## Not checked
 - That two configurations of one identity give the same vectors: it is what the user
   declares.
+- `aildb-llama` with a model other than nomic-embed-text, and with a text longer than
+  the program takes, beyond that the program then ends with the status 1.
+- The Python provider of `docs/provider.md` was not run.

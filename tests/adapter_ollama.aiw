@@ -1,0 +1,111 @@
+# aildb-ollama, the provider that asks Ollama, against the service that
+# answers as Ollama does and says in each vector what text it got, the
+# number of its bytes and their sum (tests/lib/embedfake.aiw): the texts
+# of a request reach the model with the prefix of their operation, or
+# with none if the request has no such setting, and the vectors come
+# back in the answer of the protocol with their indexes; a model that
+# refuses, a service that is not there, a request that is none and wrong
+# arguments are a line and a status. The address of the service is given
+# with -e and, for one run, by OLLAMA_HOST.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "tests/lib/cmd.aiw"
+buf b 24
+buf line 24
+buf ts 16
+var port
+# print the answer of cmdso with each run of ",0.1" as the number of them
+fn answer
+	load cmdso as q
+	load cmdso+8 as m
+	i=0
+	while i<m
+		k=0
+		label run
+		if i+4<=m
+			load4 q+i as w
+			# ",0.1" as the four bytes are read
+			if w==0x312e302c
+				k+=1
+				i+=4
+				jmp run
+			end
+		end
+		if k
+			call print " and "
+			call putn k
+			call print " of 0.1"
+		else
+			call print q+i 1
+			i+=1
+		end
+	end
+end
+# run the adapter on the request of the file p n; env says that the
+# address is given by OLLAMA_HOST and not with -e
+fn run env p n
+	call bycut line 0
+	if env
+		call byadd line "/usr/bin/env OLLAMA_HOST=http://127.0.0.1:"
+		call byaddn line port
+		call byadd line "/ "
+		call byadd line cmdhome cmdhomen
+		call byadd line "/build/aildb-ollama"
+		call print "$ OLLAMA_HOST=... aildb-ollama < "
+	else
+		call byadd line "aildb-ollama -e 127.0.0.1:"
+		call byaddn line port
+		call print "$ aildb-ollama -e ... < "
+	end
+	call print p n
+	call print "\n"
+	load line as q
+	load line+8 as m
+	call cmdargs q m as av
+	call fileopen p n 0 0 as fd
+	call cmdrun av fd cmdso cmdse as st
+	sys close fd
+	call answer
+	load cmdse as q
+	load cmdse+8 as m
+	call print q m
+	call print "status "
+	call putn st
+	call print "\n"
+end
+call cmdspawn "embed-fake port.txt" as fake
+call cmdawait "port.txt" 5000 as r
+store ts 0
+store ts+8 20000000
+sys nanosleep ts 0
+call fileread "port.txt" b
+load b as p
+load b+8 as n
+i=0
+while i<n
+	loadb p+i as c
+	port=port*10+c-48
+	i+=1
+end
+call filewrite "docs.json" "{\"aildb\":1,\"op\":\"documents\",\"model\":\"nomic-embed-text\",\"revision\":\"\",\"dimension\":768,\"settings\":{\"document_prefix\":\"d: \",\"query_prefix\":\"q: \"},\"texts\":[\"a\",\"two\\nlines\",\"c\"]}\n"
+call filewrite "query.json" "{\"aildb\":1,\"op\":\"query\",\"model\":\"nomic-embed-text\",\"revision\":\"\",\"dimension\":768,\"settings\":{\"document_prefix\":\"d: \",\"query_prefix\":\"q: \"},\"texts\":[\"a\"]}\n"
+call filewrite "bare.json" "{\"aildb\":1,\"op\":\"query\",\"model\":\"nomic-embed-text\",\"revision\":\"\",\"dimension\":768,\"settings\":{},\"texts\":[\"a\"]}\n"
+call filewrite "refuse.json" "{\"aildb\":1,\"op\":\"query\",\"model\":\"nomic-embed-text\",\"revision\":\"\",\"dimension\":768,\"settings\":{},\"texts\":[\"refuse this\"]}\n"
+call filewrite "two.json" "{\"aildb\":2,\"op\":\"documents\",\"texts\":[]}\n"
+call filewrite "bad.json" "not json\n"
+call run 0 "docs.json"
+call run 0 "query.json"
+call run 0 "bare.json"
+call run 1 "bare.json"
+call print "--- failures\n"
+call run 0 "refuse.json"
+call run 0 "two.json"
+call run 0 "bad.json"
+sys kill fake 9
+call procwait fake 0
+call run 0 "bare.json"
+call cmdshowin "aildb-ollama -e nowhere" "bare.json"
+call cmdshowin "aildb-ollama -e" "bare.json"
+call cmdshowin "aildb-ollama -x 127.0.0.1" "bare.json"

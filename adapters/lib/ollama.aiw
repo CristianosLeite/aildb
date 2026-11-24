@@ -1,0 +1,99 @@
+# adapters/lib/ollama.aiw -- Ollama asked over HTTP: where it listens and
+# one request to it. build/embed of the example and the adapter
+# aildb-ollama share it. A program that uses it uses lib/std/io.aiw,
+# lib/std/bytes.aiw, lib/std/proc.aiw, the three files of lib/async/ that
+# lib/net/http.aiw needs, and lib/net/http.aiw first.
+#
+# The functions return what they found and print nothing. Every name of
+# this file starts with "oll"; a program has no var of such a name.
+
+buf ollhost 24          # the address as httpurl takes it
+buf ollreq 128
+data olllocal "http://127.0.0.1:11434"
+data olllocalend ""
+
+# Where Ollama listens: the olln bytes at ollp if there are any, else the
+# environment variable OLLAMA_HOST, else http://127.0.0.1:11434; with
+# "http://" or without, an IPv4 address or localhost, and a port or not.
+# The results are the address and the port as httpcall takes them and 1,
+# or two zeros and 0 for a text that is none, and after them the text
+# that was read, with its "http://", for a message.
+fn ollwhere ollp olln
+	ifz olln
+		call procvar "OLLAMA_HOST" as ollp olln
+	end
+	ifz olln
+		ollp=olllocal
+		olln=olllocalend-olllocal
+	end
+	label slash
+	if olln
+		loadb ollp+olln-1 as ollc
+		if ollc==47
+			olln-=1
+			jmp slash
+		end
+	end
+	call bycut ollhost 0
+	olli=0
+	ollscheme=0
+	while olli+2<olln
+		load2 ollp+olli as ollc
+		loadb ollp+olli+2 as olld
+		if (ollc==0x2f3a)&(olld==47)
+			ollscheme=1
+		end
+		olli+=1
+	end
+	ifz ollscheme
+		call byadd ollhost "http://"
+	end
+	call byadd ollhost ollp olln
+	load ollhost as ollp
+	load ollhost+8 as olln
+	call httpurl ollp olln as ollip ollport ollq ollm ollok
+	ifz ollok
+		ret 0 0 0 ollp olln
+	end
+	ret ollip ollport 1 ollp olln
+end
+
+# Ask Ollama at the address ollip and the port ollport for the path ollp
+# olln, with the body of ollbn bytes at ollbp as JSON or, if ollbn is 0,
+# with none; the answer is left in the bytes buffer ollresp. Each step
+# of the call may take ollms milliseconds. The results are the status of
+# HTTP, or a negative number for a call that got none, and the address
+# and the length of the body of the answer.
+fn ollask ollip ollport ollp olln ollbp ollbn ollresp ollms
+	olli=0
+	while olli<128
+		store ollreq+olli 0
+		olli+=8
+	end
+	store ollreq ollip
+	store ollreq+8 ollport
+	if ollbn
+		store ollreq+16 "POST"
+		store ollreq+24 4
+		store ollreq+64 "application/json"
+		store ollreq+72 16
+	end
+	store ollreq+32 ollp
+	store ollreq+40 olln
+	store ollreq+48 ollbp
+	store ollreq+56 ollbn
+	store ollreq+96 ollms
+	store ollreq+104 0x40000000
+	call httpcall ollreq ollresp as ollh
+	ollst=0-12
+	if ollh
+		await ollh as ollst
+	end
+	ifslt ollst 0
+		ret ollst 0 0
+	end
+	load ollresp as ollq
+	load ollresp+8 as ollm
+	load ollreq+112 as ollhn
+	ret ollst ollq+ollhn ollm-ollhn
+end

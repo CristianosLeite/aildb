@@ -1,0 +1,80 @@
+$ aildb-llama -m model.gguf -x ./llama-embedding < docs.json
+--- stdout
+{"aildb":1,"embeddings":[{"index":0,"vector":[4.0000000,287.0000000,0.1000000]},{"index":1,"vector":[12.0000000,1085.0000000,0.1000000]},{"index":2,"vector":[4.0000000,289.0000000,0.1000000]}]}
+--- stderr
+--- status 0
+--- llama.log
+-m model.gguf -f /dev/stdin --embd-separator <#aildb-0#> --embd-output-format json --embd-normalize -1
+$ aildb-llama -m model.gguf -x ./llama-embedding < query.json
+--- stdout
+{"aildb":1,"embeddings":[{"index":0,"vector":[4.0000000,300.0000000,0.1000000]}]}
+--- stderr
+--- status 0
+--- llama.log
+-m model.gguf -f /dev/stdin --embd-separator <#aildb-0#> --embd-output-format json --embd-normalize -1
+$ aildb-llama -m model.gguf -x ./llama-embedding < sep.json
+--- stdout
+{"aildb":1,"embeddings":[{"index":0,"vector":[1.0000000,97.0000000,0.1000000]},{"index":1,"vector":[13.0000000,1034.0000000,0.1000000]}]}
+--- stderr
+--- status 0
+--- llama.log
+-m model.gguf -f /dev/stdin --embd-separator <#aildb-1#> --embd-output-format json --embd-normalize -1
+$ aildb-llama -m model.gguf -x ./llama-embedding < none.json
+--- stdout
+{"aildb":1,"embeddings":[]}
+--- stderr
+--- status 0
+--- arguments passed on
+$ aildb-llama -x ./llama-embedding -m 'a model.gguf' -- -ngl 0 < query.json
+--- stdout
+{"aildb":1,"embeddings":[{"index":0,"vector":[4.0000000,300.0000000,0.1000000]}]}
+--- stderr
+--- status 0
+--- llama.log
+-m a model.gguf -f /dev/stdin --embd-separator <#aildb-0#> --embd-output-format json --embd-normalize -1 -ngl 0
+--- failures
+$ aildb-llama -m missing.gguf -x ./llama-embedding < docs.json
+--- stdout
+--- stderr
+aildb-llama: ./llama-embedding ended with the status 1: 0.00.003.972 E main: unable to load model
+--- status 1
+$ aildb-llama -m model.gguf -x ./llama-embedding < two.json
+--- stdout
+--- stderr
+aildb-llama: the request is not of version 1 of the protocol
+--- status 1
+$ aildb-llama -m model.gguf -x ./llama-embedding < bad.json
+--- stdout
+--- stderr
+aildb-llama: the request is no object of JSON
+--- status 1
+$ aildb-llama -m model.gguf -x /nonexistent/llama-embedding < docs.json
+--- stdout
+--- stderr
+aildb-llama: /nonexistent/llama-embedding could not be started
+--- status 1
+$ aildb-llama < docs.json
+--- stdout
+--- stderr
+usage: aildb-llama -m MODEL [-x PROGRAM] [-- ARGUMENT...]
+--- status 2
+$ aildb-llama -x prog < docs.json
+--- stdout
+--- stderr
+usage: aildb-llama -m MODEL [-x PROGRAM] [-- ARGUMENT...]
+--- status 2
+$ aildb-llama -m < docs.json
+--- stdout
+--- stderr
+usage: aildb-llama -m MODEL [-x PROGRAM] [-- ARGUMENT...]
+--- status 2
+$ aildb-llama -m a -m b < docs.json
+--- stdout
+--- stderr
+usage: aildb-llama -m MODEL [-x PROGRAM] [-- ARGUMENT...]
+--- status 2
+$ aildb-llama -q a < docs.json
+--- stdout
+--- stderr
+usage: aildb-llama -m MODEL [-x PROGRAM] [-- ARGUMENT...]
+--- status 2

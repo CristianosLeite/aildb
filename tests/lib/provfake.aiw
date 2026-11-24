@@ -1,0 +1,221 @@
+# provider-fake -- an embedding provider for the tests: it reads one
+# request of the protocol of docs/provider.md on stdin and answers it on
+# stdout, with vectors that are computed from the texts and from nothing
+# else, so that a test knows them.
+#
+#   provider-fake [FAULT]
+#
+# The vector of a text has the dimension of the request: the number of
+# its bytes, the sum of its bytes, and 0.1 for every element after them;
+# with the dimension 1 it is the number of bytes alone. A text of no
+# bytes is given one byte of the value 1, so that no vector is all
+# zeros. A document and a query of the same bytes have the same vector.
+#
+# Each request adds a line to the file provider.log of the current
+# directory: the operation, the number of texts, the model, and the
+# value of each setting in the order of the request, with spaces
+# between.
+#
+# FAULT makes the answer wrong in one way: "count" leaves the last
+# vector out, "order" gives the first two vectors the index of each
+# other, "dim" leaves the last element of each vector out, "nan" makes
+# the first element 1e999, "zero" makes every element 0, "garbage"
+# prints a line that is no JSON, "exit3" prints nothing, says two lines
+# and ends with the status 3, and "hang" never ends.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/num.aiw"
+use "lib/std/json.aiw"
+buf in 24
+buf out 24
+buf log 24
+buf txt 24
+buf ts 16
+
+fn is p n
+	call argv 1 as q m
+	if n!=m
+		ret 0
+	end
+	i=0
+	while i<n
+		loadb p+i as a
+		loadb q+i as b
+		if a!=b
+			ret 0
+		end
+		i+=1
+	end
+	ret 1
+end
+
+fn bad p n
+	call eprint "provider-fake: "
+	call eprint p n
+	call eprint "\n"
+	sys exit_group 1
+end
+
+call is "hang" as r
+if r
+	label sleep
+	store ts 3600
+	store ts+8 0
+	sys nanosleep ts 0
+	jmp sleep
+end
+call is "exit3" as r
+if r
+	call eprint "provider-fake: the model is not there\nand a second line\n"
+	sys exit_group 3
+end
+call filereadfd 0 in as r
+ifslt r 0
+	call bad "cannot read the request"
+end
+load in as p
+load in+8 as n
+call jsonvalue p n as a an kind
+if kind!=7
+	call bad "the request is no object of JSON"
+end
+call jsonget a an "aildb" as v vn vk
+call numint v vn as ver ok
+if (vk!=4)|(ver!=1)
+	call bad "the request is not of version 1"
+end
+call jsonget a an "dimension" as v vn vk
+call numint v vn as dim ok
+if (vk!=4)|(ok==0)|(dim<1)
+	call bad "the request has no dimension"
+end
+call jsonget a an "op" as op opn vk
+call jsoneq op opn "documents" as isdoc
+call jsoneq op opn "query" as isquery
+ifz isdoc|isquery
+	call bad "the request has no operation"
+end
+call jsonget a an "texts" as t tn tk
+if tk!=6
+	call bad "the request has no texts"
+end
+call is "garbage" as r
+if r
+	call print "this is no JSON\n"
+	sys exit_group 0
+end
+call is "count" as fcount
+call is "order" as forder
+call is "dim" as fdim
+call is "nan" as fnan
+call is "zero" as fzero
+call byadd out "{\"aildb\":1,\"embeddings\":["
+q=t+1
+k=0
+before=0
+label text
+call jsonelem q t+tn as e en ek q
+if ek
+	if ek!=5
+		call bad "a text is no string"
+	end
+	call bycut txt 0
+	call jsonstr txt e en
+	load txt as x
+	load txt+8 as xn
+	sum=0
+	i=0
+	while i<xn
+		loadb x+i as c
+		sum+=c
+		i+=1
+	end
+	ifz xn
+		xn=1
+		sum=1
+	end
+	# the last of them is taken back for "count"
+	load out+8 as before
+	if k
+		call byaddb out 44
+	end
+	call byadd out "{\"index\":"
+	idx=k
+	if forder&(k<2)
+		idx=1-k
+	end
+	call byaddn out idx
+	call byadd out ",\"vector\":["
+	d=dim
+	if fdim
+		d-=1
+	end
+	i=0
+	while i<d
+		if i
+			call byaddb out 44
+		end
+		if fzero
+			call byadd out "0"
+		else
+			if i==0
+				if fnan
+					call byadd out "1e999"
+				else
+					call byaddn out xn
+				end
+			end
+			if i==1
+				call byaddn out sum
+			end
+			if i>1
+				call byadd out "0.1"
+			end
+		end
+		i+=1
+	end
+	call byadd out "]}"
+	k+=1
+	jmp text
+end
+if fcount&(k>0)
+	store out+8 before
+end
+call byadd out "]}\n"
+# the line of the log
+if isdoc
+	call byadd log "documents "
+else
+	call byadd log "query "
+end
+call byaddn log k
+call byaddb log 32
+call jsonget a an "model" as v vn vk
+call jsonstr log v vn
+call jsonget a an "settings" as s sn sk
+if sk==7
+	q=s+1
+	label set
+	call jsonmember q s+sn as np nn v vn vk q
+	if vk
+		call byadd log " ["
+		call jsonstr log v vn
+		call byadd log "]"
+		jmp set
+	end
+end
+call byaddb log 10
+call fileopen "provider.log" 0x441 420 as fd
+ifsge fd 0
+	load log as p
+	load log+8 as n
+	call fdwrite fd p n
+	sys close fd
+end
+load out as p
+load out+8 as n
+call fdwrite 1 p n as ok
+ifz ok
+	sys exit_group 1
+end

@@ -139,4 +139,7 @@ with ([provider.md](provider.md)).
 | `confwhy b w` | adds the words of a reason |
 | `provrequest b c op p n` | adds the request of `provdocuments` or `provquery` to a bytes buffer; `p n` is the texts, a string of JSON on each line, or the bytes of the query |
 | `provparse p n dim k out` | reads an answer to `k` texts: `k` times `dim` binary32 added to the bytes buffer `out`, or a reason |
-| `provwhy b w` | adds the words of a reason |
+| `provdocs c p n k out err` | asks the provider of the configuration for the vectors of `k` documents, in requests of as many texts as the configuration allows: 0 and 0, or a reason and what `procwait` gave, with what the command said in the bytes buffer `err` |
+| `provquerytext c p n out err` | the same for the vector of one query |
+| `provtell b w st q n` | adds the words of a reason, with the status and the first line of what the command said |
+| `provwhy b w` | adds the words of a reason of an answer |

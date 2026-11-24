@@ -381,3 +381,22 @@ directory, its configuration, its manifest and its kept vectors are in
   with answers written in the test for both operations and for each
   malformed answer; the identities and the bits against Python.
   `docs/provider.md`.
+- [x] The local command adapter: `provdocs` and `provquerytext` of
+  `src/lib/provider.aiw` start the command of the configuration once
+  for each request, directly, with the request of version 1 of the
+  protocol as its stdin and its answer on stdout, both files in memory;
+  32 texts a request and 120000 ms unless the configuration says
+  others, after which the process is killed; a status that is not 0, a
+  signal and a program that cannot be started are reasons, each with
+  the first line of what the provider said. `aildb-llama`
+  (`adapters/llama.aiw`) is the runner without a socket: it runs
+  `llama-embedding` of llama.cpp on a model file, which is built from
+  the sources of llama.cpp since its release archives have no such
+  program. `aildb-ollama` (`adapters/ollama.aiw`) wraps the protocol of
+  Ollama behind the same interface, with `adapters/lib/ollama.aiw`
+  shared with `build/embed`. Tests `provider_command` (a subprocess,
+  `build/provider-fake`, and no service of HTTP), `adapter_llama`
+  (against `build/llama-fake`) and `adapter_ollama`; both adapters were
+  run by hand on 2026-11-24 against llama.cpp `b12676` and Ollama
+  0.40.17 (`docs/provider.md`). Indexing and a query through them are
+  the tests of the items below.

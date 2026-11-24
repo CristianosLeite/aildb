@@ -7,11 +7,19 @@
 # the dimension of the configuration, of finite binary32, and none of
 # zeros alone, which is what build asks of a vector.
 #
+# A provider is a command (docs/provider.md): provdocs and provquery
+# start it once for each request, with the request as its stdin, wait
+# for it no longer than the configuration allows, and read the answer it
+# printed. What it reads and writes are files in memory, so that it never
+# waits for aildb to read and aildb never for it.
+#
 # The configuration is one of src/lib/config.aiw. The functions return
 # what they found and print nothing. Every name of this file starts with
 # "prov"; a program has no var of such a name.
 use "lib/std/io.aiw"
 use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
 use "lib/std/num.aiw"
 use "lib/std/json.aiw"
 use "src/lib/text.aiw"
@@ -36,9 +44,23 @@ const provlong 6        # a vector that has not the elements of the dimension
 const provvalue 7       # an element that is no number, or none that is finite as a binary32
 const provzero 8        # a vector of zeros
 const provmem 9         # no memory
+# and why there is no answer, each with the result of procwait beside it
+const provstart 10      # the command could not be started
+const provexit 11       # it ended with a status that is not 0
+const provsignal 12     # a signal ended it
+const provtime 13       # it took longer than the configuration allows
+const provtext 14       # a text that is no string of JSON or not well-formed UTF-8
+
+const provmemfd 319
+const provlseek 8
+data provname "aildb-provider\0"
 
 # the doubles of one vector, for the check that build makes
 buf provwide 24
+# a request, the answer to it, and the addresses of the arguments
+buf provreq 24
+buf provresp 24
+buf provav 24
 
 # Add to the bytes buffer provb the request of the operation provop to
 # the provider of the configuration provc, one line of JSON. For
@@ -206,6 +228,210 @@ fn provparse provp provn provdim provk provout
 	ret 0
 end
 
+# a descriptor of a file in memory with the provn bytes at provp, placed
+# at its start, or a negative number
+fn provfile provp provn
+	sys provmemfd provname 1 as provfd
+	ifslt provfd 0
+		ret provfd
+	end
+	if provn
+		call fdwrite provfd provp provn as provok
+		ifz provok
+			sys close provfd
+			ret 0-5
+		end
+		sys provlseek provfd 0 0
+	end
+	ret provfd
+end
+
+# Run the command of the configuration provc with the provn bytes at
+# provp as its stdin, for no longer than the configuration allows: what
+# procwait gives, an exit status, a signal negated or -1000 for a command
+# that was killed when its time was over; or -2000 if it could not be
+# started. What it printed is then the bytes buffer provout and what it
+# said the bytes buffer proverr, both emptied first.
+fn provrun provc provp provn provout proverr
+	call bycut provout 0
+	call bycut proverr 0
+	call confargs provc as provq provk
+	call bycut provav 0
+	call byneed provav provk*8+8 as provok
+	ifz provok
+		ret 0-2000
+	end
+	load provav as prova
+	provi=0
+	while provi<provk
+		store prova+provi*8 provq
+		call strlen provq as provl
+		provq+=provl+1
+		provi+=1
+	end
+	store prova+provk*8 0
+	ifz provk
+		ret 0-2000
+	end
+	call provfile provp provn as provin
+	call provfile 0 0 as provo
+	call provfile 0 0 as prove
+	provst=0-2000
+	ifsge provin|provo|prove 0
+		call procstart prova provin provo prove as provpid
+		ifsge provpid 0
+			load provc+conftime as provms
+			call procwait provpid provms as provst
+		end
+		sys provlseek provo 0 0
+		sys provlseek prove 0 0
+		call filereadfd provo provout
+		call filereadfd prove proverr
+	end
+	ifsge provin 0
+		sys close provin
+	end
+	ifsge provo 0
+		sys close provo
+	end
+	ifsge prove 0
+		sys close prove
+	end
+	ret provst
+end
+
+# One request of the operation provop for the provk texts of the provn
+# bytes at provp, as provrequest takes them: the vectors are added to
+# the bytes buffer provout. The results are 0 and 0; or a reason and what
+# procwait gave for the command, after which provout holds what it held
+# and the bytes buffer proverr what the command said.
+fn provask provc provop provp provn provk provout proverr
+	call bycut provreq 0
+	call provrequest provreq provc provop provp provn as provok
+	ifz provok
+		ret provmem 0
+	end
+	load provreq as provq
+	load provreq+8 as provm
+	call provrun provc provq provm provresp proverr as provst
+	if (provst==0-2000)|(provst==127)
+		ret provstart provst
+	end
+	if provst==0-1000
+		ret provtime provst
+	end
+	ifslt provst 0
+		ret provsignal provst
+	end
+	if provst
+		ret provexit provst
+	end
+	load provresp as provq
+	load provresp+8 as provm
+	load provc+confdim as provdim
+	call provparse provq provm provdim provk provout as provw
+	ret provw 0
+end
+
+# The vectors of the provk texts of documents in the provn bytes at
+# provp, each a string of JSON on a line of its own, as the chunker
+# writes them: asked of the provider of the configuration provc in
+# requests of as many texts as the configuration allows, and added to
+# the bytes buffer provout, provk times the dimension binary32 in the
+# order of the texts. The results are as those of provask; after a
+# reason provout holds what it held.
+fn provdocs provc provp provn provk provout proverr
+	load provout+8 as provbase
+	load provc+confbatch as provmax
+	while provk
+		# the lines of this request
+		provi=0
+		provm=0
+		while (provi<provk)&(provi<provmax)
+			call textline provp+provm provn-provm as provl provok
+			call jsonvalue provp+provm provl as prova provan provkind
+			if (provok==0)|(provkind!=5)
+				store provout+8 provbase
+				ret provtext 0
+			end
+			provm+=provl+1
+			provi+=1
+		end
+		call provask provc provdocuments provp provm provi provout proverr as provw provst
+		if provw
+			store provout+8 provbase
+			ret provw provst
+		end
+		provp+=provm
+		provn-=provm
+		provk-=provi
+	end
+	ret 0 0
+end
+
+# The vector of the query of the provn bytes at provp, asked of the
+# provider of the configuration provc and added to the bytes buffer
+# provout: the results are as those of provask. A query that is not
+# well-formed UTF-8 is the reason provtext, and nothing is asked.
+fn provquerytext provc provp provn provout proverr
+	call textutf8 provp provn as provok
+	ifz provok
+		ret provtext 0
+	end
+	call provask provc provquery provp provn 1 provout proverr as provw provst
+	ret provw provst
+end
+
+# Add to the bytes buffer provb what the reason provw says, with provst,
+# what procwait gave, and the first line of the proverr bytes at provq
+# that the command said, 400 bytes of it at most: 1, or 0 without memory.
+fn provtell provb provw provst provq proverr
+	if provw<provstart
+		tail provwhy provb provw
+	end
+	if provw==provtext
+		tail provwhy provb provw
+	end
+	provok=1
+	if provw==provstart
+		call byadd provb "the provider could not be started" as provok
+	end
+	if provw==provexit
+		call byadd provb "the provider ended with the status "
+		call byaddn provb provst as provok
+	end
+	if provw==provsignal
+		call byadd provb "the provider was ended by the signal "
+		call byaddn provb 0-provst as provok
+	end
+	if provw==provtime
+		call byadd provb "the provider took longer than it may" as provok
+	end
+	provl=0
+	label more
+	if provl<proverr
+		loadb provq+provl as provc
+		if (provc!=10)&(provl<400)
+			provl+=1
+			jmp more
+		end
+	end
+	# not half a character
+	label back
+	if (provl>0)&(provl<proverr)
+		loadb provq+provl as provc
+		if provc&0xc0==0x80
+			provl-=1
+			jmp back
+		end
+	end
+	if provl
+		call byadd provb ": "
+		call byadd provb provq provl as provok
+	end
+	ret provok
+end
+
 # add to the bytes buffer provb what the reason provw says of an answer,
 # in words: 1, or 0 without memory
 fn provwhy provb provw
@@ -235,6 +461,9 @@ fn provwhy provb provw
 	end
 	if provw==provmem
 		tail byadd provb "no memory"
+	end
+	if provw==provtext
+		tail byadd provb "a text that is not well-formed UTF-8"
 	end
 	ret 1
 end

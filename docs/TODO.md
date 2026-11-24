@@ -81,14 +81,6 @@ no daemon or filesystem watcher, and wants to choose an embedding provider
 independently of the LLM that asks the questions. The commands and data
 layouts below are implementation suggestions.
 
-- [ ] Implement a local command adapter first. Start the configured
-  executable directly with arguments and exchange requests and responses
-  over stdin and stdout, for example with a versioned JSON protocol that
-  identifies the operation and the model. Define batch limits, timeouts
-  and how exit status and stderr are reported. Ship or document a working
-  local model runner that needs no listening socket. Wrap the existing
-  Ollama protocol as an optional adapter using the same interface. Test
-  both indexing and querying with a local subprocess and no HTTP service.
 - [ ] Propose `aildb index [DIRECTORY]` as the command to create or refresh
   an index in one invocation, with the current directory as the default.
   Read the working tree, including uncommitted edits, and support ordinary

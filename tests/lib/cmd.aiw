@@ -172,6 +172,13 @@ end
 # print the same; an argument that is empty or has a space is printed
 # between two "'". The first one is a program as cmdargs finds it.
 fn cmdshowv
+	tail cmdshowvin ""
+end
+
+# The same with the file at the path of the cmdm bytes at cmdq as its
+# stdin, as cmdshowin has it.
+fn cmdshowvin cmdq cmdm
+	cmdfile=cmdq
 	call print "$"
 	cmdk=0
 	label each
@@ -198,11 +205,23 @@ fn cmdshowv
 		cmdk+=1
 		jmp each
 	end
+	cmdin=-1
+	if cmdm
+		call print " < "
+		call print cmdfile cmdm
+		call fileopen cmdfile cmdm 0 0 as cmdin
+		ifslt cmdin 0
+			cmdin=-1
+		end
+	end
 	call print "\n"
 	cmds=-2000
 	call cmdprog as cmdav
 	if cmdav
-		call cmdrun cmdav -1 cmdso cmdse as cmds
+		call cmdrun cmdav cmdin cmdso cmdse as cmds
+	end
+	if cmdin!=-1
+		sys close cmdin
 	end
 	tail cmdtold cmds
 end
