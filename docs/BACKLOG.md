@@ -419,3 +419,22 @@ directory, its configuration, its manifest and its kept vectors are in
   nomic-embed-text on 2026-11-24, one with each adapter
   (`docs/index.md`). This run makes the index anew each time; the item
   below makes it incremental.
+- [x] Incremental refresh: `.aildb/manifest` has, for each file, its
+  size, its times, the SHA-256 of its bytes and its chunks, and a file
+  that it has unchanged is neither read nor cut; `.aildb/cache/` has
+  the vectors, each under the SHA-256 of the identity of the provider
+  and the exact text, so a new or edited file is cut again and asks
+  only for the texts that have no vector, a moved file asks for none
+  and gets its new path and lines, a removed file has no record, and
+  another model or setting, being another identity, uses none of the
+  old vectors. A whole snapshot is published by the path of `build`;
+  the manifest is written after it and believed only for the snapshot
+  it names, so a provider that fails and a run that is killed leave
+  the snapshot that was there usable and the next run finds the
+  manifest stale. Two runs of a directory: the second ends with status
+  5. `src/lib/cache.aiw`, `src/lib/manifest.aiw`. Tests
+  `cli_index_refresh` (unchanged input, one edit, a move, the removal
+  of the last document, a change of the provider, a provider that
+  fails) and `kill_index` (runs killed at four points, and two at
+  once), `lib_cache`, `lib_manifest`. `docs/index.md`,
+  `docs/durability.md`.

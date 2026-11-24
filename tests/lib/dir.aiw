@@ -153,3 +153,25 @@ fn dirasked
 	call print dirq dirm
 	call fileunlink "provider.log"
 end
+
+# Start aildb, or aildb-stops after dirhooks 1, with the line dirp dirn
+# after it and do not wait for it: the number of the child, for
+# procwait, or a negative number. What it writes goes to the files
+# bg.out and bg.err.
+fn dirspawn dirp dirn
+	call dirargs dirp dirn "" as dirav
+	ifz dirav
+		ret -2000
+	end
+	call fileopen "bg.out" 0x241 420 as diro
+	call fileopen "bg.err" 0x241 420 as dire
+	call fileopen "/dev/null" 0 0 as diri
+	ifslt diro|dire|diri 0
+		ret -2000
+	end
+	call procstart dirav diri diro dire as dirpid
+	sys close diro
+	sys close dire
+	sys close diri
+	ret dirpid
+end

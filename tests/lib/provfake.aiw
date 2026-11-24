@@ -21,7 +21,9 @@
 # other, "dim" leaves the last element of each vector out, "nan" makes
 # the first element 1e999, "zero" makes every element 0, "garbage"
 # prints a line that is no JSON, "exit3" prints nothing, says two lines
-# and ends with the status 3, and "hang" never ends.
+# and ends with the status 3, "hang" never ends, and "after1" answers
+# well if provider.log is not there and does what "exit3" does if it is:
+# a provider that fails from its second request on.
 use "lib/std/io.aiw"
 use "lib/std/bytes.aiw"
 use "lib/std/file.aiw"
@@ -66,6 +68,14 @@ if r
 	jmp sleep
 end
 call is "exit3" as r
+call is "after1" as late
+if late
+	call fileopen "provider.log" 0 0 as fd
+	ifsge fd 0
+		sys close fd
+		r=1
+	end
+end
 if r
 	call eprint "provider-fake: the model is not there\nand a second line\n"
 	sys exit_group 3

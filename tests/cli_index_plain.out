@@ -1,6 +1,6 @@
 $ aildb index p -i m1 -d 3 -- FAKE
 --- stdout
-{"records":6,"dimension":3,"model":"m1","source_revision":null,"files":6,"embedded":6}
+{"records":6,"dimension":3,"model":"m1","source_revision":null,"files":6,"embedded":6,"published":true}
 --- stderr
 --- status 0
 --- provider.log
@@ -17,13 +17,15 @@ $ aildb search p/.aildb/index -k 100 -q dir.q
 --- stderr
 --- status 0
 .gitignore
+cache
 config
 index
 index.lock
+manifest
 # an edit, a new file and a removal
 $ cd p; aildb index
 --- stdout
-{"records":6,"dimension":3,"model":"m1","source_revision":null,"files":6,"embedded":6}
+{"records":6,"dimension":3,"model":"m1","source_revision":null,"files":6,"embedded":2,"published":true}
 --- stderr
 --- status 0
 $ aildb search p/.aildb/index -k 100 -q dir.q
@@ -40,7 +42,7 @@ $ aildb search p/.aildb/index -k 100 -q dir.q
 # a directory with no file
 $ aildb index e -i m1 -d 3 -- FAKE
 --- stdout
-{"records":0,"dimension":3,"model":"m1","source_revision":null,"files":0,"embedded":0}
+{"records":0,"dimension":3,"model":"m1","source_revision":null,"files":0,"embedded":0,"published":true}
 --- stderr
 --- status 0
 --- provider.log

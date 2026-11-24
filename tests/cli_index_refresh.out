@@ -1,0 +1,198 @@
+# three files, five chunks
+$ aildb index p -i m1 -d 3 -b 2 -- FAKE
+--- stdout
+{"records":5,"dimension":3,"model":"m1","source_revision":null,"files":4,"embedded":5,"published":true}
+--- stderr
+--- status 0
+--- provider.log
+documents 2 m1
+documents 2 m1
+documents 1 m1
+p/.aildb:
+cache
+config
+index
+index.lock
+manifest
+
+p/.aildb/cache:
+1c3b0dd7b08a1a4a4daf381efe593a038d007d404de537550c6e023bdf4656ac
+1925046263 4156
+# nothing changed: nothing asked, nothing written
+$ aildb index p
+--- stdout
+{"records":5,"dimension":3,"model":"m1","source_revision":null,"files":4,"embedded":0,"published":false}
+--- stderr
+--- status 0
+--- provider.log
+1925046263 4156
+# a file touched: read again, the manifest alone written
+$ aildb index p
+--- stdout
+{"records":5,"dimension":3,"model":"m1","source_revision":null,"files":4,"embedded":0,"published":false}
+--- stderr
+--- status 0
+--- provider.log
+p/.aildb
+p/.aildb/manifest
+1925046263 4156
+# one section of a file edited: one text asked for
+$ aildb index p
+--- stdout
+{"records":5,"dimension":3,"model":"m1","source_revision":null,"files":4,"embedded":1,"published":true}
+--- stderr
+--- status 0
+--- provider.log
+documents 1 m1
+$ aildb search p/.aildb/index -k 100 -q dir.q
+--- stdout
+{"source_revision":null,"model":"m1"}
+{"rank":1,"score":0.587281,"score_bits":"3fe2cb009a22e192","path":"sub/b.py","start_line":1,"end_line":1}
+{"rank":2,"score":0.584282,"score_bits":"3fe2b26fd56be65b","path":"a.md","start_line":1,"end_line":2}
+{"rank":3,"score":0.584005,"score_bits":"3fe2b02ad7be0a6a","path":"d.md","start_line":1,"end_line":2}
+{"rank":4,"score":0.583924,"score_bits":"3fe2af810c4db454","path":"a.md","start_line":4,"end_line":5}
+{"rank":5,"score":0.583007,"score_bits":"3fe2a7ff32a0c6c1","path":"c.txt","start_line":1,"end_line":1}
+--- stderr
+--- status 0
+# a file moved and a file copied: nothing asked, new paths
+$ aildb index p
+--- stdout
+{"records":6,"dimension":3,"model":"m1","source_revision":null,"files":5,"embedded":0,"published":true}
+--- stderr
+--- status 0
+--- provider.log
+$ aildb search p/.aildb/index -k 100 -q dir.q
+--- stdout
+{"source_revision":null,"model":"m1"}
+{"rank":1,"score":0.587281,"score_bits":"3fe2cb009a22e192","path":"copy.py","start_line":1,"end_line":1}
+{"rank":2,"score":0.587281,"score_bits":"3fe2cb009a22e192","path":"sub/b.py","start_line":1,"end_line":1}
+{"rank":3,"score":0.584282,"score_bits":"3fe2b26fd56be65b","path":"docs/z.md","start_line":1,"end_line":2}
+{"rank":4,"score":0.584005,"score_bits":"3fe2b02ad7be0a6a","path":"d.md","start_line":1,"end_line":2}
+{"rank":5,"score":0.583924,"score_bits":"3fe2af810c4db454","path":"docs/z.md","start_line":4,"end_line":5}
+{"rank":6,"score":0.583007,"score_bits":"3fe2a7ff32a0c6c1","path":"c.txt","start_line":1,"end_line":1}
+--- stderr
+--- status 0
+# the same text in a new file with another language, and twice in one run
+$ aildb index p
+--- stdout
+{"records":9,"dimension":3,"model":"m1","source_revision":null,"files":8,"embedded":1,"published":true}
+--- stderr
+--- status 0
+--- provider.log
+documents 1 m1
+# the last file removed
+$ aildb index p
+--- stdout
+{"records":0,"dimension":3,"model":"m1","source_revision":null,"files":0,"embedded":0,"published":true}
+--- stderr
+--- status 0
+--- provider.log
+$ aildb check p/.aildb/index
+--- stdout
+{"records":0,"dimension":3,"model":"m1","source_revision":null}
+--- stderr
+--- status 0
+$ aildb index p
+--- stdout
+{"records":9,"dimension":3,"model":"m1","source_revision":null,"files":8,"embedded":6,"published":true}
+--- stderr
+--- status 0
+--- provider.log
+documents 2 m1
+documents 2 m1
+documents 2 m1
+# another time for a request: the same identity, nothing asked
+$ aildb index p -i m1 -d 3 -b 2 -t 5000 -- FAKE
+--- stdout
+{"records":9,"dimension":3,"model":"m1","source_revision":null,"files":8,"embedded":0,"published":false}
+--- stderr
+--- status 0
+--- provider.log
+1c3b0dd7b08a1a4a4daf381efe593a038d007d404de537550c6e023bdf4656ac
+# another setting: another identity, all asked, the old vectors removed
+$ aildb index p -i m1 -d 3 -b 4 -s document_prefix=d: -- FAKE
+--- stdout
+{"records":9,"dimension":3,"model":"m1","source_revision":null,"files":8,"embedded":6,"published":true}
+--- stderr
+--- status 0
+--- provider.log
+documents 4 m1 [d:]
+documents 2 m1 [d:]
+d146b44df7f2c8f76c5c8fc73aa2c38876ca8c7338e583278380dd06a60ea3ae
+# a provider that fails at its second request: the snapshot stays
+3603599521 4204
+$ aildb index p -i m1 -d 3 -b 3 -s document_prefix=e: -- FAKE after1
+--- stdout
+--- stderr
+aildb: p: the provider ended with the status 3: provider-fake: the model is not there
+--- status 7
+3603599521 4204
+2
+--- provider.log
+documents 3 m1 [e:]
+# the run after it asks for the rest
+$ aildb index p -i m1 -d 3 -b 3 -s document_prefix=e: -- FAKE
+--- stdout
+{"records":9,"dimension":3,"model":"m1","source_revision":null,"files":8,"embedded":3,"published":true}
+--- stderr
+--- status 0
+--- provider.log
+documents 3 m1 [e:]
+1
+# the kept vectors lost: all asked, the snapshot the same
+3603599521 4204
+$ aildb index p
+--- stdout
+{"records":9,"dimension":3,"model":"m1","source_revision":null,"files":8,"embedded":6,"published":false}
+--- stderr
+--- status 0
+--- provider.log
+documents 3 m1 [e:]
+documents 3 m1 [e:]
+3603599521 4204
+# the manifest lost, and one that is no manifest: nothing asked
+$ aildb index p
+--- stdout
+{"records":9,"dimension":3,"model":"m1","source_revision":null,"files":8,"embedded":0,"published":true}
+--- stderr
+--- status 0
+$ aildb index p
+--- stdout
+{"records":9,"dimension":3,"model":"m1","source_revision":null,"files":8,"embedded":0,"published":true}
+--- stderr
+--- status 0
+$ aildb index p
+--- stdout
+{"records":9,"dimension":3,"model":"m1","source_revision":null,"files":8,"embedded":0,"published":false}
+--- stderr
+--- status 0
+--- provider.log
+# a snapshot that is not the one of the manifest
+$ aildb index o -i m1 -d 3 -b 3 -s document_prefix=e: -- FAKE
+--- stdout
+{"records":1,"dimension":3,"model":"m1","source_revision":null,"files":1,"embedded":1,"published":true}
+--- stderr
+--- status 0
+--- provider.log
+documents 1 m1 [e:]
+$ aildb check p/.aildb/index
+--- stdout
+{"records":1,"dimension":3,"model":"m1","source_revision":null}
+--- stderr
+--- status 0
+$ aildb index p
+--- stdout
+{"records":9,"dimension":3,"model":"m1","source_revision":null,"files":8,"embedded":0,"published":true}
+--- stderr
+--- status 0
+--- provider.log
+$ aildb check p/.aildb/index
+--- stdout
+{"records":9,"dimension":3,"model":"m1","source_revision":null}
+--- stderr
+--- status 0
+$ aildb index p
+--- stdout
+{"records":9,"dimension":3,"model":"m1","source_revision":null,"files":8,"embedded":0,"published":false}
+--- stderr
+--- status 0

@@ -127,3 +127,20 @@ The tests ran on ext4 on an NVMe drive, on Linux 7.0. That shows the
 sequence of calls and what a killed process leaves; it shows nothing about
 the assumptions of a loss of power, which hold or fail with the filesystem
 and the device of whoever builds.
+
+## The index of a directory
+
+`aildb index` publishes `DIRECTORY/.aildb/index` by the sequence above,
+with `DIRECTORY/.aildb/index.lock` as its lock, so everything said here of
+`build` holds for it: a reader sees the old snapshot or the new one, and a
+run that is interrupted before the rename leaves the old one.
+
+Beside the snapshot it keeps two files that are not flushed and need not
+be: the manifest and the kept vectors ([index.md](index.md)). Each is
+checked against something before it is believed, the manifest against the
+size and the sums of the snapshot that is there and each kept vector
+against its own sum, so what a loss of power makes of them is at worst a
+file that is taken for none, and the next run does the work again. The
+manifest is written after the snapshot is published and flushed, never
+before: there is no moment at which a manifest is of a snapshot that is
+not there yet.

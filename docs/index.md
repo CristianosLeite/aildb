@@ -27,10 +27,13 @@ command makes:
 | `index` | the snapshot ([format.md](format.md)): what `aildb search` and `aildb check` are given, and any program that reads a snapshot |
 | `index.lock` | the lock of a run, empty, never removed |
 | `config` | the configuration of the provider ([provider.md](provider.md#the-configuration-of-an-index)) |
+| `manifest` | of which files the snapshot was made, and the chunks of each ([below](#the-manifest)) |
+| `cache/` | the vectors that are kept, in one file named by the identity of the configuration ([below](#the-vectors-that-are-kept)) |
 | `.gitignore` | one line, `*`, so that git ignores the directory and everything in it: an index does not make a work tree dirty, and is not committed by `git add .` |
 
 The directory moves with the tree it is in and is removed with it. To
-start over, remove it. `.gitignore` is written when it is not there and
+start over, remove it. `manifest` and `cache/` may be removed alone at any
+time: what they save is work, and a run makes them again. `.gitignore` is written when it is not there and
 left alone when it is, so a line taken out of it stays out.
 
 ## Which files are taken
@@ -84,24 +87,139 @@ whatever is on disk, `make index` and `tools/index.sh` stay as they are
 
 ## What a run does
 
+A run makes the snapshot what the files are now, and does as little for it
+as it can: a file that did not change is not read, a text whose vector is
+kept is not sent to the provider, and if nothing of what the snapshot is
+made of changed, no snapshot is written.
+
 1. The directory `.aildb` is made, and the lock of `index.lock` taken; a
-   run that finds it held ends with status 5.
-2. The configuration is written from the options, or read.
-3. The files are listed and each is cut.
-4. The provider is asked for the vectors of the chunks, `batch` texts a
-   request ([provider.md](provider.md#how-a-provider-is-run)).
-5. The snapshot is written to a temporary file beside `index`, flushed,
-   read back, renamed to `index`, and the directory flushed, as `build`
-   does it ([durability.md](durability.md)).
+   run that finds it held ends with status 5. A temporary file that a
+   killed run left is removed.
+2. The configuration is written from the options, or read. Its identity
+   ([provider.md](provider.md#the-identity-of-a-configuration)) names the
+   file of kept vectors, which is read.
+3. The manifest is read. It counts only if it has the identity of the
+   configuration and the size and the two sums of the snapshot that is
+   there; else the run goes on as if there were none.
+4. The files are listed. For each, the filesystem is asked for its size
+   and its two times, without opening it:
+   - **the same as in the manifest**, and changed before the run that
+     wrote the manifest began: the file is not read. Its chunks are those
+     of the manifest.
+   - **anything else**: the file is read and the SHA-256 of its bytes is
+     compared with the manifest. If it is the same, the file was only
+     touched, and its chunks are those of the manifest. If not, or if the
+     manifest has no such path, the file is cut again.
+   A file that was changed while the run of the manifest was going, or
+   after it began, is read once more by the next run: its times may be
+   those of bytes that were not the ones indexed.
+5. Each chunk has a key (below). The provider is asked for the vectors of
+   the keys that are not kept, each text once, `batch` texts a request
+   ([provider.md](provider.md#how-a-provider-is-run)), and what it gives
+   is added to the file of kept vectors before the next request.
+6. If the paths, the lines, the languages and the keys of all chunks, the
+   identity and the revision are those of the manifest, the snapshot is
+   left as it is; the manifest is written again if a file was touched.
+   Else a whole snapshot is written to a temporary file beside `index`,
+   flushed, read back, renamed to `index`, and the directory flushed, as
+   `build` does it ([durability.md](durability.md)); then the manifest is
+   written, to `manifest.new`, which is renamed.
+7. The vectors that no chunk of this run used are taken out of the file
+   of kept vectors, and the files of other identities are removed.
 
-A run that fails before the rename leaves `index` as it was: a provider
-that fails or is not there, a full disk, a kill. The configuration is
-written before the provider is asked, so after options that name a
-provider which then fails, `config` is the new one and `index` the old
-one, of the old model; the next run tries the new provider again.
+The line that is printed says what the run did: `embedded` is the number
+of texts the provider was asked for, and `published` whether a snapshot
+was written.
 
-A directory with no file that can be cut gives a snapshot of no records,
-which is valid.
+- **A file that was moved or copied asks for nothing**: the key of a
+  chunk has neither its path nor its lines, so the records get the new
+  path and the vectors that are kept.
+- **An edit of one file asks for its changed chunks**: the file is cut
+  again, and the chunks whose text is the same have their vectors.
+- **Another model, revision, dimension or setting is another identity**:
+  the manifest does not count and no kept vector is used, so every text
+  is asked for again, and the vectors of the old identity are removed
+  when the run has published. The command of the provider, the time and
+  the number of texts of a request are no part of the identity.
+- **A directory with no file that can be cut** gives a snapshot of no
+  records, which is valid; so does the removal of the last file.
+- **A file that is passed over** has its line on standard error when it
+  is read, not in every run: the manifest remembers that it gave nothing.
+
+## The manifest
+
+`.aildb/manifest` is text. Five lines say of what it is the manifest, and
+then each file has a line, followed by a line for each of its chunks:
+
+```
+aildb-manifest	1
+identity	1c3b0dd7b08a1a4a4daf381efe593a038d007d404de537550c6e023bdf4656ac
+snapshot	4156	1653381763	2804466236
+started	1795536000123456789
+state	6a09e667f3bcc908bb67ae8584caa73b3c6ef372fe94f82ba54ff53a5f1d36f1
+file	a.md	30	1795535999000000000	1795535999000000000	8f434346648f6b96df89dda901c5176b10a6d83961dd3c1ac88b59b2dc327aa4	0	2
+1	2	markdown	e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+4	5	markdown	ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb
+```
+
+| Line | Has |
+|---|---|
+| `identity` | the identity of the configuration whose vectors the snapshot has |
+| `snapshot` | the size of the snapshot in bytes, the CRC-32 of its header and metadata and that of its vectors, as its header has them ([format.md](format.md)) |
+| `started` | when the run that wrote the manifest began, in nanoseconds since 1970 |
+| `state` | the SHA-256 of what the snapshot is made of: for each file its path and the lines of its chunks, then the identity and the revision |
+| `file` | a path, the size of the file, the nanoseconds of its last change of contents and of its last change of anything, the SHA-256 of its bytes or `-` for a file of more bytes than are ever read, 0 or the reason why it gave no chunk, and the number of its chunks |
+| a chunk | its first line, its last line, its language and its key |
+
+The numbers and digits above are an example of the layout, not of a run.
+A path that `build` would not take, with a control byte in it, has no
+line: it is passed over by every run.
+
+The manifest is written after the snapshot it is of, and a run believes it
+only when its line `snapshot` is the snapshot that is there. So whatever
+stopped a run between the two, a kill or a full disk, the next run sees a
+manifest of another snapshot, takes it for none, and looks at every file
+again; it still has the kept vectors, and asks the provider for nothing it
+got before.
+
+## The vectors that are kept
+
+`.aildb/cache/` has one file, named by the 64 digits of the identity of
+the configuration. It begins with `AILDBVEC`, the number 1 and the
+dimension, 16 bytes, and then has a record for each vector: a key of 32
+bytes, the vector as the provider gave it, binary32, not divided by its
+norm, and the CRC-32 of the two.
+
+The **key** of a chunk is the SHA-256 of the identity, the word
+`documents` with a line feed, and the text of the chunk as the chunker
+writes it, a string of JSON. It is the exact input of the embedding: two
+chunks with the same text have one vector wherever they stand, and a
+vector of another identity has another key and another file.
+
+The file may be lost, and is read as far as it is good: a record that is
+cut short or does not have its sum ends it, and what follows is written
+over. A file that is no such file, or of another dimension, is begun
+again. Records are added at the end as the provider answers, so a run that
+is stopped keeps what it got; the file is written anew, without the
+vectors that no chunk used, when a run ends that had such.
+
+## Runs that fail, overlap or are killed
+
+- **A provider that fails** ends the run with status 7. `index` and
+  `manifest` are as they were; the vectors of the requests before the
+  failing one are kept, and the next run asks for the rest.
+- **Two runs of one directory**: the second finds the lock held and ends
+  with status 5 at once, having changed nothing. Runs of two directories
+  do not meet.
+- **A run that is killed** leaves, before the rename, the snapshot and
+  the manifest that were there, and a temporary file that the next run
+  removes; after the rename, the new snapshot and the manifest of the old
+  one, which the next run takes for none. In both the next run publishes
+  a snapshot of the files as they are then and writes its manifest.
+- **A configuration is written before the provider is asked**, so after
+  options that name a provider which then fails, `config` is the new one
+  and `index` the old one, of the old model; the next run tries the new
+  provider again.
 
 ## What was checked
 
@@ -116,6 +234,20 @@ which `check` prints what it printed before. `tests/cli_index_plain.aiw`
 does it in a directory that is in no work tree, with hidden files, links,
 a pipe and a directory named `.git`. `tests/lib_tree.aiw` is the listing
 and the revision alone, with line ends on disk that are not those of git.
+
+`tests/cli_index_refresh.aiw` counts what the provider is asked, from the
+log of `build/provider-fake`: nothing for files that did not change, with
+no file of `.aildb` written; nothing for a file that was touched, moved or
+copied; one text for one edited section; nothing at all once the last file
+is removed; every text for another setting, after which the vectors of the
+old identity are gone; and after a provider that fails at its second
+request, the snapshot that was there and, in the next run, the texts of
+the second request alone. It then removes the kept vectors, the manifest
+and the snapshot in turn. `tests/kill_index.aiw` kills a run of
+`build/aildb-stops` before its snapshot has its name, before it publishes,
+between the snapshot and its manifest and before the directory is flushed,
+and runs a second `index` of the directory while the first is stopped.
+`tests/lib_cache.aiw` and `tests/lib_manifest.aiw` are the two files alone.
 
 On 2026-11-24, on an Intel Core i7-12700H with Linux 7.0.0, with the
 command `ail` of AIL at `d9e069e`, a clone of this repository at `0abc708`

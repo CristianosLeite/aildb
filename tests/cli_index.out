@@ -6,7 +6,7 @@ aildb: r: no index is configured here; the first index of a directory names its 
 --- status 2
 $ aildb index r -i m1 -d 3 -s document_prefix=d: -- FAKE
 --- stdout
-{"records":4,"dimension":3,"model":"m1","source_revision":"c0faccd7364870d24a192b3a835eab0f74a7612c","files":3,"embedded":4}
+{"records":4,"dimension":3,"model":"m1","source_revision":"c0faccd7364870d24a192b3a835eab0f74a7612c","files":3,"embedded":4,"published":true}
 --- stderr
 aildb: passed over, a file that is not text: bin.py
 --- status 0
@@ -14,9 +14,11 @@ aildb: passed over, a file that is not text: bin.py
 documents 4 m1 [d:]
 c0faccd7364870d24a192b3a835eab0f74a7612c
 .gitignore
+cache
 config
 index
 index.lock
+manifest
 aildb	1
 provider	provider-fake
 model	m1
@@ -37,12 +39,11 @@ $ aildb search r/.aildb/index -k 100 -q dir.q
 # a new file, an edited one, an ignored one and a link, none committed
 $ aildb index r
 --- stdout
-{"records":5,"dimension":3,"model":"m1","source_revision":null,"files":4,"embedded":5}
+{"records":5,"dimension":3,"model":"m1","source_revision":null,"files":4,"embedded":2,"published":true}
 --- stderr
-aildb: passed over, a file that is not text: bin.py
 --- status 0
 --- provider.log
-documents 5 m1 [d:]
+documents 2 m1 [d:]
 $ aildb search r/.aildb/index -k 100 -q dir.q
 --- stdout
 {"source_revision":null,"model":"m1"}
@@ -56,12 +57,10 @@ $ aildb search r/.aildb/index -k 100 -q dir.q
 # a file removed
 $ aildb index r
 --- stdout
-{"records":3,"dimension":3,"model":"m1","source_revision":null,"files":3,"embedded":3}
+{"records":3,"dimension":3,"model":"m1","source_revision":null,"files":3,"embedded":0,"published":true}
 --- stderr
-aildb: passed over, a file that is not text: bin.py
 --- status 0
 --- provider.log
-documents 3 m1 [d:]
 $ aildb search r/.aildb/index -k 100 -q dir.q
 --- stdout
 {"source_revision":null,"model":"m1"}
@@ -74,9 +73,8 @@ $ aildb search r/.aildb/index -k 100 -q dir.q
 c609d70081a49b49e0e145beaa78aaae4ede511d
 $ cd r; aildb index
 --- stdout
-{"records":3,"dimension":3,"model":"m1","source_revision":"c609d70081a49b49e0e145beaa78aaae4ede511d","files":3,"embedded":3}
+{"records":3,"dimension":3,"model":"m1","source_revision":"c609d70081a49b49e0e145beaa78aaae4ede511d","files":3,"embedded":0,"published":true}
 --- stderr
-aildb: passed over, a file that is not text: bin.py
 --- status 0
 --- provider.log
 $ aildb check r/.aildb/index
@@ -87,7 +85,7 @@ $ aildb check r/.aildb/index
 # other options take the place of the configuration
 $ aildb index r -d 2 -i m2 -n other -r rev9 -t 5000 -b 1 -- FAKE
 --- stdout
-{"records":3,"dimension":2,"model":"m2","source_revision":"c609d70081a49b49e0e145beaa78aaae4ede511d","files":3,"embedded":3}
+{"records":3,"dimension":2,"model":"m2","source_revision":"c609d70081a49b49e0e145beaa78aaae4ede511d","files":3,"embedded":3,"published":true}
 --- stderr
 aildb: passed over, a file that is not text: bin.py
 --- status 0
@@ -241,6 +239,8 @@ $ aildb check r/.aildb/index
 --- stderr
 --- status 0
 .gitignore
+cache
 config
 index
 index.lock
+manifest

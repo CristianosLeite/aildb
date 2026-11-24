@@ -81,18 +81,6 @@ no daemon or filesystem watcher, and wants to choose an embedding provider
 independently of the LLM that asks the questions. The commands and data
 layouts below are implementation suggestions.
 
-- [ ] Refresh indexes incrementally. Consider a per-file content manifest
-  to skip unchanged files and a disposable vector cache keyed by the exact
-  embedding input and provider identity. Rechunk new or edited files,
-  reuse vectors for identical inputs with updated path and line metadata,
-  remove records for deleted files, and request embeddings only for cache
-  misses. A model or embedding settings change must invalidate incompatible
-  vectors. Build a complete replacement with the existing atomic snapshot
-  publication path. Coordinate concurrent refreshes and publish the manifest
-  only for a matching snapshot, so a failed provider call or interrupted
-  refresh leaves the prior snapshot usable and a retry detects stale state.
-  Test unchanged inputs, single-file edits, moves, deletion of the last
-  document, provider changes, and interrupted or overlapping refreshes.
 - [ ] Propose `aildb search [DIRECTORY] --text QUERY` as the text search
   entry point. Resolve the directory's index and provider settings, create
   or refresh the snapshot if needed, embed the query with the same provider

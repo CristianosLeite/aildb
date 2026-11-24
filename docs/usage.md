@@ -250,16 +250,19 @@ never indexed without options, are wrong usage; so is a value that the
 configuration does not take, with a line that says which.
 
 On success one line of JSON is printed: that of `build`, and after its
-members `files`, the number of files that were cut, and `embedded`, the
-number of texts whose vectors the provider was asked for.
+members `files`, the number of files the records are of, `embedded`, the
+number of texts whose vectors the provider was asked for, and `published`,
+whether a snapshot was written: a run that finds nothing changed writes
+none.
 
 ```
-{"records":4,"dimension":3,"model":"m1","source_revision":"c0faccd7364870d24a192b3a835eab0f74a7612c","files":3,"embedded":4}
+{"records":4,"dimension":3,"model":"m1","source_revision":"c0faccd7364870d24a192b3a835eab0f74a7612c","files":3,"embedded":4,"published":true}
 ```
 
 A file that is passed over has a line on standard error, as `build/chunk`
 has it ([example.md](example.md#chunks)): `aildb: passed over, a file that
-is not text: PATH`. Such a file does not fail the command.
+is not text: PATH`, in the run that reads the file and not in those after
+it. Such a file does not fail the command.
 
 The snapshot is published as `build` publishes one
 ([durability.md](durability.md)), under the lock
