@@ -389,7 +389,12 @@ signal. `tests/adapter_llama.aiw` runs `aildb-llama` with
 `build/llama-fake` in the place of `llama-embedding`, a program that
 prints in the layout the real one printed on 2026-11-24, and
 `tests/adapter_ollama.aiw` runs `aildb-ollama` against the service of
-the example's test.
+the example's test. `tests/cli_index_trust.aiw` is the rule of which
+commands are run, with `tests/lib_trust.aiw` for its key and its file;
+`tests/kill_index.aiw` kills a run whose provider hangs and finds the
+provider gone. `make dist-check` on the archive of `d07892b`
+(2026-11-24, in `debian:stable-slim`, where `HOME` is `/root`) indexed
+and searched a directory by text with the rule in force.
 
 On 2026-11-24, on an Intel Core i7-12700H with Linux 7.0.0, with the
 command `ail` of AIL at `d9e069e`, both adapters were given a request
