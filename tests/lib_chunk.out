@@ -1,0 +1,164 @@
+file a.md: chunks 2, reason 0
+--- metadata
+a.md	1	2	markdown
+a.md	4	5	markdown
+--- text
+"# One\u000afirst"
+"# Two\u000asecond"
+--- notes
+file b.py: chunks 1, reason 0
+--- metadata
+a.md	1	2	markdown
+a.md	4	5	markdown
+b.py	1	1	python
+--- text
+"# One\u000afirst"
+"# Two\u000asecond"
+"x = 1"
+--- notes
+file bin.py: chunks 0, reason 7
+--- metadata
+a.md	1	2	markdown
+a.md	4	5	markdown
+b.py	1	1	python
+--- text
+"# One\u000afirst"
+"# Two\u000asecond"
+"x = 1"
+--- notes
+file bin.dat: chunks 0, reason 8
+--- metadata
+a.md	1	2	markdown
+a.md	4	5	markdown
+b.py	1	1	python
+--- text
+"# One\u000afirst"
+"# Two\u000asecond"
+"x = 1"
+--- notes
+file none.txt: chunks 0, reason 2
+--- metadata
+a.md	1	2	markdown
+a.md	4	5	markdown
+b.py	1	1	python
+--- text
+"# One\u000afirst"
+"# Two\u000asecond"
+"x = 1"
+--- notes
+file ../a.md: chunks 0, reason 1
+--- metadata
+a.md	1	2	markdown
+a.md	4	5	markdown
+b.py	1	1	python
+--- text
+"# One\u000afirst"
+"# Two\u000asecond"
+"x = 1"
+--- notes
+file a	b: chunks 0, reason 1
+--- metadata
+a.md	1	2	markdown
+a.md	4	5	markdown
+b.py	1	1	python
+--- text
+"# One\u000afirst"
+"# Two\u000asecond"
+"x = 1"
+--- notes
+file not.pdf: chunks 0, reason 5
+--- metadata
+a.md	1	2	markdown
+a.md	4	5	markdown
+b.py	1	1	python
+--- text
+"# One\u000afirst"
+"# Two\u000asecond"
+"x = 1"
+--- notes
+file hidden: chunks 0, reason 6
+--- metadata
+a.md	1	2	markdown
+a.md	4	5	markdown
+b.py	1	1	python
+--- text
+"# One\u000afirst"
+"# Two\u000asecond"
+"x = 1"
+--- notes
+file bad.pdf: chunks 0, reason 11
+--- metadata
+a.md	1	2	markdown
+a.md	4	5	markdown
+b.py	1	1	python
+--- text
+"# One\u000afirst"
+"# Two\u000asecond"
+"x = 1"
+--- notes
+file blank.txt: chunks 0, reason 0
+--- metadata
+a.md	1	2	markdown
+a.md	4	5	markdown
+b.py	1	1	python
+--- text
+"# One\u000afirst"
+"# Two\u000asecond"
+"x = 1"
+--- notes
+corpus b.py: chunks 0, reason 8
+--- metadata
+a.md	1	2	markdown
+a.md	4	5	markdown
+b.py	1	1	python
+--- text
+"# One\u000afirst"
+"# Two\u000asecond"
+"x = 1"
+--- notes
+corpus none.md: chunks 0, reason 2
+--- metadata
+a.md	1	2	markdown
+a.md	4	5	markdown
+b.py	1	1	python
+--- text
+"# One\u000afirst"
+"# Two\u000asecond"
+"x = 1"
+--- notes
+corpus a.md: chunks 2, reason 0
+--- metadata
+a.md	1	2	markdown
+a.md	4	5	markdown
+b.py	1	1	python
+a.md	1	2	markdown
+a.md	4	5	markdown
+--- text
+"# One\u000afirst"
+"# Two\u000asecond"
+"x = 1"
+"# One\u000afirst"
+"# Two\u000asecond"
+--- notes
+x.aiw -> ail 1
+dir.py/x -> text 0
+.py -> text 0
+a/.rs -> text 0
+a/b.RS -> text 0
+a/b.tar.yml -> yaml 1
+0 
+1 a path that build does not take or that leaves the directory
+2 a file that cannot be read
+3 a file of more than 1048576 bytes
+4 a file of more than 33554432 bytes
+5 a file that is no PDF file
+6 a PDF file whose name does not end in .pdf
+7 a file that is not text
+8 
+9 an encrypted PDF file
+10 a PDF file that costs more than it may
+11 a PDF file that cannot be read
+12 a PDF file with more text than is kept of one
+13 a PDF file with no text
+14 a file for whose chunks there is no memory
+15 

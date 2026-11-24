@@ -1,0 +1,98 @@
+# chunkfile of src/lib/chunk.aiw cuts a file of a directory and returns
+# the number of its chunks; a file that gives none is a reason and no
+# line printed, and the two buffers hold what they held before it;
+# chunkcorpus takes the files of the corpora alone; chunklang names the
+# language of a path, and chunkwhy has the words of each reason
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "src/lib/text.aiw"
+use "src/lib/chunk.aiw"
+use "tests/lib/cmd.aiw"
+buf meta 24
+buf text 24
+buf notes 24
+buf b 24
+fn show p n q
+	call print p n
+	call print "\n"
+	load q as a
+	load q+8 as m
+	call print a m
+end
+# cut the file at the path p n of the current directory, with the rules
+# of the corpora if old, and print what came back and what the buffers
+# hold
+fn cut old p n
+	call bycut notes 0
+	if old
+		call chunkcorpus "." p n meta text as k why
+		call print "corpus "
+	else
+		call chunkfile "." p n meta text notes as k why
+		call print "file "
+	end
+	call print p n
+	call print ": chunks "
+	call putn k
+	call print ", reason "
+	call putn why
+	call print "\n"
+	call show "--- metadata" meta
+	call show "--- text" text
+	call show "--- notes" notes
+end
+fn lang p n
+	call chunklang p n as q m known
+	call print p n
+	call print " -> "
+	call print q m
+	call print " "
+	call putn known
+	call print "\n"
+end
+call filewrite "a.md" "# One\nfirst\n\n# Two\nsecond\n"
+call filewrite "b.py" "x = 1\n"
+call filewrite "bin.py" "x\0y\n"
+call filewrite "bin.dat" "x\0y\n"
+call filewrite "blank.txt" "\n \n"
+call filewrite "not.pdf" "plain\n"
+call filewrite "hidden" "%PDF-1.4\n"
+call filewrite "bad.pdf" "%PDF-1.4\nno objects\n"
+call cut 0 "a.md"
+call cut 0 "b.py"
+# each of these gives nothing and leaves the three lines above
+call cut 0 "bin.py"
+call cut 0 "bin.dat"
+call cut 0 "none.txt"
+call cut 0 "../a.md"
+call cut 0 "a\tb"
+call cut 0 "not.pdf"
+call cut 0 "hidden"
+call cut 0 "bad.pdf"
+# a file with no ink is cut, into no chunk
+call cut 0 "blank.txt"
+# the corpora: a file that is no .aiw and no .md is not theirs, and one
+# that is, is cut whatever it holds
+call cut 1 "b.py"
+call cut 1 "none.md"
+call cut 1 "a.md"
+call lang "x.aiw"
+call lang "dir.py/x"
+call lang ".py"
+call lang "a/.rs"
+call lang "a/b.RS"
+call lang "a/b.tar.yml"
+i=0
+while i<16
+	call bycut b 0
+	call chunkwhy b i
+	call putn i
+	call print " "
+	load b as p
+	load b+8 as n
+	call print p n
+	call print "\n"
+	i+=1
+end

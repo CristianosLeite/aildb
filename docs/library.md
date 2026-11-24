@@ -93,8 +93,28 @@ the score printed.
 - **The path** of a result is bytes of the mapped file, good while the
   snapshot is open.
 - **Names.** A file of aildb owns the names that start with its own:
-  `search`, `snap`, `topk`, `norm`, `text`, `crc`, `fmt`, `meta`, `pack`.
+  `search`, `snap`, `topk`, `norm`, `text`, `crc`, `fmt`, `meta`, `pack`,
+  `chunk`.
   A program has no `var` and no function of such a name.
+
+## The chunker
+
+`aildb:src/lib/chunk.aiw` cuts a file into the chunks that
+[example.md](example.md#chunks) describes. It needs the module `pdf` of
+the package ail-extensions, so a package that uses it names that package
+as a dependency too, with the version of the `Ailfile` of aildb.
+
+| Function | Does |
+|---|---|
+| `chunkfile rp rn p l m t no` | cuts the file at the path `p l` below the directory `rp rn` if it is text or a PDF file: for each chunk a line of metadata added to the bytes buffer `m` and the chunk as a string of JSON on a line added to `t`; the number of chunks and 0, or 0 and a reason, after which `m` and `t` hold what they held; `no` gets a line for each page of a PDF file that was passed over |
+| `chunkcorpus rp rn p l m t` | the same with the rules of the corpora (`chunk -c`): a path that ends in `.aiw` or `.md`, whatever it holds |
+| `chunklang p n` | the language that a path names, its address and length, and 1; `text` and 0 for an end that is not in the table |
+| `chunkwhy b w` | adds the words of the reason `w` to the bytes buffer `b` |
+
+A reason is a constant of the file, `chunkpath` to `chunkmem`;
+`chunkquiet` is a file that is not text under a name that does not say
+it should be, of which nothing is to be said. The functions print
+nothing and end no program. One file is cut at a time.
 
 Writing a snapshot from a program is not offered as one call: `build`
 is the command, with its lock, its temporary file and its syncs

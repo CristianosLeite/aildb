@@ -1,0 +1,678 @@
+# src/lib/chunk.aiw -- a file of a directory cut into the chunks of an
+# index: for each chunk a line of metadata, as build takes it, and the
+# bytes of the chunk as a string of JSON on a line. docs/example.md says
+# what is text and how a file is cut. It is what the program build/chunk
+# (example/chunk.aiw) and the command index do with each path.
+#
+# chunkfile cuts a file if it is text, or a PDF file, whose text the
+# module pdf of the package ail-extensions reads; chunkcorpus cuts the
+# files of the corpora of the example and of the evaluation as they were
+# cut when their results were written. Both add to bytes buffers of the
+# caller, return a reason for a file that gave nothing, and print
+# nothing; chunkwhy has the words of a reason.
+#
+# One file is cut at a time: the file holds what it reads in buffers of
+# its own. Every name of this file starts with "chunk"; a program has no
+# var of such a name.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "src/lib/text.aiw"
+use "src/lib/fmt.aiw"
+use "ail-extensions:pdf/src/pdf.aiw"
+
+# a chunk has at most this many lines and, if it has more than one line,
+# at most this many bytes; tools/eval.sh reads the numbers here
+const chunkmaxlines 40
+const chunkmaxbytes 1500
+# a file of more bytes than this is passed over; tools/index.sh reads the
+# number here
+const chunkmaxfile 1048576
+# and a PDF file of more bytes than this, which has pictures in it
+# where another file has text
+const chunkmaxpdf 33554432
+# the bytes asked for at a time of a file that is longer than it said
+const chunkreadstep 65536
+# what a PDF file may cost (pdf/README.md of ail-extensions): the work
+# for each of its bytes and besides, and the bytes of memory
+const chunkpdfwork 64
+const chunkpdfmore 1000000
+const chunkpdfheld 268435456
+# and the bytes that the chunks of one PDF file may be in the metadata
+# and the text, which the memory of the reader does not count
+const chunkpdfkept 16777216
+
+# why a file gave no chunk
+const chunkpath 1       # a path that build does not take or that leaves the directory
+const chunkread 2       # the file cannot be read
+const chunkbig 3        # more than chunkmaxfile bytes
+const chunkpdfbig 4     # a file named .pdf of more than chunkmaxpdf bytes
+const chunknopdf 5      # a file named .pdf that does not start as a PDF file
+const chunkunnamed 6    # a PDF file whose name does not end in .pdf
+const chunkbinary 7     # not text, under a name that says it should be
+const chunkquiet 8      # not text, or no file of the corpora: nothing to say
+const chunklocked 9     # an encrypted PDF file
+const chunkspent 10     # a PDF file that costs more work or memory than it may
+const chunkbroken 11    # a PDF file that cannot be read
+const chunkspilt 12     # a PDF file with more bytes of chunks than chunkpdfkept
+const chunkempty 13     # a PDF file of which no page gave a chunk
+const chunkmem 14       # no memory
+
+# the ends of paths and the languages they name, each with a NUL byte
+# after it; an end with no byte is the end of the table
+data chunklangs "aiw\0ail\0" "md\0markdown\0" "txt\0text\0"
+data "c\0c\0" "h\0c\0" "cc\0cpp\0" "cpp\0cpp\0" "hpp\0cpp\0"
+data "py\0python\0" "rs\0rust\0" "go\0go\0" "java\0java\0"
+data "js\0javascript\0" "mjs\0javascript\0" "jsx\0javascript\0"
+data "ts\0typescript\0" "tsx\0typescript\0" "cs\0csharp\0"
+data "kt\0kotlin\0" "swift\0swift\0" "rb\0ruby\0" "php\0php\0"
+data "lua\0lua\0" "sh\0shell\0" "bash\0shell\0" "sql\0sql\0"
+data "json\0json\0" "yaml\0yaml\0" "yml\0yaml\0" "toml\0toml\0"
+data "xml\0xml\0" "html\0html\0" "htm\0html\0" "css\0css\0"
+data "\0"
+
+buf chunksrc 24
+buf chunkfull 24
+buf chunkdoc pdfsize
+buf chunkleaf 24
+# chunkmeta, chunktext and chunknotes are the buffers of the caller;
+# chunkpage is the page that the chunks being cut are of, 0 for the
+# chunks of a file that has lines; chunkbase is the bytes that the
+# metadata and the text had before the PDF file being cut, and chunkover
+# says that its chunks came to more than chunkpdfkept, after which none
+# is added; chunkfail says that memory ran out, and chunkcount is the
+# chunks of the file so far
+var chunkmeta chunktext chunknotes chunkpage chunkbase chunkover chunkfail chunkcount
+
+# 1 if the chunkn bytes at chunkp have a byte that is not a space, a tab
+# or a carriage return
+fn chunkinked chunkp chunkn
+	chunki=0
+	while chunki<chunkn
+		loadb chunkp+chunki as chunkc
+		if (chunkc!=32)&(chunkc!=9)&(chunkc!=13)
+			ret 1
+		end
+		chunki+=1
+	end
+	ret 0
+end
+
+# 1 if the chunkn bytes at chunkp, which start a line of AIL, start a
+# function: the line starts with "fn ", or it is the first of a run of
+# lines that start with "#" and the line after the run starts with "fn ".
+# chunkprev says that the line before starts with "#".
+fn chunkfnstart chunkp chunkn chunkprev
+	if chunkprev
+		ret 0
+	end
+	call textprefix chunkp chunkn "fn " as chunkr
+	if chunkr
+		ret 1
+	end
+	label run
+	ifz chunkn
+		ret 0
+	end
+	loadb chunkp as chunkc
+	if chunkc!=35
+		tail textprefix chunkp chunkn "fn "
+	end
+	call textline chunkp chunkn as chunkl chunkok
+	ifz chunkok
+		ret 0
+	end
+	chunkp+=chunkl+1
+	chunkn-=chunkl+1
+	jmp run
+end
+
+# 1 if the chunkn bytes of a line at chunkp are a heading of Markdown:
+# one to six "#" and a space
+fn chunkheading chunkp chunkn
+	chunki=0
+	while chunki<chunkn
+		loadb chunkp+chunki as chunkc
+		if chunkc!=35
+			if (chunkc==32)&(chunki>0)&(chunki<7)
+				ret 1
+			end
+			ret 0
+		end
+		chunki+=1
+	end
+	ret 0
+end
+
+# add the chunk of the lines chunkfirst to chunklast, the chunkn bytes at
+# chunkp, of the file at the path chunkpp chunkpn, in the language
+# chunklp chunkln
+fn chunkemit chunkpp chunkpn chunkfirst chunklast chunklp chunkln chunkp chunkn
+	if chunkfail
+		ret 0
+	end
+	if chunkpage
+		chunkfirst=chunkpage
+		chunklast=chunkpage
+		if chunkover
+			ret 0
+		end
+	end
+	call byadd chunkmeta chunkpp chunkpn
+	call byaddb chunkmeta 9
+	call byaddn chunkmeta chunkfirst
+	call byaddb chunkmeta 9
+	call byaddn chunkmeta chunklast
+	call byaddb chunkmeta 9
+	call byadd chunkmeta chunklp chunkln
+	call byaddb chunkmeta 10 as chunka
+	call fmtjson chunktext chunkp chunkn as chunkb
+	call byaddb chunktext 10 as chunkc
+	if (chunka==0)|(chunkb==0)|(chunkc==0)
+		chunkfail=1
+		ret 0
+	end
+	if chunkpage
+		# with this chunk: the file may have chunkpdfkept bytes and no more
+		load chunkmeta+8 as chunka
+		load chunktext+8 as chunkb
+		if chunka+chunkb-chunkbase>chunkpdfkept
+			chunkover=1
+			ret 0
+		end
+	end
+	chunkcount+=1
+end
+
+# add the line of chunkl bytes at chunkq, the line of that number of the
+# file at the path chunkpp chunkpn, which is longer than a chunk may be:
+# chunks of chunkmaxbytes at most, each of which ends where a character
+# of UTF-8 ends, and all at that one line
+fn chunkpieces chunkpp chunkpn chunkline chunklp chunkln chunkq chunkl
+	while chunkl
+		chunkm=chunkl
+		if chunkm>chunkmaxbytes
+			chunkm=chunkmaxbytes
+			# a byte 10xxxxxx goes on with the character before it
+			label back
+			loadb chunkq+chunkm as chunkc
+			if chunkc&0xc0==0x80
+				chunkm-=1
+				jmp back
+			end
+		end
+		call chunkinked chunkq chunkm as chunkink
+		if chunkink
+			call chunkemit chunkpp chunkpn chunkline chunkline chunklp chunkln chunkq chunkm
+		end
+		chunkq+=chunkm
+		chunkl-=chunkm
+	end
+end
+
+# cut the chunkn bytes at chunkp, the file at the path chunkpp chunkpn in
+# the language chunklp chunkln; chunkkind is 0 for a source of AIL, 1 for
+# Markdown and 2 for a file that has no units, and chunksplit says that a
+# line longer than a chunk is cut
+fn chunkcut chunkpp chunkpn chunkp chunkn chunkkind chunklp chunkln chunksplit
+	chunkline=1
+	# the chunk that is open: its first line and where that starts, its
+	# last line with ink and where that ends; chunkfirst is 0 if there is
+	# none
+	chunkfirst=0
+	chunkstart=0
+	chunklast=0
+	chunkstop=0
+	chunkprev=0
+	chunkfence=0
+	chunkpos=0
+	while chunkpos<chunkn
+		call textline chunkp+chunkpos chunkn-chunkpos as chunkl chunkok
+		chunkq=chunkp+chunkpos
+		chunknew=0
+		if chunkkind==1
+			call textprefix chunkq chunkl "```" as chunkr
+			if chunkr
+				chunkfence=1-chunkfence
+			else
+				ifz chunkfence
+					call chunkheading chunkq chunkl as chunknew
+				end
+			end
+		end
+		ifz chunkkind
+			call chunkfnstart chunkq chunkn-chunkpos chunkprev as chunknew
+			call textprefix chunkq chunkl "#" as chunkprev
+		end
+		call chunkinked chunkq chunkl as chunkink
+		if chunkink
+			if chunksplit&(chunkl>chunkmaxbytes)
+				if chunkfirst
+					call chunkemit chunkpp chunkpn chunkfirst chunklast chunklp chunkln chunkp+chunkstart chunkstop-chunkstart
+					chunkfirst=0
+				end
+				call chunkpieces chunkpp chunkpn chunkline chunklp chunkln chunkq chunkl
+			else
+				if chunkfirst
+					if chunknew|(chunkline-chunkfirst>=chunkmaxlines)|(chunkpos+chunkl-chunkstart>chunkmaxbytes)
+						call chunkemit chunkpp chunkpn chunkfirst chunklast chunklp chunkln chunkp+chunkstart chunkstop-chunkstart
+						chunkfirst=0
+					end
+				end
+				ifz chunkfirst
+					chunkfirst=chunkline
+					chunkstart=chunkpos
+				end
+				chunklast=chunkline
+				chunkstop=chunkpos+chunkl
+			end
+		end
+		chunkpos+=chunkl+1
+		chunkline+=1
+	end
+	if chunkfirst
+		call chunkemit chunkpp chunkpn chunkfirst chunklast chunklp chunkln chunkp+chunkstart chunkstop-chunkstart
+	end
+end
+
+# 1 if the chunkn bytes at chunkp are the contents of a text file:
+# well-formed UTF-8 with no byte below 0x20 but a tab, a line feed, a
+# form feed and a carriage return, and no byte 0x7F
+fn chunkplain chunkp chunkn
+	chunki=0
+	while chunki<chunkn
+		loadb chunkp+chunki as chunkc
+		if chunkc<32
+			if (chunkc!=9)&(chunkc!=10)&(chunkc!=12)&(chunkc!=13)
+				ret 0
+			end
+		end
+		if chunkc==127
+			ret 0
+		end
+		chunki+=1
+	end
+	tail textutf8 chunkp chunkn
+end
+
+# The language that the path of chunkn bytes at chunkp names, its address
+# and its length, and 1; or "text" and 0 if the path has no end that is
+# in the table. The end is what follows the last dot of the last part of
+# the path, if that dot is not the first byte of the part.
+fn chunklang chunkp chunkn
+	chunki=chunkn
+	label back
+	ifz chunki
+		jmp none
+	end
+	loadb chunkp+chunki-1 as chunkc
+	if chunkc==47
+		jmp none
+	end
+	if chunkc!=46
+		chunki-=1
+		jmp back
+	end
+	if chunki<2
+		jmp none
+	end
+	loadb chunkp+chunki-2 as chunkc
+	if chunkc==47
+		jmp none
+	end
+	chunkq=chunklangs
+	label row
+	call strlen chunkq as chunka
+	ifz chunka
+		jmp none
+	end
+	call strlen chunkq+chunka+1 as chunkb
+	call texteq chunkp+chunki chunkn-chunki chunkq chunka as chunkr
+	if chunkr
+		ret chunkq+chunka+1 chunkb 1
+	end
+	chunkq+=chunka+chunkb+2
+	jmp row
+	label none
+	ret "text" 4 0
+end
+
+# add the bytes of the file at the path chunkp chunkn to the buffer
+# chunkb, which is empty, but no more than chunkmax+1 of them: their
+# number, or the error of the kernel negated. A file that gives
+# chunkmax+1 is longer than chunkmax. The room asked for is what the file
+# says it has and a byte, not chunkmax: a short file is read on a machine
+# that has no memory for the longest. One that gives more than it said is
+# read on in steps.
+fn chunkreadmax chunkp chunkn chunkb chunkmax
+	local chunkst 144
+	call fileopen chunkp chunkn 0 0 as chunkfd
+	ifslt chunkfd 0
+		ret chunkfd
+	end
+	chunkwant=chunkreadstep
+	sys fstat chunkfd chunkst as chunkr
+	ifz chunkr
+		load chunkst+48 as chunkwant
+		chunkwant+=1
+	end
+	if (chunkwant<1)|(chunkwant>chunkmax+1)
+		chunkwant=chunkmax+1
+	end
+	chunksum=0
+	label more
+	if chunksum<=chunkmax
+		store chunkb+8 chunksum
+		call byneed chunkb chunkwant as chunkok
+		ifz chunkok
+			sys close chunkfd
+			ret -12
+		end
+		load chunkb as chunkq
+		sys read chunkfd chunkq+chunksum chunkwant as chunkr
+		jeq chunkr -4 more
+		ifslt chunkr 0
+			sys close chunkfd
+			ret chunkr
+		end
+		if chunkr
+			chunksum+=chunkr
+			chunkwant-=chunkr
+			ifz chunkwant
+				chunkwant=chunkreadstep
+			end
+			if chunkwant>chunkmax+1-chunksum
+				chunkwant=chunkmax+1-chunksum
+			end
+			jmp more
+		end
+	end
+	sys close chunkfd
+	store chunkb+8 chunksum
+	ret chunksum
+end
+
+# make the buffer chunkfull the path chunkp chunkl below the directory
+# chunkrp chunkrn: 1, or 0 without memory
+fn chunkbelow chunkrp chunkrn chunkp chunkl
+	call bycut chunkfull 0
+	call byadd chunkfull chunkrp chunkrn
+	call byaddb chunkfull 47
+	tail byadd chunkfull chunkp chunkl
+end
+
+# 1 if the path of chunkl bytes at chunkp ends in ".pdf", in letters of
+# either case
+fn chunkpdfname chunkp chunkl
+	if chunkl<4
+		ret 0
+	end
+	load4 chunkp+chunkl-4 as chunkx
+	ret chunkx|0x20202000==0x6664702e
+end
+
+# The PDF file of the chunkr bytes at chunkq, at the path chunkp chunkl:
+# the text of each page cut into chunks of that page; 0, or the reason
+# why nothing of it is kept. A page that cannot be read is passed over,
+# with a line in the notes.
+fn chunkpdffile chunkp chunkl chunkq chunkr
+	load chunkmeta+8 as chunka
+	load chunktext+8 as chunkb
+	chunkbase=chunka+chunkb
+	chunkover=0
+	call pdfopen chunkq chunkr chunkdoc chunkr*chunkpdfwork+chunkpdfmore chunkpdfheld as chunkpages
+	ifslt chunkpages 0
+		if chunkpages==pdfdoclocked
+			ret chunklocked
+		end
+		if (chunkpages==pdfdocspent)|(chunkpages==pdfdocmem)
+			ret chunkspent
+		end
+		ret chunkbroken
+	end
+	chunki=1
+	while chunki<=chunkpages
+		call bycut chunkleaf 0
+		call pdfpage chunkdoc chunki chunkleaf as chunkx
+		if (chunkx==pdfdocspent)|(chunkx==pdfdocmem)
+			# the document, not the page: what was cut of it goes
+			call pdfclose chunkdoc
+			chunkpage=0
+			ret chunkspent
+		end
+		ifslt chunkx 0
+			call byadd chunknotes "the page "
+			call byaddn chunknotes chunki
+			if chunkx==pdffilter
+				call byadd chunknotes " with a filter that is not known\n" as chunka
+			else
+				call byadd chunknotes " that cannot be read\n" as chunka
+			end
+			ifz chunka
+				chunkfail=1
+			end
+		else
+			load chunkleaf as chunka
+			chunkpage=chunki
+			call chunkcut chunkp chunkl chunka chunkx 2 "pdf" 1
+			chunkpage=0
+			if chunkover
+				call pdfclose chunkdoc
+				ret chunkspilt
+			end
+		end
+		chunki+=1
+	end
+	call pdfclose chunkdoc
+	ifz chunkcount
+		# pages that are pictures, or none that could be read
+		ret chunkempty
+	end
+	ret 0
+end
+
+# the file at the path chunkp chunkl below chunkrp chunkrn, cut if it is
+# text or a PDF file: 0 or the reason
+fn chunktake chunkrp chunkrn chunkp chunkl
+	call textvalid chunkp chunkl as chunka
+	call textinside chunkp chunkl as chunkb
+	if (chunka==0)|(chunkb==0)
+		ret chunkpath
+	end
+	call chunklang chunkp chunkl as chunklp chunkln chunkknown
+	call chunkbelow chunkrp chunkrn chunkp chunkl as chunka
+	ifz chunka
+		ret chunkmem
+	end
+	call bycut chunksrc 0
+	load chunkfull as chunkq
+	load chunkfull+8 as chunkm
+	call chunkpdfname chunkp chunkl as chunkpdf
+	if chunkpdf
+		call chunkreadmax chunkq chunkm chunksrc chunkmaxpdf as chunkr
+		ifslt chunkr 0
+			ret chunkread
+		end
+		if chunkr>chunkmaxpdf
+			ret chunkpdfbig
+		end
+		load chunksrc as chunkq
+		call textprefix chunkq chunkr "%PDF-" as chunkt
+		ifz chunkt
+			ret chunknopdf
+		end
+		tail chunkpdffile chunkp chunkl chunkq chunkr
+	end
+	call chunkreadmax chunkq chunkm chunksrc chunkmaxfile as chunkr
+	ifslt chunkr 0
+		ret chunkread
+	end
+	if chunkr>chunkmaxfile
+		ret chunkbig
+	end
+	load chunksrc as chunkq
+	call textprefix chunkq chunkr "%PDF-" as chunkt
+	if chunkt
+		ret chunkunnamed
+	end
+	call chunkplain chunkq chunkr as chunkt
+	ifz chunkt
+		if chunkknown
+			ret chunkbinary
+		end
+		ret chunkquiet
+	end
+	chunkkind=2
+	call texteq chunklp chunkln "ail" as chunkt
+	if chunkt
+		chunkkind=0
+	end
+	call texteq chunklp chunkln "markdown" as chunkt
+	if chunkt
+		chunkkind=1
+	end
+	call chunkcut chunkp chunkl chunkq chunkr chunkkind chunklp chunkln 1
+	ret 0
+end
+
+# the same for a file of the corpora: a source of AIL or Markdown by the
+# end of its path, cut whatever it holds
+fn chunkold chunkrp chunkrn chunkp chunkl
+	chunkail=0
+	chunkmd=0
+	if chunkl>4
+		call texteq chunkp+chunkl-4 4 ".aiw" as chunkail
+	end
+	if chunkl>3
+		call texteq chunkp+chunkl-3 3 ".md" as chunkmd
+	end
+	ifz chunkail|chunkmd
+		ret chunkquiet
+	end
+	call textvalid chunkp chunkl as chunka
+	call textinside chunkp chunkl as chunkb
+	if (chunka==0)|(chunkb==0)
+		ret chunkpath
+	end
+	call chunkbelow chunkrp chunkrn chunkp chunkl as chunka
+	ifz chunka
+		ret chunkmem
+	end
+	call bycut chunksrc 0
+	load chunkfull as chunkq
+	load chunkfull+8 as chunkm
+	call fileread chunkq chunkm chunksrc as chunkr
+	ifslt chunkr 0
+		ret chunkread
+	end
+	load chunksrc as chunkq
+	load chunksrc+8 as chunkm
+	if chunkmd
+		call chunkcut chunkp chunkl chunkq chunkm 1 "markdown" 0
+	else
+		call chunkcut chunkp chunkl chunkq chunkm 0 "ail" 0
+	end
+	ret 0
+end
+
+# before a file: the buffers of the caller and no chunk
+fn chunkbegin chunkm chunkt chunkno
+	chunkmeta=chunkm
+	chunktext=chunkt
+	chunknotes=chunkno
+	chunkpage=0
+	chunkover=0
+	chunkfail=0
+	chunkcount=0
+end
+
+# after it: its chunks and 0, or 0 and the reason chunkw, with the
+# metadata and the text cut back to the chunkm0 and chunkt0 bytes that
+# they had before the file
+fn chunkdone chunkw chunkm0 chunkt0
+	if chunkfail
+		chunkw=chunkmem
+	end
+	if chunkw
+		store chunkmeta+8 chunkm0
+		store chunktext+8 chunkt0
+		ret 0 chunkw
+	end
+	ret chunkcount 0
+end
+
+# Cut the file at the path chunkp chunkl, which is relative to the
+# directory chunkrp chunkrn, if it is a text file or a PDF file. For each
+# chunk the bytes buffer chunkm gets a line of metadata (the path, the
+# first line, the last line and the language, with tabs between) and the
+# bytes buffer chunkt a line with the chunk as a string of JSON. The
+# results are the number of chunks and 0, the file being one that was
+# cut, also when it is 0 chunks; or 0 and a reason, a constant above,
+# after which the two buffers hold what they held before. The bytes
+# buffer chunkno gets a line for each page of a PDF file that was passed
+# over, whatever the result: what chunkwhy would give for it.
+fn chunkfile chunkrp chunkrn chunkp chunkl chunkm chunkt chunkno
+	call chunkbegin chunkm chunkt chunkno
+	load chunkm+8 as chunkm0
+	load chunkt+8 as chunkt0
+	call chunktake chunkrp chunkrn chunkp chunkl as chunkw
+	tail chunkdone chunkw chunkm0 chunkt0
+end
+
+# The same for a file of the corpora of the example and the evaluation,
+# as it was cut when their results were written: only a path that ends in
+# ".aiw" or ".md", whatever bytes it holds and however long it and its
+# lines are. Any other path is the reason chunkquiet.
+fn chunkcorpus chunkrp chunkrn chunkp chunkl chunkm chunkt
+	call chunkbegin chunkm chunkt 0
+	load chunkm+8 as chunkm0
+	load chunkt+8 as chunkt0
+	call chunkold chunkrp chunkrn chunkp chunkl as chunkw
+	tail chunkdone chunkw chunkm0 chunkt0
+end
+
+# add to the bytes buffer chunkb what the reason chunkw says of a file,
+# in words that follow "passed over, "; nothing for chunkquiet and for a
+# number that is no reason. 1, or 0 without memory.
+fn chunkwhy chunkb chunkw
+	if chunkw==chunkpath
+		tail byadd chunkb "a path that build does not take or that leaves the directory"
+	end
+	if chunkw==chunkread
+		tail byadd chunkb "a file that cannot be read"
+	end
+	if chunkw==chunkbig
+		tail byadd chunkb "a file of more than 1048576 bytes"
+	end
+	if chunkw==chunkpdfbig
+		tail byadd chunkb "a file of more than 33554432 bytes"
+	end
+	if chunkw==chunknopdf
+		tail byadd chunkb "a file that is no PDF file"
+	end
+	if chunkw==chunkunnamed
+		tail byadd chunkb "a PDF file whose name does not end in .pdf"
+	end
+	if chunkw==chunkbinary
+		tail byadd chunkb "a file that is not text"
+	end
+	if chunkw==chunklocked
+		tail byadd chunkb "an encrypted PDF file"
+	end
+	if chunkw==chunkspent
+		tail byadd chunkb "a PDF file that costs more than it may"
+	end
+	if chunkw==chunkbroken
+		tail byadd chunkb "a PDF file that cannot be read"
+	end
+	if chunkw==chunkspilt
+		tail byadd chunkb "a PDF file with more text than is kept of one"
+	end
+	if chunkw==chunkempty
+		tail byadd chunkb "a PDF file with no text"
+	end
+	if chunkw==chunkmem
+		tail byadd chunkb "a file for whose chunks there is no memory"
+	end
+	ret 1
+end

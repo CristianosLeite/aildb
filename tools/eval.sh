@@ -23,8 +23,8 @@ mkdir -p "$e"
 	printf '\nAIL: %s\n' "$("$ail" version)"
 	$b/embed model
 	printf 'chunks: at most %s lines and %s bytes, no overlap\n' \
-		"$(sed -n 's/^const maxlines //p' example/chunk.aiw)" \
-		"$(sed -n 's/^const maxbytes //p' example/chunk.aiw)"
+		"$(sed -n 's/^const chunkmaxlines //p' src/lib/chunk.aiw)" \
+		"$(sed -n 's/^const chunkmaxbytes //p' src/lib/chunk.aiw)"
 	for c in "$@"; do
 		url=$(awk '!/^#/ && NF {print $1}' "example/eval/$c.pin")
 		pin=$(awk '!/^#/ && NF {print $2}' "example/eval/$c.pin")
