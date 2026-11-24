@@ -472,7 +472,7 @@ directory, its configuration, its manifest and its kept vectors are in
   directory, searches it by text, writes a file and searches again,
   also through `aildb-mcp`, in a container without AIL, git and
   network, with a script as the provider. Both were run on 2026-11-24
-  on the archive of `c32fb1b`, whose executables then indexed and
+  on the archive of `c144bb1`, whose executables then indexed and
   searched the directory `docs` of a clone with `aildb-llama` and
   llama.cpp `b12676` (`docs/install.md`). Not run: the steps with an
   archive of a release, which no release has yet.

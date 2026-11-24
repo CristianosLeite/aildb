@@ -68,7 +68,7 @@ of the provider. This is said once: it is written to
 `~/src/project/.aildb/config`. The command prints a line when it is done:
 
 ```
-{"records":181,"dimension":768,"model":"nomic-embed-text","source_revision":"c32fb1b27590cb20d72302fcc51ab1d9c6f689ec","files":12,"embedded":181,"published":true}
+{"records":181,"dimension":768,"model":"nomic-embed-text","source_revision":"c144bb1fa5aae10891e6389d94b5587c6d5eda17","files":12,"embedded":181,"published":true}
 ```
 
 The first index embeds every chunk, which with a model on the processor is
@@ -82,7 +82,7 @@ aildb search ~/src/project --text "what happens when a build is interrupted" -k 
 ```
 
 ```
-{"source_revision":"c32fb1b27590cb20d72302fcc51ab1d9c6f689ec","model":"nomic-embed-text"}
+{"source_revision":"c144bb1fa5aae10891e6389d94b5587c6d5eda17","model":"nomic-embed-text"}
 {"rank":1,"score":0.736972,"score_bits":"3fe79545cb3807ff","path":"durability.md","start_line":43,"end_line":64}
 {"rank":2,"score":0.701401,"score_bits":"3fe671e146a8d847","path":"durability.md","start_line":1,"end_line":7}
 ```
@@ -147,7 +147,7 @@ and no network, and there indexes a directory of two files, searches it
 by text, writes a third file and searches again, which finds it, makes
 the same search through `aildb-mcp`, and starts the two providers. The
 provider of that check is a script of four lines, since the container has
-no model. On 2026-11-24 the archive of the commit `c32fb1b` printed there
+no model. On 2026-11-24 the archive of the commit `c144bb1` printed there
 what `tools/dist-check.sh` expects.
 
 On the same day, on an Intel Core i7-12700H with Linux 7.0.0, the four
