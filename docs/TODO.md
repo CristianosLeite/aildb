@@ -81,35 +81,6 @@ no daemon or filesystem watcher, and wants to choose an embedding provider
 independently of the LLM that asks the questions. The commands and data
 layouts below are implementation suggestions.
 
-- [ ] Propose `aildb index [DIRECTORY]` as the command to create or refresh
-  an index in one invocation, with the current directory as the default.
-  Read the working tree, including uncommitted edits, and support ordinary
-  directories without Git. Reuse the text and PDF chunker. Define file
-  selection, including Git ignore rules where applicable, exclusions for
-  the index and its cache, and how symlinks are handled. Record a Git
-  revision only when it describes the indexed bytes. Test new and edited
-  files without commits, removals, ignored paths and a directory outside
-  Git. Keep the existing revision-based workflow for reproducible indexes.
-- [ ] Refresh indexes incrementally. Consider a per-file content manifest
-  to skip unchanged files and a disposable vector cache keyed by the exact
-  embedding input and provider identity. Rechunk new or edited files,
-  reuse vectors for identical inputs with updated path and line metadata,
-  remove records for deleted files, and request embeddings only for cache
-  misses. A model or embedding settings change must invalidate incompatible
-  vectors. Build a complete replacement with the existing atomic snapshot
-  publication path. Coordinate concurrent refreshes and publish the manifest
-  only for a matching snapshot, so a failed provider call or interrupted
-  refresh leaves the prior snapshot usable and a retry detects stale state.
-  Test unchanged inputs, single-file edits, moves, deletion of the last
-  document, provider changes, and interrupted or overlapping refreshes.
-- [ ] Propose `aildb search [DIRECTORY] --text QUERY` as the text search
-  entry point. Resolve the directory's index and provider settings, create
-  or refresh the snapshot if needed, embed the query with the same provider
-  configuration, and return the usual ranked paths and lines or PDF pages.
-  An up-to-date index makes only the query embedding call. Preserve the
-  existing vector-input `search`, `build` and `check` commands. Add an
-  end-to-end test for the first search, a repeat search without document
-  embedding calls, and a search immediately after an uncommitted edit.
 - [ ] Make MCP an optional stdio adapter for the same text search command.
   The MCP client starts it and supplies the directory in its configuration.
   Each search request forwards the query, limit and filters to the CLI,

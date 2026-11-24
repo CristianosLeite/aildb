@@ -400,3 +400,54 @@ directory, its configuration, its manifest and its kept vectors are in
   run by hand on 2026-11-24 against llama.cpp `b12676` and Ollama
   0.40.17 (`docs/provider.md`). Indexing and a query through them are
   the tests of the items below.
+- [x] `aildb index [DIRECTORY]`: the index of a directory, the current
+  one if none is named, made in one run from the files as they are on
+  disk, uncommitted edits too, and published as `.aildb/index` by the
+  path of `build`, under its lock. The provider is named by options the
+  first time and read from `.aildb/config` after that. In a work tree
+  git lists the files, so its ignore rules hold; a directory without
+  git gives every file. `.aildb` and `.git` are left out at any depth,
+  a symbolic link is neither followed nor taken, and the chunker is the
+  one of text and PDF files (`src/lib/chunk.aiw`). The revision of git
+  is recorded only for a tree that is clean and has the line ends of
+  git. `src/index.aiw`, `src/lib/tree.aiw`, `src/lib/run.aiw`; status 7
+  for a provider that failed. Tests `cli_index` (new and edited files
+  without commits, a removal, an ignored path, a link), `cli_index_plain`
+  (a directory outside git) and `lib_tree`; `tools/index.sh` and
+  `make index` are unchanged for an index of a revision
+  (`tests/tools_index.out` is the same). Two runs against
+  nomic-embed-text on 2026-11-24, one with each adapter
+  (`docs/index.md`). This run makes the index anew each time; the item
+  below makes it incremental.
+- [x] Incremental refresh: `.aildb/manifest` has, for each file, its
+  size, its times, the SHA-256 of its bytes and its chunks, and a file
+  that it has unchanged is neither read nor cut; `.aildb/cache/` has
+  the vectors, each under the SHA-256 of the identity of the provider
+  and the exact text, so a new or edited file is cut again and asks
+  only for the texts that have no vector, a moved file asks for none
+  and gets its new path and lines, a removed file has no record, and
+  another model or setting, being another identity, uses none of the
+  old vectors. A whole snapshot is published by the path of `build`;
+  the manifest is written after it and believed only for the snapshot
+  it names, so a provider that fails and a run that is killed leave
+  the snapshot that was there usable and the next run finds the
+  manifest stale. Two runs of a directory: the second ends with status
+  5. `src/lib/cache.aiw`, `src/lib/manifest.aiw`. Tests
+  `cli_index_refresh` (unchanged input, one edit, a move, the removal
+  of the last document, a change of the provider, a provider that
+  fails) and `kill_index` (runs killed at four points, and two at
+  once), `lib_cache`, `lib_manifest`. `docs/index.md`,
+  `docs/durability.md`.
+- [x] `aildb search [DIRECTORY] --text QUERY`: the text search of a
+  directory. It reads the configuration of the index, makes or
+  refreshes the snapshot if the files are not what the manifest has,
+  asks the same provider for the vector of the query with the
+  operation `query`, and prints the ranked paths with their lines, or
+  the page of a PDF file, as `search` does. An index that is up to
+  date, which is found from sizes and times alone, costs the one
+  request for the query. `search INDEX`, `build` and `check` are as
+  they were (`tests/cli_search*.out` changed in the line of the usage
+  alone). Test `cli_search_text`: the first search, a second one with
+  no request for documents, and a search right after an edit that is
+  not committed; two runs against nomic-embed-text on 2026-11-24
+  (`docs/index.md`).

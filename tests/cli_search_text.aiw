@@ -1,0 +1,148 @@
+# aildb search with --text searches the index of a directory for a query
+# in words, with build/provider-fake as the provider, whose log shows
+# what it was asked and whose vectors, with "spread", are far apart, so
+# that the text that is the query comes first. The first search of a directory that has a
+# configuration and no snapshot makes the snapshot, and asks for the
+# documents and then for the query; a search after it asks for the
+# query alone; after an edit that is not committed it asks for the
+# changed text and the query, and the edited file is found. The
+# filters and the limit are those of a search of a snapshot, and the
+# directory is this one if none is named. Then what is wrong: a
+# directory with no configuration, wrong usage, a provider that fails
+# for the query, a query that is no text, and an index that another run
+# holds for longer than the search waits.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "tests/lib/cmd.aiw"
+use "tests/lib/dir.aiw"
+buf w 8
+buf args 24
+# Search the directory d dn for the text t tn with the options o on, a
+# line whose arguments end at spaces: the command is put together from
+# its arguments one by one, since a query has spaces.
+fn find d dn t tn o on
+	call cmdbegin
+	call cmdadd "/usr/bin/env"
+	ifz dn
+		# no directory is named: the command is run in p
+		call cmdadd "-C"
+		call cmdadd "p"
+		call print "$ cd p; aildb search"
+	else
+		call print "$ aildb search"
+	end
+	call bycut args 0
+	call byadd args "GIT_CEILING_DIRECTORIES="
+	call strlen cmdtmp as l
+	call byadd args cmdtmp l
+	load args as q
+	load args+8 as m
+	call cmdadd q m
+	call bycut args 0
+	call byadd args cmdhome cmdhomen
+	call byadd args "/build/aildb"
+	load args as q
+	load args+8 as m
+	call cmdadd q m
+	call cmdadd "search"
+	if dn
+		call cmdadd d dn
+		call print " "
+		call print d dn
+	end
+	call cmdadd "--text"
+	call cmdadd t tn
+	call print " --text '"
+	call print t tn
+	call print "'"
+	# the options, an argument up to each space
+	i=0
+	while i<on
+		j=i
+		label word
+		if j<on
+			loadb o+j as c
+			if c!=32
+				j+=1
+				jmp word
+			end
+		end
+		call cmdadd o+i j-i
+		i=j+1
+	end
+	if on
+		call print " "
+		call print o on
+	end
+	call print "\n"
+	call cmdprog as av
+	call cmdrun av -1 cmdso cmdse as st
+	call cmdtold st
+end
+call dirsh "mkdir -p p/sub\nprintf 'alpha beta\\n' > p/a.txt\nprintf 'gamma\\n' > p/sub/b.py\nprintf '# One\\nfirst\\n\\n# Two\\nsecond\\n' > p/c.md\n"
+call print "# no configuration\n"
+call find "p" "alpha beta" "-k 2"
+call print "# a configuration and no snapshot: the first search makes it\n"
+call dirrun "index p -i m1 -d 8 -- FAKE spread exit3"
+call dirsh "sed -i 's/^arg\\texit3$//;/^$/d' p/.aildb/config\nls p/.aildb\n"
+call dirasked
+call find "p" "alpha beta" "-k 2"
+call dirasked
+call print "# again: the query alone\n"
+call find "p" "alpha beta" "-k 2"
+call dirasked
+call print "# an edit that is not committed, and the search at once\n"
+call dirsh "printf 'a text that was not there\\n' > p/sub/b.py\n"
+call find "p" "a text that was not there" "-k 1"
+call dirasked
+call print "# a new file and a removed one\n"
+call dirsh "printf 'delta\\n' > p/d.txt\nrm p/a.txt\n"
+call find "p" "delta" "-k 10"
+call dirasked
+call print "# the filters, and the directory this one\n"
+call find "p" "delta" "-k 10 -p sub/"
+call find "p" "delta" "-l markdown -k 10"
+call find "" "second" "-k 1"
+# the provider wrote its log where it was run
+call dirsh "cat p/provider.log\nrm p/provider.log\n"
+call dirasked
+call print "# wrong usage\n"
+call find "p" "delta" ""
+call find "p" "" "-k 1"
+call find "p" "delta" "-k 0"
+call find "p" "delta" "-k 1 -q q.bin"
+call find "p" "delta" "-k 1 -i m1"
+call find "p" "delta" "-k 1 -k 2"
+call find "p" "delta" "-k 1 --text again"
+call find "p" "delta" "-k 1 -w x"
+call find "p" "delta" "-k"
+call print "# a directory that is none, and one that was never indexed\n"
+call find "none" "delta" "-k 1"
+call dirsh "mkdir e\n"
+call find "e" "delta" "-k 1"
+call print "# a query that is no text\n"
+call find "p" "a\xffb" "-k 1"
+call print "# a provider that fails for the query, and one for the documents\n"
+call dirsh "cp p/.aildb/config config.kept\nprintf 'arg\\tafter1\\n' >> p/.aildb/config\nprintf 'more\\n' > p/e.txt\n"
+call find "p" "delta" "-k 1"
+call dirasked
+call dirsh "printf 'still more\\n' > p/f.txt\nprintf 'x' > provider.log\n"
+call find "p" "delta" "-k 1"
+call dirsh "rm provider.log\ncp config.kept p/.aildb/config\n"
+call print "# an index that another run holds\n"
+call dirsh "printf 'last\\n' > p/g.txt\n"
+call filewrite "aildb.hook" "stop 4"
+call dirhooks 1
+call dirspawn "index p" as pid
+call cmdawait "aildb.stopped" 5000 as r
+call fileunlink "aildb.hook"
+call dirhooks 0
+call find "p" "delta" "-k 1 -w 120"
+sys kill pid 9
+call procwait pid 0 as x
+call fileunlink "aildb.stopped"
+call dirasked
+call find "p" "last" "-k 1"
+call dirasked

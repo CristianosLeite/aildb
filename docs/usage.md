@@ -1,15 +1,20 @@
 # Using aildb
 
-`aildb` is one executable with three commands. `build` makes a snapshot, the
+`aildb` is one executable with four commands. `build` makes a snapshot, the
 one file of an index, from embeddings and source metadata that were computed
 elsewhere; `search` ranks the records of a snapshot against a query vector;
-`check` validates a snapshot. [format.md](format.md) is the format of the
-file.
+`check` validates a snapshot. `index` makes the index of a directory by
+itself: it cuts the files, asks an embedding provider for their vectors and
+publishes the snapshot in the directory `.aildb` of it
+([index.md](index.md)); `search` with `--text` searches such a directory
+for a query in words, and makes its index what the files are now first. [format.md](format.md) is the format of the file.
 
 ```
 aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
 aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
+aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
 aildb check INDEX
+aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] -- COMMAND [ARGUMENT...]]
 ```
 
 An option is a letter and its value, two arguments; the options of a command
@@ -28,6 +33,7 @@ prints the usage above on standard error and ends with status 2.
 | 4 | an I/O failure: a file that cannot be opened, read, written, synced, mapped or renamed, output that cannot be written, and no memory |
 | 5 | another build is in progress for the same destination |
 | 6 | the snapshot was published, but its durability is not confirmed |
+| 7 | the embedding provider of `index` or of `search --text` failed: it could not be started, ended with a status other than 0, was ended by a signal, took too long, or gave an answer that is refused ([provider.md](provider.md)) |
 
 Status 1 is not used. With any status but 0 there is one line on standard
 error, `aildb: ` and what was wrong, with the file and, for metadata, the
@@ -211,3 +217,103 @@ aildb: absent.idx: cannot open: no such file or directory
 A snapshot is a regular file. A directory, a device or a named pipe is a
 file that cannot be opened, status 4, said at once: `check` and `search`
 do not wait for a writer of a named pipe.
+
+## `index`
+
+```
+aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] -- COMMAND [ARGUMENT...]]
+```
+
+Makes the index of `DIRECTORY`, or of the current directory if none is
+named, from the files as they are on disk, and publishes it as
+`DIRECTORY/.aildb/index`. [index.md](index.md) says which files are taken
+and what is in `.aildb`; [provider.md](provider.md) what the provider is. A
+directory whose name starts with `-` is named with `./` before it.
+
+The first index of a directory names its embedding provider with the
+options, which are written to `DIRECTORY/.aildb/config`; after that the
+command is given no option and reads that file. Options given again take
+the place of the whole configuration, which is how a model is changed.
+
+| Option | Is |
+|---|---|
+| `-i MODEL` | the model, 1 to 255 bytes: the model identifier of the snapshot. Required |
+| `-d DIMENSION` | the elements of a vector, 1 to 65536. Required |
+| `-- COMMAND [ARGUMENT...]` | the command that is the provider, everything after `--`. Required, and the last thing on the line |
+| `-n PROVIDER` | a name for the provider; without it, the last part of the path of `COMMAND` |
+| `-r REVISION` | which weights of the model, up to 255 bytes |
+| `-s NAME=VALUE` | a setting, sent to the provider with every request; any number of times, each name once |
+| `-t MILLISECONDS` | how long one request may take, 1 to 3600000; 120000 without it |
+| `-b TEXTS` | the most texts of one request, 1 to 1024; 32 without it |
+
+Of the letters `-i`, `-d`, `-n`, `-r`, `-t` and `-b` each is given once at
+most. Options without `-i`, `-d` or a command, and a directory that was
+never indexed without options, are wrong usage; so is a value that the
+configuration does not take, with a line that says which.
+
+On success one line of JSON is printed: that of `build`, and after its
+members `files`, the number of files the records are of, `embedded`, the
+number of texts whose vectors the provider was asked for, and `published`,
+whether a snapshot was written: a run that finds nothing changed writes
+none.
+
+```
+{"records":4,"dimension":3,"model":"m1","source_revision":"c0faccd7364870d24a192b3a835eab0f74a7612c","files":3,"embedded":4,"published":true}
+```
+
+A file that is passed over has a line on standard error, as `build/chunk`
+has it ([example.md](example.md#chunks)): `aildb: passed over, a file that
+is not text: PATH`, in the run that reads the file and not in those after
+it. Such a file does not fail the command.
+
+The snapshot is published as `build` publishes one
+([durability.md](durability.md)), under the lock
+`DIRECTORY/.aildb/index.lock`: a second `index` of the directory while one
+runs ends with status 5, and a run that fails, at the provider or anywhere
+before the rename, leaves the snapshot that was there. The statuses are
+those above: 2 for wrong usage, 3 for a file `.aildb/config` that is no
+configuration, 4 for a directory or a file that cannot be read or written,
+5, 6, and 7 for a provider that failed.
+
+## `search --text`
+
+```
+aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
+```
+
+Searches the index of `DIRECTORY`, or of the current directory if none is
+named, for the query `QUERY`, a text in words, and prints what `search`
+prints: the line of the snapshot and a line for each result, with the path
+relative to `DIRECTORY` and the lines, or the page of a PDF file. With
+`--text` the first argument is a directory, not a snapshot, and the
+command has no `-q` and no `-i`: the vector of the query comes from the
+embedding provider of the index, the one of `DIRECTORY/.aildb/config`,
+asked with the operation `query` ([provider.md](provider.md)).
+
+The directory was indexed once, by `aildb index` with its options. After
+that a search needs nothing but the directory:
+
+1. If the index is not what the files are now, it is made so first, as
+   `aildb index` without options does it ([index.md](index.md#what-a-run-does)):
+   a new, an edited and a removed file are in the results of the very
+   search that follows them, committed or not.
+2. The provider is asked for the vector of the query, one request.
+3. The records are ranked as `search` ranks them.
+
+An index that is up to date costs the one request for the query and no
+other: whether it is up to date is found without reading a file, from the
+sizes and the times in the manifest ([index.md](index.md#searching-by-text)).
+
+| Option | Is |
+|---|---|
+| `--text QUERY` | the query, well-formed UTF-8, not empty. Required |
+| `-k LIMIT` | the most results, as for `search`. Required |
+| `-p PREFIX`, `-l LANGUAGE` | the filters of `search` |
+| `-w MILLISECONDS` | how long to wait for another run that is refreshing the index, 0 to 3600000; without it, the time the configuration gives a request of the provider |
+
+The statuses: 2 for wrong usage and for a directory that was never
+indexed; 3 for a query that is not well-formed UTF-8 and a configuration
+that is none; 4; 5 if another run still holds the index after the wait; 6;
+and 7 if the provider failed, for the documents or for the query. What a
+refresh says of a file it passes over is on standard error; standard
+output has the results alone.

@@ -1,0 +1,33 @@
+aildb-manifest	1
+identity	00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff
+snapshot	4096	123	456
+started	1000000000000
+state	ffeeddccbbaa99887766554433221100ffeeddccbbaa99887766554433221100
+file	a.md	30	111	222	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa	0	2
+1	2	markdown	bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+4	5	markdown	bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+file	big file.bin	5000000	111	222	-	3	0
+file	sub/b.py	7	111	222	aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa	0	1
+1	1	python	bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+m.txt: result 0, manifest 1
+snapshot 4096 123 456, started 1000000000000, files 3
+identity 00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff
+state ffeeddccbbaa99887766554433221100ffeeddccbbaa99887766554433221100
+a.md: size 30, times 111 222, sha aaaa, reason 0, chunks 2
+1	2	markdown	bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+4	5	markdown	bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+big file.bin: size 5000000, times 111 222, not read, reason 3, chunks 0
+sub/b.py: size 7, times 111 222, sha aaaa, reason 0, chunks 1
+1	1	python	bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+sub: none
+a.m: none
+# no manifests
+none.txt: result 0, manifest 0
+a.md: none
+x.txt: result 0, manifest 0
+x.txt: result 0, manifest 0
+x.txt: result 0, manifest 0
+x.txt: result 0, manifest 0
+x.txt: result 0, manifest 0
+x.txt: result 0, manifest 1
+d/m.txt: result 20, manifest 0

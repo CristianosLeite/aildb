@@ -28,12 +28,16 @@ $ aildb check
 --- stderr
 usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
        aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
+       aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
        aildb check INDEX
+       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] -- COMMAND [ARGUMENT...]]
 --- status 2
 $ aildb check two.idx none.idx
 --- stdout
 --- stderr
 usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
        aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
+       aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
        aildb check INDEX
+       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] -- COMMAND [ARGUMENT...]]
 --- status 2

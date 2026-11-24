@@ -1,0 +1,80 @@
+# a run of aildb index that is stopped and killed, with build/aildb-stops
+# (tests/lib/stops.aiw), leaves an index that the next run completes
+# without asking the provider again for what the killed one got. Killed
+# before its snapshot has its name, as a first index and over an older
+# one, the directory has no snapshot or the older one with its manifest;
+# killed after the snapshot has its name and before the manifest is
+# written, it has the new snapshot and the manifest of the older one,
+# which the next run finds out and replaces. While a run is stopped, a
+# second run of the same directory ends with the status of a build in
+# progress, and a run of another directory goes on.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "tests/lib/cmd.aiw"
+use "tests/lib/dir.aiw"
+buf w 8
+# Start "index p" and stop it at the stop point s; with twice, run a
+# second one and one of the directory o while it is stopped. Then kill
+# it and say what the directory has.
+fn stopped s twice
+	storeb w 48+s
+	call filewrite "aildb.hook" "stop "
+	call fileopen "aildb.hook" 0x401 0 as fd
+	sys write fd w 1
+	sys close fd
+	call dirhooks 1
+	call dirspawn "index p" as pid
+	call cmdawait "aildb.stopped" 5000 as r
+	call fileunlink "aildb.hook"
+	call dirhooks 0
+	call print "stop "
+	call putn s
+	call print ": reached "
+	call putn r
+	call print "\n"
+	if twice
+		call dirrun "index p"
+		call dirrun "index o"
+	end
+	sys kill pid 9
+	call procwait pid 0 as x
+	call fileunlink "aildb.stopped"
+	call print "ended by signal "
+	call putn 0-x
+	call print "\n"
+	call dirasked
+	call dirsh "ls p/.aildb | grep -c 'tmp$' || true\nls p/.aildb | grep -v 'tmp$'\n"
+end
+call dirsh "mkdir p o\nprintf 'one\\n' > p/a.txt\nprintf 'two\\n' > p/b.txt\nprintf 'other\\n' > o/x.txt\n"
+call print "# the configuration, by a run whose provider fails\n"
+call dirrun "index p -i m1 -d 3 -b 1 -- FAKE exit3"
+call dirrun "index o -i m1 -d 3 -- FAKE"
+call dirsh "sed -i 's/^arg\\texit3$//;/^$/d' p/.aildb/config\n"
+call dirasked
+call print "# a first index, killed before its snapshot has its name\n"
+call stopped 2 1
+call dirrun "index p"
+call dirasked
+call dirrun "check p/.aildb/index"
+call print "# an edit, and the run killed before it publishes\n"
+call dirsh "printf 'three\\n' > p/c.txt\n"
+call stopped 4 0
+call dirrun "check p/.aildb/index"
+call dirrun "index p"
+call dirasked
+call print "# another edit, and the run killed between the snapshot and its manifest\n"
+call dirsh "printf 'four\\n' > p/d.txt\n"
+call stopped 5 0
+call dirrun "check p/.aildb/index"
+call dirrun "index p"
+call dirasked
+call dirrun "index p"
+call print "# and killed after the rename, before the directory is flushed\n"
+call dirsh "printf 'five\\n' > p/e.txt\n"
+call stopped 3 0
+call dirrun "check p/.aildb/index"
+call dirrun "index p"
+call dirasked
+call dirsh "ls p/.aildb | grep -c 'tmp$' || true\n"
