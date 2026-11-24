@@ -73,3 +73,69 @@ The server is written (`BACKLOG.md`, [mcp.md](mcp.md)).
 - [ ] If the measurements of aildb-bench justify keeping a mapping open,
   an AIL worker on `src/lib/search.aiw` in place of a command a query,
   with a test of its reload across atomic replacements.
+
+## 17. On-demand indexing and text search
+
+The user wants indexing to run only when the aildb CLI is invoked, with
+no daemon or filesystem watcher, and wants to choose an embedding provider
+independently of the LLM that asks the questions. The commands and data
+layouts below are implementation suggestions.
+
+- [ ] Define an embedding provider interface shared by indexing and text
+  search. Give it separate operations for embedding a batch of document
+  chunks and embedding a query, so a provider can apply the appropriate
+  prefix or model settings to each. Configure the provider, model revision,
+  dimension and settings once per index. Give that configuration a stable
+  identity that distinguishes incompatible embeddings even when their
+  dimensions match. Validate result count, order and dimension at the
+  provider boundary and reuse the engine's vector validation. Test both
+  operations and malformed responses with a deterministic fake provider.
+- [ ] Implement a local command adapter first. Start the configured
+  executable directly with arguments and exchange requests and responses
+  over stdin and stdout, for example with a versioned JSON protocol that
+  identifies the operation and the model. Define batch limits, timeouts
+  and how exit status and stderr are reported. Ship or document a working
+  local model runner that needs no listening socket. Wrap the existing
+  Ollama protocol as an optional adapter using the same interface. Test
+  both indexing and querying with a local subprocess and no HTTP service.
+- [ ] Propose `aildb index [DIRECTORY]` as the command to create or refresh
+  an index in one invocation, with the current directory as the default.
+  Read the working tree, including uncommitted edits, and support ordinary
+  directories without Git. Reuse the text and PDF chunker. Define file
+  selection, including Git ignore rules where applicable, exclusions for
+  the index and its cache, and how symlinks are handled. Record a Git
+  revision only when it describes the indexed bytes. Test new and edited
+  files without commits, removals, ignored paths and a directory outside
+  Git. Keep the existing revision-based workflow for reproducible indexes.
+- [ ] Refresh indexes incrementally. Consider a per-file content manifest
+  to skip unchanged files and a disposable vector cache keyed by the exact
+  embedding input and provider identity. Rechunk new or edited files,
+  reuse vectors for identical inputs with updated path and line metadata,
+  remove records for deleted files, and request embeddings only for cache
+  misses. A model or embedding settings change must invalidate incompatible
+  vectors. Build a complete replacement with the existing atomic snapshot
+  publication path. Coordinate concurrent refreshes and publish the manifest
+  only for a matching snapshot, so a failed provider call or interrupted
+  refresh leaves the prior snapshot usable and a retry detects stale state.
+  Test unchanged inputs, single-file edits, moves, deletion of the last
+  document, provider changes, and interrupted or overlapping refreshes.
+- [ ] Propose `aildb search [DIRECTORY] --text QUERY` as the text search
+  entry point. Resolve the directory's index and provider settings, create
+  or refresh the snapshot if needed, embed the query with the same provider
+  configuration, and return the usual ranked paths and lines or PDF pages.
+  An up-to-date index makes only the query embedding call. Preserve the
+  existing vector-input `search`, `build` and `check` commands. Add an
+  end-to-end test for the first search, a repeat search without document
+  embedding calls, and a search immediately after an uncommitted edit.
+- [ ] Make MCP an optional stdio adapter for the same text search command.
+  The MCP client starts it and supplies the directory in its configuration.
+  Each search request forwards the query, limit and filters to the CLI,
+  which owns index refresh and embedding generation. The calling LLM can
+  be changed without rebuilding the index. Test the first search and a
+  search after an edit through MCP, with the same provider configuration,
+  results and error handling as direct CLI use.
+- [ ] Document and verify a fresh-install workflow with directory indexing,
+  text search and automatic refresh from the CLI using the local adapter.
+  Include the one-time provider setup, where the index and cache live,
+  how to switch models, and optional MCP setup. Make the managed workflow
+  available in the installed CLI and verify it from the packaged artifact.
