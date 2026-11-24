@@ -6,7 +6,7 @@
 use "lib/std/bytes.aiw"
 use "lib/std/file.aiw"
 use "src/lib/text.aiw"
-use "src/lib/sha.aiw"
+use "lib/std/sha.aiw"
 use "src/lib/chunk.aiw"
 use "src/lib/config.aiw"
 use "src/lib/provider.aiw"
