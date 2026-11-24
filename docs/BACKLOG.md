@@ -451,3 +451,13 @@ directory, its configuration, its manifest and its kept vectors are in
   no request for documents, and a search right after an edit that is
   not committed; two runs against nomic-embed-text on 2026-11-24
   (`docs/index.md`).
+- [x] MCP as an optional adapter of the text search: `aildb-mcp -d
+  DIRECTORY`, started by the client with the directory in its
+  configuration, forwards the query, the limit and the filters of each
+  call to `aildb search DIRECTORY --text`, which owns the refresh of
+  the index and the embedding of the query; the server knows no model,
+  so the LLM that calls can change without the index being made again.
+  `-s -i -e` stays for a snapshot. Test `mcp/tests/directory.aiw`: the
+  first search and a search after an edit through the server, with the
+  results and the failure of a provider those of the command; a run by
+  hand against the model on 2026-11-24 (`docs/mcp.md`).

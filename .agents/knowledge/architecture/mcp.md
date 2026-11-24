@@ -1,6 +1,6 @@
 ---
 title: The MCP server
-last-verified: 2026-11-23
+last-verified: 2026-11-24
 sources: [conversation 2026-11-22, conversation 2026-11-23, tools/index.sh, tests/tools_index.aiw, docs/TODO.md, docs/mcp.md, mcp/src/main.aiw, mcp/tests/search.aiw, mcp/tests/lib/fake.aiw, the AIL repository (lib/std/json.aiw, lib/std/num.aiw, lib/net/http.aiw, lib/net/httpd.aiw), ail-extensions (mcp/src/mcp.aiw)]
 status: current
 ---
@@ -126,3 +126,21 @@ pushed or merged.
   shell between double quotes and finds the name of the directory there, for paths with
   spaces (the same review).
 - (Settled on 2026-11-22: AIL has the version 0.1.1 for the libraries, at the user's word, and `Ailfile` and `mcp/Ailfile` ask for it; `make test` runs the test of `mcp/`.)
+- **With `-d DIRECTORY` the server is an adapter of `aildb search DIRECTORY --text`**
+  (the sixth item of step 17, user's text of 2026-11-24; the form by the agent). The
+  client names the directory in its configuration; a call forwards the query, the limit
+  and the two filters to the command, which owns the refresh of the index and the
+  embedding of the query. The server asks no model with `-d`, so the LLM that calls
+  can change and the index stays. The result is put together from the lines of the
+  command as before, and a failure is the last line the command said, since a refresh
+  may say what it passed over before it says why it failed.
+- **`-s -i -e` stays** (agent, 2026-11-24, for the user to decide): it is in the
+  release 0.1.1 and in the configurations that `docs/mcp.md` gave, and it is the way
+  to a snapshot of a revision. With it stays the client of HTTP in the server. Taking
+  it out would make the server the adapter alone.
+- **Nothing is checked at the start with `-d`**: the directory may get its index after
+  the server is started, and what is wrong then is said by the call that meets it, in
+  the words of the command.
+- **600000 ms a call with `-d`** (agent, for the user to review), against 30000 with
+  `-s`: a call may have to embed what changed. A client may give up earlier than that.
+

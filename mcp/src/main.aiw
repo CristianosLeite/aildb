@@ -1,7 +1,21 @@
-# aildb-mcp -- search a snapshot of aildb for a coding agent, over the
+# aildb-mcp -- search an index of aildb for a coding agent, over the
 # Model Context Protocol on stdin and stdout (docs/mcp.md).
 #
+#   aildb-mcp -d DIRECTORY [-a AILDB] [-t MS]
 #   aildb-mcp -s SNAPSHOT -i MODEL -e ENDPOINT [-a AILDB] [-p PREFIX] [-t MS]
+#
+# With -d the server is an adapter of one command: a call of the tool
+# search is "aildb search DIRECTORY --text QUERY -k K", with the two
+# filters if the call has them, and the lines the command prints become
+# the result. The command owns everything else: it makes the index of
+# DIRECTORY what its files are now, and asks the embedding provider of
+# that index for the vector of the query (docs/index.md). The server
+# knows no model and no provider, so the same index serves whatever
+# asks. MS is the milliseconds a call may take, the refresh of the
+# index with it (600000).
+#
+# With -s it searches a snapshot that was built elsewhere, and asks an
+# endpoint for the vector of a query itself:
 #
 # SNAPSHOT is the file that "aildb build" publishes, MODEL the identifier
 # of the embedding model it was built with, and ENDPOINT where that model
@@ -22,7 +36,10 @@
 #
 # The status is 0 when the client closes the input, 2 for wrong usage, 3
 # for a snapshot that "aildb check" refuses or that is of another model,
-# and 4 when the command cannot be run; a line on stderr says why.
+# and 4 when the command cannot be run; a line on stderr says why. With
+# -d nothing is checked when the server starts: a directory that has no
+# index, or a provider that fails, is the failure of a call, in the
+# words of the command.
 use "lib/std/io.aiw"
 use "lib/std/bytes.aiw"
 use "lib/std/file.aiw"
@@ -46,7 +63,7 @@ buf resp 24             # and its response
 buf req 128
 buf num 24
 buf one 8              # one binary32
-var snapp snapn modelp modeln aildbp aildbn prep pren
+var snapp snapn modelp modeln aildbp aildbn prep pren dirp dirn
 var ip port pathp pathn
 
 data inschema "{\"type\":\"object\",\"properties\":{"
@@ -72,7 +89,7 @@ data about "Find the source locations that are nearest in meaning to a query in 
 data aboutend ""
 
 fn usage
-	call eprint "usage: aildb-mcp -s SNAPSHOT -i MODEL -e ENDPOINT [-a AILDB] [-p PREFIX] [-t MS]\n"
+	call eprint "usage: aildb-mcp -d DIRECTORY [-a AILDB] [-t MS]\n       aildb-mcp -s SNAPSHOT -i MODEL -e ENDPOINT [-a AILDB] [-p PREFIX] [-t MS]\n"
 	sys exit_group 2
 end
 fn fail st p n q m
@@ -125,6 +142,40 @@ async fn search x p n r
 	call jsonget p n "language" as lv ln lk
 	if ((pk!=0)&(pk!=5))|((lk!=0)&(lk!=5))
 		call mcpfail r "path_prefix and language are to be strings"
+		ret 0
+	end
+	if dirn
+		# aildb search DIRECTORY --text QUERY -k K [-p PREFIX] [-l LANGUAGE]
+		call bycut num 0
+		call jsonstr num qv qn as ok
+		load num as tp
+		load num+8 as tn
+		ifz tn
+			call mcpfail r "query is to have a text"
+			ret 0
+		end
+		if tn>4000
+			call mcpfail r "query is too long"
+			ret 0
+		end
+		call hasnul tp tn as bad
+		if bad
+			call mcpfail r "query has a NUL byte, which no argument of a command can hold"
+			ret 0
+		end
+		zn=0
+		call arg 0 aildbp aildbn
+		call arg 1 "search"
+		call arg 2 dirp dirn
+		call arg 3 "--text"
+		call arg 4 tp tn
+		call arg 5 "-k"
+		call bycut num 0
+		call byaddn num k
+		load num as tp
+		load num+8 as tn
+		call arg 6 tp tn
+		call finish r 7 pk pv pn lk lv ln 0 0
 		ret 0
 	end
 	# the request to the model: the prefix and the text as one string
@@ -254,7 +305,16 @@ async fn search x p n r
 	call arg 4 tp tn
 	call arg 5 "-i"
 	call arg 6 modelp modeln
-	c=7
+	load vec as bp
+	load vec+8 as bn
+	call finish r 7 pk pv pn lk lv ln bp bn
+	ret 0
+end
+
+# The rest of a call: the filters, if the call has them, added to the
+# arguments of the command from the number c on, the command run with
+# the bn bytes at bp as its stdin, and its lines made the result r.
+fn finish r c pk pv pn lk lv ln bp bn
 	if pk
 		call bycut num 0
 		call jsonstr num pv pn
@@ -290,8 +350,6 @@ async fn search x p n r
 		call arg c "-l"
 		call arg c+1 tp tn
 	end
-	load vec as bp
-	load vec+8 as bn
 	call run bp bn as st
 	if st==0-1000
 		call failed r "the search took longer than it may" ""
@@ -299,6 +357,11 @@ async fn search x p n r
 	end
 	if st
 		call said as tp tn
+		if dirn
+			# the command may have said what it passed over before it
+			# said why it failed
+			call saidlast as tp tn
+		end
 		ifz tn
 			call failed r "the command of aildb could not be run" ""
 			ret 0
@@ -365,7 +428,7 @@ end
 data defaildb "aildb"
 data defpath "/api/embed"
 call argc as c
-ms=30000
+ms=0
 aildbp=defaildb
 aildbn=5
 ep=0
@@ -383,6 +446,11 @@ while i<c
 	if o==115
 		snapp=v
 		snapn=vn
+		known=1
+	end
+	if o==100
+		dirp=v
+		dirn=vn
 		known=1
 	end
 	if o==105
@@ -416,6 +484,19 @@ while i<c
 		call usage
 	end
 	i+=2
+end
+if dirn
+	# the adapter of the command: no snapshot, model, endpoint or prefix
+	if (snapn!=0)|(modeln!=0)|(en!=0)|(pren!=0)|(aildbn==0)|(dirn>2000)|(aildbn>1000)
+		call usage
+	end
+	ifz ms
+		ms=600000
+	end
+	jmp serve
+end
+ifz ms
+	ms=30000
 end
 if (snapn==0)|(modeln==0)|(en==0)|(aildbn==0)|(snapn>4000)|(aildbn>1000)|(modeln>255)
 	call usage
@@ -453,6 +534,7 @@ end
 ifz same
 	call fail 3 "the snapshot is of the model " v vn
 end
+label serve
 store server "aildb-mcp"
 store server+8 9
 store server+16 "0.1.1"

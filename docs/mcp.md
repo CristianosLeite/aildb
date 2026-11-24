@@ -1,15 +1,60 @@
 # aildb for a coding agent: the MCP server
 
-`aildb-mcp` lets a coding agent, such as Claude Code or Codex, search a
-snapshot in words. It is a server of the [Model Context
+`aildb-mcp` lets a coding agent, such as Claude Code or Codex, search an
+index in words. It is a server of the [Model Context
 Protocol](https://modelcontextprotocol.io) (revision 2025-11-25) over
 stdin and stdout, a program apart from `aildb`, in the directory `mcp/`.
-It reads a snapshot and writes nothing: a snapshot is still made and
-published by `aildb build`.
+Nobody needs it to search: it is an adapter for a client that speaks the
+protocol, and what it does is one command of `aildb`.
 
 ```
+aildb-mcp -d DIRECTORY [-a AILDB] [-t MS]
 aildb-mcp -s SNAPSHOT -i MODEL -e ENDPOINT [-a AILDB] [-p PREFIX] [-t MS]
 ```
+
+## A directory: `-d`
+
+The client starts the server and gives it the directory in its
+configuration. A call of the tool `search` is then
+
+```
+aildb search DIRECTORY --text QUERY -k K [-p PATH_PREFIX] [-l LANGUAGE]
+```
+
+([usage.md](usage.md#search---text)), started with no shell, and the
+lines it prints become the result. The command owns the rest: it makes
+the index of the directory what its files are now, an edit that is not
+committed with them, and asks the embedding provider of that index for
+the vector of the query ([index.md](index.md), [provider.md](provider.md)).
+The server knows no model, no provider and no snapshot. So the LLM that
+calls the tool can be another tomorrow and the index is not made again:
+which model made the vectors is said once, in `DIRECTORY/.aildb/config`,
+by the `aildb index` that indexed the directory first.
+
+- `-d DIRECTORY`: the directory, which `aildb index` indexed once with its
+  options. A relative path is taken from where the client starts the
+  server, so a configuration that is to hold anywhere names a whole path.
+- `-a AILDB`: the command of aildb; `aildb`, looked for on `PATH`, if it
+  is not given.
+- `-t MS`: the milliseconds a call may take, the refresh of the index
+  with it; 600000 if it is not given. The first call after many files
+  changed embeds them, which is where the time goes. A call that takes
+  longer is a failure, and the command is killed; the next call goes on
+  from the vectors that were kept.
+
+Nothing is checked when the server starts but its arguments, status 2 if
+they are wrong. A directory that has no index, a provider that fails and
+an index that another run holds are failures of a call, in the words of
+the command: the text of the result is `the search failed: ` and the line
+the command said, the same line that `aildb search` prints on standard
+error for the same call, and `isError` is true. Arguments that are wrong
+are refused by the server before the command is started, as below.
+
+## A snapshot: `-s`
+
+With `-s` the server searches a snapshot that was built elsewhere, by
+`aildb build` or `make index`, and asks an endpoint for the vector of a
+query itself. It reads the snapshot and writes nothing.
 
 - `-s SNAPSHOT`: the file that `aildb build` publishes.
 - `-i MODEL`: the identifier of the embedding model the snapshot was built
@@ -98,6 +143,26 @@ make mcp-test         # its test, with the build/aildb above; make test runs it 
 ```
 
 ## In Claude Code and in Codex
+
+For a directory, the index is made once and the server is named with the
+directory; the paths are whole so that they hold wherever the client
+starts the server:
+
+```
+aildb index /path/of/project -i nomic-embed-text -d 768 -s 'document_prefix=search_document: ' -s 'query_prefix=search_query: ' -- /path/of/aildb-llama -m /path/of/model.gguf
+claude mcp add aildb -- /path/of/aildb-mcp -d /path/of/project -a /path/of/aildb
+```
+
+and for Codex, in `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.aildb]
+command = "/path/of/aildb-mcp"
+args = ["-d", "/path/of/project", "-a", "/path/of/aildb"]
+```
+
+After that the index follows the files by itself: each call looks at them
+first. What follows is the other way, a snapshot of a revision.
 
 The server searches an index, and a clone of this repository has none:
 an index is built from sources and is no file of the repository. So it
@@ -266,3 +331,24 @@ option", gave the pages 8, 19 and 10 of the manual, and `pdftotext -f 8
 -l 8` shows on page 8 the heading "2.5. MEMORY MANAGEMENT"; asked for
 "recovering data from a damaged compressed file" it gave the pages 9,
 29 and 7, and `bzip2recover` is on the pages 5, 7, 9 and 10.
+
+`mcp/tests/directory.aiw` is the server with `-d`, between a client
+written as lines and the command, with `build/provider-fake` as the
+provider of the index: the first call, in a directory that has a
+configuration and no snapshot, asks the provider for the documents and
+the query and gives the result that `aildb search DIRECTORY --text`
+prints for the same query, shown after it; a call after an edit that is
+not committed finds the edit and asks for the changed text and the query;
+the two filters; a provider that fails, for the query and for the
+documents, whose line is the text of the failure, the same line the
+command says with the status 7; arguments that are wrong; a directory
+that was never indexed; and starts that are wrong.
+
+On 2026-11-24, on the machine of [index.md](index.md), the server was
+started by hand with `-d` on the clone of this repository that was
+indexed with nomic-embed-text through `aildb-ollama`, and was sent the
+three lines of a client: the call of `search` for `compute the CRC-32 of
+a run of bytes` with `k` 3 came back with `isError` false, the model, the
+revision `0abc708d71aa47accfd3c48b54c2c9fd8d649e19` and the three hits of
+the command, `src/lib/crc.aiw` 44 to 82 with the score 0.826291 first.
+The server with `-d` was not yet added to Claude Code or to Codex.

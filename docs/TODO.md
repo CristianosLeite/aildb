@@ -81,13 +81,6 @@ no daemon or filesystem watcher, and wants to choose an embedding provider
 independently of the LLM that asks the questions. The commands and data
 layouts below are implementation suggestions.
 
-- [ ] Make MCP an optional stdio adapter for the same text search command.
-  The MCP client starts it and supplies the directory in its configuration.
-  Each search request forwards the query, limit and filters to the CLI,
-  which owns index refresh and embedding generation. The calling LLM can
-  be changed without rebuilding the index. Test the first search and a
-  search after an edit through MCP, with the same provider configuration,
-  results and error handling as direct CLI use.
 - [ ] Document and verify a fresh-install workflow with directory indexing,
   text search and automatic refresh from the CLI using the local adapter.
   Include the one-time provider setup, where the index and cache live,
