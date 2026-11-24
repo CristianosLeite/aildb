@@ -68,11 +68,12 @@ fn fail st
 	sys exit_group st
 end
 
-# start the line of an error about the file at the path p n
+# start the line of an error about the file at the path p n, which
+# ixshow of src/index.aiw writes as the user knows it
 fn about p n
 	call bycut msg 0
 	call byadd msg "aildb: "
-	call byadd msg p n
+	call ixshow p n
 	call byadd msg ": "
 end
 

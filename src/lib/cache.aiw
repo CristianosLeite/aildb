@@ -251,7 +251,8 @@ fn cacheflush cachec
 	end
 	load cachec+88 as cachep
 	load cachec+96 as cachen
-	call fileopen cachep cachen-1 0x41 420 as cachefd
+	# O_WRONLY, O_CREAT and O_NOFOLLOW: a link at the name is not written through
+	call fileopen cachep cachen-1 0x20041 420 as cachefd
 	ifslt cachefd 0
 		ret cachefd
 	end
@@ -270,6 +271,25 @@ fn cacheflush cachec
 	store cachec+120 cacheo+cachen
 	store cachec+112 cachek
 	ret 0
+end
+
+# Make the file at the path cachep cachen hold the cachem bytes at
+# cacheq: what is at the name is removed and the file made new (O_EXCL),
+# so nothing that is there is written to, a link least of all. 0, or the
+# error of the kernel.
+fn cachesave cachep cachen cacheq cachem
+	call fileunlink cachep cachen
+	# O_WRONLY, O_CREAT, O_EXCL and O_NOFOLLOW
+	call fileopen cachep cachen 0x200c1 420 as cachefd
+	ifslt cachefd 0
+		ret cachefd
+	end
+	call cachewrite cachefd cacheq cachem 0 as cacher
+	sys close cachefd as cachee
+	if cacher
+		ret cacher
+	end
+	ret cachee
 end
 
 # End the cache: if it has a record that this run did not use, the file
@@ -300,7 +320,7 @@ fn cacheclose cachec
 			call bycopy cachez+cachen-1 ".new\0"
 			load cachework as cacheq
 			load cachework+8 as cachem
-			call filewrite cachez cachen+3 cacheq cachem as cacher
+			call cachesave cachez cachen+3 cacheq cachem as cacher
 			ifsge cacher 0
 				sys rename cachez cachep as cacher
 			end

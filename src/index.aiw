@@ -49,7 +49,14 @@ buf ixone 8
 buf ixtrust 24          # the path of the file of the commands the user allowed
 buf ixtkey 32           # and the key of the command of this index
 buf ixprog 24           # the program of the command, as a path from the root
+buf ixbase 24           # the path of the open directory .aildb, in /proc
+buf ixseen 24           # the names in .aildb, and in its directory cache
 const ixclock 228
+const ixopenat 257
+const ixmkdirat 258
+const ixfstatat 262
+data ixname ".aildb\0"
+data ixcname "cache\0"
 # the directory that is indexed, and what a run did: the chunks, the
 # texts the provider was asked for, the files that were cut, and 1 if a
 # snapshot was published
@@ -63,6 +70,9 @@ var ixmanok ixoldstart ixstarted ixshap ixopen
 # 1 while the configuration of the options is not yet the one of the
 # index, .aildb/config
 var ixstaged
+# the descriptor of the directory .aildb plus 1, or 0 while it is not
+# open: every file of the index is then reached through it
+var ixroot
 
 fn nomem
 	call bycut msg 0
@@ -72,11 +82,20 @@ end
 
 # the path of the q m in the directory .aildb of the directory that is
 # indexed, or of that directory itself if m is 0, in the buffer b, with
-# a NUL byte after it: its address and its length without that byte
+# a NUL byte after it: its address and its length without that byte.
+# Once .aildb is open (ixstate) the path starts at its descriptor, in
+# /proc, and so leads into the directory that was looked at whatever is
+# at its name by then.
 fn ixin b q m
 	call bycut b 0
-	call byadd b ixdp ixdn
-	call byadd b "/.aildb"
+	if ixroot
+		load ixbase as p
+		load ixbase+8 as n
+		call byadd b p n
+	else
+		call byadd b ixdp ixdn
+		call byadd b "/.aildb"
+	end
 	if m
 		call byaddb b 47
 		call byadd b q m
@@ -88,6 +107,164 @@ fn ixin b q m
 	load b as p
 	load b+8 as n
 	ret p n-1
+end
+
+# add the path p n to msg as it is said to the user: one that starts at
+# the descriptor of .aildb with the name of that directory in its place
+fn ixshow p n
+	if ixroot
+		load ixbase as q
+		load ixbase+8 as m
+		call textprefix p n q m as is
+		if is
+			call byadd msg ixdp ixdn
+			call byadd msg "/.aildb"
+			tail byadd msg p+m n-m
+		end
+	end
+	tail byadd msg p n
+end
+
+# end the program because what is at the name q m in .aildb, or in its
+# directory cache if deep is 1, is no file of an index
+fn ixalien q m deep
+	call bycut msg 0
+	call byadd msg "aildb: "
+	call byadd msg ixdp ixdn
+	call byadd msg "/.aildb"
+	if deep
+		call byadd msg "/cache"
+	end
+	if m
+		call byaddb msg 47
+		call byadd msg q m
+	end
+	call byadd msg ": not a file of an index: a symbolic link, or something else that an index does not make, is at this name, and nothing was written; remove it"
+	call fail stio
+end
+
+# Look at every name in the directory of the descriptor fd, whose path
+# is p n: each is to be a regular file, or, if deep is 0, the directory
+# "cache". Anything else ends the program. 1 if there is a directory
+# cache.
+fn ixnames fd p n deep
+	local st 144
+	call bycut ixseen 0
+	call filenames p n ixseen as k
+	ifslt k 0
+		call about p n
+		call byadd msg "cannot read: "
+		call oserr k
+		call fail stio
+	end
+	cache=0
+	o=0
+	while k>0
+		load ixseen as b
+		call strlen b+o as l
+		# AT_SYMLINK_NOFOLLOW
+		sys ixfstatat fd b+o st 0x100 as r
+		load4 st+24 as mode
+		mode=mode&0xf000
+		call texteq b+o l "cache" as is
+		if (r==0)&(mode==0x4000)&is&(deep==0)
+			cache=1
+		else
+			if (r!=0)|(mode!=0x8000)
+				call ixalien b+o l deep
+			end
+		end
+		o+=l+1
+		k-=1
+	end
+	ret cache
+end
+
+# Open the directory .aildb of the directory that is indexed, which is
+# made first if make says so, and look at what is in it. It is opened
+# from the directory, with no link followed at its name, and kept open:
+# every path of ixin starts at it from here on. What is in it is the
+# files of an index and the directory cache with files in it; a
+# symbolic link among them, which a checkout can bring, would lead what
+# is written to another place, and ends the program before anything is.
+# Without make, a directory that has no .aildb is left as it is.
+fn ixstate make
+	# O_PATH, O_DIRECTORY, and O_CLOEXEC by fileopen
+	call fileopen ixdp ixdn 0x210000 0 as d
+	ifslt d 0
+		if (make==0)&(d==-2)
+			ret 0
+		end
+		call about ixdp ixdn
+		call byadd msg "cannot open: "
+		call oserr d
+		call fail stio
+	end
+	r=0
+	if make
+		sys ixmkdirat d ixname 493 as r
+	end
+	if (r!=0)&(r!=-17)
+		call ixin ixpath "" as p n
+		call about p n
+		call byadd msg "cannot create: "
+		call oserr r
+		call fail stio
+	end
+	# O_PATH, O_NOFOLLOW, O_DIRECTORY and O_CLOEXEC
+	sys ixopenat d ixname 0x2b0000 0 as f
+	sys close d
+	if (make==0)&(f==-2)
+		ret 0
+	end
+	if (f==-40)|(f==-20)
+		call ixalien "" 0
+	end
+	ifslt f 0
+		call ixin ixpath "" as p n
+		call about p n
+		call byadd msg "cannot open: "
+		call oserr f
+		call fail stio
+	end
+	call bycut ixbase 0
+	call byadd ixbase "/proc/self/fd/"
+	call byaddn ixbase f as ok
+	ifz ok
+		call nomem
+	end
+	ixroot=f+1
+	call ixin ixpath "" as p n
+	call ixnames f p n 0 as cache
+	if cache
+		# O_PATH, O_NOFOLLOW, O_DIRECTORY and O_CLOEXEC
+		sys ixopenat f ixcname 0x2b0000 0 as c
+		ifslt c 0
+			call ixalien "cache" 0
+		end
+		call ixin ixpath "cache" as p n
+		call ixnames c p n 1
+		sys close c
+	end
+end
+
+# Make the file at the path p n hold the an bytes at a: what is at the
+# name is removed first and the file is made new (O_EXCL), so nothing
+# that is there is opened and written to, a link least of all. 0, or
+# the error of the kernel.
+fn ixsave p n a an
+	call fileunlink p n
+	# O_WRONLY, O_CREAT, O_EXCL and O_NOFOLLOW
+	call fileopen p n 0x200c1 420 as fd
+	ifslt fd 0
+		ret fd
+	end
+	call writeall fd a an as r
+	sys close fd as e
+	if r
+		ret r
+	end
+	ret e
 end
 
 # end the program for a configuration that the options do not make: the
@@ -426,7 +603,7 @@ fn ixcommit
 	call ixin ixother "config.new" as q m
 	load ixcfg as a
 	load ixcfg+8 as an
-	call filewrite q m a an as r
+	call ixsave q m a an as r
 	ifz r
 		sys rename q p as r
 	end
@@ -439,9 +616,10 @@ fn ixcommit
 	ixstaged=0
 end
 
-# Make the directory .aildb of the directory that is indexed, with a file
-# that tells git to ignore everything in it, make dst and lck the paths
-# of the snapshot and of its lock, and take the lock.
+# Make the directory .aildb of the directory that is indexed and open it
+# (ixstate), with a file that tells git to ignore everything in it, make
+# dst and lck the paths of the snapshot and of its lock, and take the
+# lock.
 fn ixplace
 	local st 32
 	call treestat ixdp ixdn "" st as r
@@ -457,23 +635,17 @@ fn ixplace
 		call oserr r
 		call fail stio
 	end
-	call ixin ixpath "" as p n
-	call filemkdir p n 493 as r
-	if (r!=0)&(r!=-17)
-		call about p n
-		call byadd msg "cannot create: "
-		call oserr r
-		call fail stio
-	end
+	call ixstate 1
 	call ixin dst "index" as p n
 	call ixin lck "index.lock" as p n
-	call lock
+	call ixlockwait 0
 	call ixin ixpath ".gitignore" as p n
-	call fileopen p n 0 0 as fd
+	# O_NOFOLLOW
+	call fileopen p n 0x20000 0 as fd
 	ifsge fd 0
 		sys close fd
 	else
-		call filewrite p n "*\n" as r
+		call ixsave p n "*\n" as r
 		ifslt r 0
 			call about p n
 			call byadd msg "cannot write: "
@@ -922,7 +1094,8 @@ fn ixlockwait ms
 	load lck as p
 	load lck+8 as n
 	n-=1
-	call fileopen p n 0x41 420 as fd
+	# O_WRONLY, O_CREAT and O_NOFOLLOW
+	call fileopen p n 0x20041 420 as fd
 	ifslt fd 0
 		call about p n
 		call byadd msg "cannot create: "
@@ -1135,7 +1308,7 @@ fn ixwrite new
 	call ixin ixother "manifest.new" as q m
 	load ixcfg as a
 	load ixcfg+8 as an
-	call filewrite q m a an as r
+	call ixsave q m a an as r
 	ifz r
 		sys rename q p as r
 	end
@@ -1434,6 +1607,7 @@ fn textsearch
 	if (ok==0)|(k-1>0xfffffffe)
 		call usage
 	end
+	call ixstate 0
 	call ixconfig 0
 	load ixconf+conftime as wait
 	if wp

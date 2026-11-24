@@ -36,6 +36,34 @@ start over, remove it. `manifest` and `cache/` may be removed alone at any
 time: what they save is work, and a run makes them again. `.gitignore` is written when it is not there and
 left alone when it is, so a line taken out of it stays out.
 
+**The directory is the command's own, and nothing in it is a link.** A
+directory that came from somebody else, a checkout, can have a `.aildb`
+in it, and a symbolic link at that name or at the name of a file in it
+would lead what an index writes to another place, with your rights. So
+`.aildb` is opened from the indexed directory with no link followed at
+its name and kept open, and every file of the index is reached through
+that descriptor (a path in `/proc/self/fd`); before anything is written
+or read, each name in it is looked at. What is there is to be regular
+files, and a directory `cache` with regular files in it. Anything else,
+a symbolic link, a directory at the name of a file, a pipe, ends `aildb
+index` and `aildb search --text` with status 4 and a line that names it,
+with nothing written and the provider not asked:
+
+```
+aildb: d/.aildb/config.new: not a file of an index: a symbolic link, or something else that an index does not make, is at this name, and nothing was written; remove it
+```
+
+The files that take the place of another when they are whole
+(`config.new`, `manifest.new`, the new file of kept vectors, the
+temporary file of the snapshot) are made new, with whatever is at their
+name removed first and never opened, and the lock, `.gitignore` and the
+file of kept vectors are opened with no link followed. The look at the
+names and the writing are two moments: what is put into `.aildb` between
+them by a program that runs at that time is not what this is about. The
+indexed directory itself is opened by the name you give it, through
+whatever links that has. A system without `/proc` has no index of a
+directory.
+
 ## Which files are taken
 
 - **In a work tree of git**: the files git knows and the files it does
@@ -293,6 +321,15 @@ a directory of a file git knows that became a link to a directory
 outside, whose file is not taken. `tests/lib_below.aiw` is the opening of
 a path part by part. `tests/lib_tree.aiw` is the listing
 and the revision alone, with line ends on disk that are not those of git.
+
+`tests/cli_index_links.aiw` puts a symbolic link at `.aildb`, at each
+file that is written in it, at `cache` and at a file in it, and a file
+and a directory where the other is expected: each ends with status 4,
+the provider is not asked, and the file and the directory outside that
+the links lead to are as they were (before the fix the configuration
+and the manifest were written into the file outside); a search by text
+of a directory whose `.aildb` is a link to the index of another is
+refused the same way.
 
 `tests/cli_index_refresh.aiw` counts what the provider is asked, from the
 log of `build/provider-fake`: nothing for files that did not change, with

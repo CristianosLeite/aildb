@@ -621,4 +621,16 @@ each chose.
   lies. Test `tests/cli_index_refresh.aiw`: two copies of the provider
   under one last name, without a name the second asks for every text
   and publishes, under one name it asks for nothing.
+- [x] The files of `.aildb` were written by their names, and a
+  checkout can bring a symbolic link at `.aildb` or at a name in it:
+  the first `aildb index`, with a provider the user named, wrote the
+  configuration and the manifest into the file such a link led to.
+  `.aildb` is now opened from the indexed directory with no link
+  followed and kept open, every path of the index starts at that
+  descriptor (`ixstate`, `ixin` of `src/index.aiw`), each name in it and
+  in `cache` is looked at before anything is written, and what is no
+  regular file ends the command with status 4; the files that take the
+  place of another are made new (`O_EXCL`) and the others opened with
+  no link followed. Test `tests/cli_index_links.aiw`: a link at each
+  name, with the file outside as it was and the provider not asked.
 

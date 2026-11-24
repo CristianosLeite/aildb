@@ -1,7 +1,7 @@
 ---
 title: The fixes after the review of 6c707bc
 last-verified: 2026-11-24
-sources: [conversation 2026-11-24, REVIEW.md (never part of the repository), docs/BACKLOG.md (step 17), src/lib/trust.aiw, src/index.aiw, docs/provider.md, tests/lib_trust.aiw, tests/cli_index_trust.aiw, tests/cli_index_refresh.aiw]
+sources: [conversation 2026-11-24, REVIEW.md (never part of the repository), docs/BACKLOG.md (step 17), src/lib/trust.aiw, src/index.aiw, docs/provider.md, tests/lib_trust.aiw, tests/cli_index_trust.aiw, tests/cli_index_refresh.aiw, tests/cli_index_links.aiw, src/lib/cache.aiw, docs/index.md]
 status: current
 ---
 # The fixes after the review of 6c707bc
@@ -61,3 +61,32 @@ findings marked P1 and three marked P2. Each fix is one commit of the branch
   it, for what `-n` already lets the user say. For the user to decide if wanted.
 - **Not covered.** A program replaced under the same path, as a model file replaced
   under the same path was not: the identity is what the configuration says.
+
+## Links in the directory of the index (P1)
+
+- **Finding.** `src/lib/below.aiw` kept the reading of the indexed files from
+  following a link, and the files of `.aildb` were still written by their names.
+  A checkout with a link at `.aildb`, `.aildb/config.new` or `.aildb/manifest.new`
+  had the first `aildb index` of the user write through it. Reproduced before the fix
+  by `tests/cli_index_links.aiw`: the file outside held the configuration.
+- **Decision (agent, 2026-11-24).** Three things together. `.aildb` is opened from
+  the indexed directory with `O_NOFOLLOW` and kept open, and `ixin` makes every path
+  of the index start at `/proc/self/fd/N`, so the lock, the snapshot of `publish`,
+  the manifest and the cache libraries need no change to be below the directory that
+  was looked at. Every name in it, and in `cache`, is looked at once before anything
+  is read or written: a regular file, or the directory `cache`, or the command ends
+  with status 4 naming it. And the files written to take the place of another are
+  made with `O_EXCL` after an unlink, the others opened with `O_NOFOLLOW`.
+- **Why the look at the names and not only the flags.** The reads (`config`,
+  `manifest`, the snapshot, a file of kept vectors) are in four libraries that take a
+  path; one look says of all of them that no link is there, and a user is told the
+  name. The flags on the writes are for what is put there afterwards.
+- **`about` of `src/main.aiw` calls `ixshow`**, which writes a path that starts at the
+  descriptor as `DIRECTORY/.aildb/...`: the lines of the errors did not change.
+- **Rejected.** Every file opened with `openat` from the descriptor: the reader of a
+  snapshot, the manifest, the cache and `publish` all take paths, and `publish` is
+  shared with `aildb build`. A refusal only of `.aildb` being a link: the review's
+  second half, the staging files, is the case that wrote outside.
+- **What it costs.** A system without `/proc` has no index of a directory (the rule
+  of the allowed commands needed it already). Something a user put into `.aildb` that
+  is no regular file ends the command until it is removed.
