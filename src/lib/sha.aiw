@@ -1,0 +1,227 @@
+# src/lib/sha.aiw -- SHA-256 (FIPS 180-4): the 32 bytes that stand for
+# any number of bytes, given at once or in pieces. aildb names with it
+# what must not be taken for something else: the configuration of an
+# embedding provider and the text a vector was made of. It uses
+# lib/std/bytes.aiw for the digits of shahex alone.
+#
+# A sum in progress is shasize bytes that the caller owns: the eight
+# words of the state, 4 bytes each, a block of 64 bytes that is not full
+# yet, the number of its bytes and the number of all bytes so far. Every
+# name of this file starts with "sha"; a program has no var of such a
+# name.
+use "lib/std/bytes.aiw"
+
+const shasize 112
+
+# the 64 constants of a round, 4 bytes each, the low byte first: the
+# first 32 bits of the fractions of the cube roots of the first 64 primes
+data shak 152 47 138 66 145 68 55 113 207 251 192 181 165 219 181 233
+data 91 194 86 57 241 17 241 89 164 130 63 146 213 94 28 171
+data 152 170 7 216 1 91 131 18 190 133 49 36 195 125 12 85
+data 116 93 190 114 254 177 222 128 167 6 220 155 116 241 155 193
+data 193 105 155 228 134 71 190 239 198 157 193 15 204 161 12 36
+data 111 44 233 45 170 132 116 74 220 169 176 92 218 136 249 118
+data 82 81 62 152 109 198 49 168 200 39 3 176 199 127 89 191
+data 243 11 224 198 71 145 167 213 81 99 202 6 103 41 41 20
+data 133 10 183 39 56 33 27 46 252 109 44 77 19 13 56 83
+data 84 115 10 101 187 10 106 118 46 201 194 129 133 44 114 146
+data 161 232 191 162 75 102 26 168 112 139 75 194 163 81 108 199
+data 25 232 146 209 36 6 153 214 133 53 14 244 112 160 106 16
+data 22 193 164 25 8 108 55 30 76 119 72 39 181 188 176 52
+data 179 12 28 57 74 170 216 78 79 202 156 91 243 111 46 104
+data 238 130 143 116 111 99 165 120 20 120 200 132 8 2 199 140
+data 250 255 190 144 235 108 80 164 247 163 249 190 242 120 113 198
+
+# the word of 32 bits shax turned right by shan bits, 1 to 31
+fn sharor shax shan
+	ret (shax>>shan|shax<<(32-shan))&0xffffffff
+end
+
+# take the block of 64 bytes at shap into the state at shas
+fn shablock shas shap
+	local shaw 256
+	shai=0
+	while shai<16
+		shaq=shap+shai*4
+		loadb shaq as shaa
+		loadb shaq+1 as shab
+		loadb shaq+2 as shac
+		loadb shaq+3 as shad
+		store4 shaw+shai*4 shaa<<24|shab<<16|shac<<8|shad
+		shai+=1
+	end
+	while shai<64
+		load4 shaw+shai*4-60 as shax
+		call sharor shax 7 as shaa
+		call sharor shax 18 as shab
+		shat=shaa^shab^(shax>>3)
+		load4 shaw+shai*4-8 as shax
+		call sharor shax 17 as shaa
+		call sharor shax 19 as shab
+		shau=shaa^shab^(shax>>10)
+		load4 shaw+shai*4-64 as shaa
+		load4 shaw+shai*4-28 as shab
+		store4 shaw+shai*4 shaa+shat+shab+shau
+		shai+=1
+	end
+	load4 shas as shaa
+	load4 shas+4 as shab
+	load4 shas+8 as shac
+	load4 shas+12 as shad
+	load4 shas+16 as shae
+	load4 shas+20 as shaf
+	load4 shas+24 as shag
+	load4 shas+28 as shah
+	shai=0
+	while shai<64
+		call sharor shae 6 as shax
+		call sharor shae 11 as shay
+		call sharor shae 25 as shaz
+		load4 shak+shai*4 as shat
+		load4 shaw+shai*4 as shau
+		shat=shah+(shax^shay^shaz)+(shae&shaf^(shae^0xffffffff)&shag)+shat+shau
+		call sharor shaa 2 as shax
+		call sharor shaa 13 as shay
+		call sharor shaa 22 as shaz
+		shau=(shax^shay^shaz)+(shaa&shab^shaa&shac^shab&shac)
+		shah=shag
+		shag=shaf
+		shaf=shae
+		shae=(shad+shat)&0xffffffff
+		shad=shac
+		shac=shab
+		shab=shaa
+		shaa=(shat+shau)&0xffffffff
+		shai+=1
+	end
+	load4 shas as shax
+	store4 shas shax+shaa
+	load4 shas+4 as shax
+	store4 shas+4 shax+shab
+	load4 shas+8 as shax
+	store4 shas+8 shax+shac
+	load4 shas+12 as shax
+	store4 shas+12 shax+shad
+	load4 shas+16 as shax
+	store4 shas+16 shax+shae
+	load4 shas+20 as shax
+	store4 shas+20 shax+shaf
+	load4 shas+24 as shax
+	store4 shas+24 shax+shag
+	load4 shas+28 as shax
+	store4 shas+28 shax+shah
+end
+
+# start a sum in the shasize bytes at shas: of no bytes yet
+fn shainit shas
+	store4 shas 0x6a09e667
+	store4 shas+4 0xbb67ae85
+	store4 shas+8 0x3c6ef372
+	store4 shas+12 0xa54ff53a
+	store4 shas+16 0x510e527f
+	store4 shas+20 0x9b05688c
+	store4 shas+24 0x1f83d9ab
+	store4 shas+28 0x5be0cd19
+	store shas+96 0
+	store shas+104 0
+end
+
+# the shan bytes at shap follow the bytes that the sum at shas has
+fn shaadd shas shap shan
+	load shas+96 as shak0
+	load shas+104 as shat
+	store shas+104 shat+shan
+	if shak0
+		# fill the block that is begun
+		while (shak0<64)&(shan>0)
+			loadb shap as shac
+			storeb shas+32+shak0 shac
+			shak0+=1
+			shap+=1
+			shan-=1
+		end
+		if shak0<64
+			store shas+96 shak0
+			ret 0
+		end
+		call shablock shas shas+32
+		shak0=0
+	end
+	while shan>=64
+		call shablock shas shap
+		shap+=64
+		shan-=64
+	end
+	while shan
+		loadb shap as shac
+		storeb shas+32+shak0 shac
+		shak0+=1
+		shap+=1
+		shan-=1
+	end
+	store shas+96 shak0
+end
+
+# end the sum at shas: its 32 bytes are written at shaout, and the sum is
+# not added to again before another shainit
+fn shaend shas shaout
+	load shas+96 as shak0
+	load shas+104 as shat
+	storeb shas+32+shak0 0x80
+	shak0+=1
+	if shak0>56
+		while shak0<64
+			storeb shas+32+shak0 0
+			shak0+=1
+		end
+		call shablock shas shas+32
+		shak0=0
+	end
+	while shak0<56
+		storeb shas+32+shak0 0
+		shak0+=1
+	end
+	# the number of bits, the high byte first
+	shat<<=3
+	shai=0
+	while shai<8
+		storeb shas+95-shai shat>>(shai*8)&255
+		shai+=1
+	end
+	call shablock shas shas+32
+	shai=0
+	while shai<8
+		load4 shas+shai*4 as shax
+		storeb shaout+shai*4 shax>>24
+		storeb shaout+shai*4+1 shax>>16&255
+		storeb shaout+shai*4+2 shax>>8&255
+		storeb shaout+shai*4+3 shax&255
+		shai+=1
+	end
+end
+
+# the SHA-256 of the shan bytes at shap, 32 bytes written at shaout
+fn sha256 shap shan shaout
+	local shas shasize
+	call shainit shas
+	call shaadd shas shap shan
+	call shaend shas shaout
+end
+
+# add the 32 bytes at shap to the bytes buffer shab as 64 hexadecimal
+# digits, the letters small: 1, or 0 without memory
+fn shahex shab shap
+	shai=0
+	while shai<32
+		loadb shap+shai as shac
+		shax=shac>>4
+		shay=shac&15
+		call byaddb shab shax+48+(shax>9)*39
+		call byaddb shab shay+48+(shay>9)*39 as shar
+		ifz shar
+			ret 0
+		end
+		shai+=1
+	end
+	ret 1
+end

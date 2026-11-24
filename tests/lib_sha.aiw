@@ -1,0 +1,76 @@
+# sha256 of src/lib/sha.aiw gives the values of hashlib.sha256 of Python 3
+# for known bytes, the same for bytes given in pieces of every length,
+# and for every length from 0 to 130, which has each way a last block
+# ends
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "src/lib/sha.aiw"
+buf pat 1000000
+buf out 32
+buf hex 24
+buf s shasize
+fn show
+	call bycut hex 0
+	call shahex hex out
+	load hex as p
+	load hex+8 as n
+	call print p n
+	call print "\n"
+end
+fn one p n
+	call sha256 p n out
+	call show
+end
+call one ""
+call one "abc"
+call one "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"
+call one "The quick brown fox jumps over the lazy dog"
+i=0
+while i<1000000
+	storeb pat+i 97
+	i+=1
+end
+call one pat 1000000
+i=0
+while i<1000000
+	storeb pat+i i*7+3
+	i+=1
+end
+# every length to 130
+n=0
+while n<=130
+	call one pat n
+	n+=1
+end
+# 1000 bytes in pieces of k bytes, for k from 1 to 130: one line if all
+# are the sum of the 1000 bytes at once
+call sha256 pat 1000 out
+call show
+bad=0
+k=1
+while k<=130
+	call shainit s
+	i=0
+	while i<1000
+		m=k
+		if m>1000-i
+			m=1000-i
+		end
+		call shaadd s pat+i m
+		i+=m
+	end
+	call shaend s hex
+	load hex as a
+	i=0
+	while i<32
+		loadb out+i as x
+		loadb hex+i as y
+		if x!=y
+			bad+=1
+		end
+		i+=1
+	end
+	k+=1
+end
+call putn bad
+call print " pieces differ\n"
