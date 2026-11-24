@@ -1,7 +1,6 @@
-cache
+{"records":4,"dimension":8,"model":"m1","source_revision":null,"files":3,"embedded":4,"published":true}
 config
 index.lock
-aildb: p: the provider ended with the status 3: provider-fake: the model is not there
 
 # the first call makes the snapshot
 > {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"test","version":"0"}}}

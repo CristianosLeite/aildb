@@ -3,7 +3,7 @@
 # directory that the test makes, with build/provider-fake of aildb as
 # the embedding provider of its index, whose log shows what it was
 # asked. The first call makes the snapshot, since the directory has a
-# configuration and none: the provider is asked for the documents and
+# configuration and none, the one it had being removed: the provider is asked for the documents and
 # for the query, and the result is what the command prints for the same
 # query, shown after it. A call after an edit that is not committed
 # finds the edit, and asks for the changed text and the query. Then the
@@ -155,7 +155,7 @@ fn asked
 	call fileunlink "provider.log"
 end
 
-call sh "mkdir -p p/sub e\nprintf 'alpha beta\\n' > p/a.txt\nprintf 'gamma\\n' > p/sub/b.py\nprintf '# One\\nfirst\\n\\n# Two\\nsecond\\n' > p/c.md\n\"$AILDB\" index p -i m1 -d 8 -- \"$FAKE\" spread exit3\nsed -i 's/^arg\\texit3$//;/^$/d' p/.aildb/config\nls p/.aildb\n"
+call sh "mkdir -p p/sub e\nprintf 'alpha beta\\n' > p/a.txt\nprintf 'gamma\\n' > p/sub/b.py\nprintf '# One\\nfirst\\n\\n# Two\\nsecond\\n' > p/c.md\n\"$AILDB\" index p -i m1 -d 8 -- \"$FAKE\" spread\nrm -r p/.aildb/index p/.aildb/manifest p/.aildb/cache provider.log\nls p/.aildb\n"
 call print "\n# the first call makes the snapshot\n"
 call start "-d p" as pid
 call ask "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-11-25\",\"capabilities\":{},\"clientInfo\":{\"name\":\"test\",\"version\":\"0\"}}}"
@@ -176,12 +176,12 @@ call sh "\"$AILDB\" search p --text gamma -k 10 -p sub/ -l python\n"
 call ask "{\"jsonrpc\":\"2.0\",\"id\":6,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"gamma\",\"language\":\"rust\"}}}"
 call asked
 call print "\n# a provider that fails: for the query, and after an edit for the documents\n"
-call sh "cp p/.aildb/config config.kept\nprintf 'arg\\tafter1\\n' >> p/.aildb/config\nprintf x > provider.log\n"
+call sh "printf after1 > provider.fault\nprintf x > provider.log\n"
 call ask "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"gamma\"}}}"
 call sh "\"$AILDB\" search p --text gamma -k 10; echo status $?\n"
 call sh "printf 'a\\0b' > p/bin.py\nprintf 'new\\n' > p/n.txt\n"
 call ask "{\"jsonrpc\":\"2.0\",\"id\":8,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"gamma\"}}}"
-call sh "\"$AILDB\" search p --text gamma -k 10; echo status $?\nrm provider.log\ncp config.kept p/.aildb/config\n"
+call sh "\"$AILDB\" search p --text gamma -k 10; echo status $?\nrm provider.log provider.fault\n"
 call print "\n# and well again: the snapshot of before was the one searched\n"
 call ask "{\"jsonrpc\":\"2.0\",\"id\":9,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"new\",\"k\":1}}}"
 call asked

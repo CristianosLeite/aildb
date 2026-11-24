@@ -5,15 +5,15 @@ $ aildb search p --text 'alpha beta' -k 2
 aildb: p: no index is configured here; the first index of a directory names its provider: aildb index DIRECTORY -i MODEL -d DIMENSION -- COMMAND
 --- status 2
 # a configuration and no snapshot: the first search makes it
-$ aildb index p -i m1 -d 8 -- FAKE spread exit3
+$ aildb index p -i m1 -d 8 -- FAKE spread
 --- stdout
+{"records":4,"dimension":8,"model":"m1","source_revision":null,"files":3,"embedded":4,"published":true}
 --- stderr
-aildb: p: the provider ended with the status 3: provider-fake: the model is not there
---- status 7
-cache
+--- status 0
 config
 index.lock
 --- provider.log
+documents 4 m1
 $ aildb search p --text 'alpha beta' -k 2
 --- stdout
 {"source_revision":null,"model":"m1"}
@@ -209,3 +209,49 @@ $ aildb search p --text 'last' -k 1
 --- status 0
 --- provider.log
 query 1 m1
+# a change of the provider that fails: the configuration stays
+$ aildb index p -i m2 -d 8 -- FAKE spread
+--- stdout
+--- stderr
+aildb: p: the provider ended with the status 3: provider-fake: the model is not there
+--- status 7
+the configuration and the snapshot are what they were
+cache
+config
+index
+index.lock
+manifest
+$ aildb search p --text 'last' -k 1
+--- stdout
+{"source_revision":null,"model":"m1"}
+{"rank":1,"score":1.000000,"score_bits":"3feffffffca0b060","path":"g.txt","start_line":1,"end_line":1}
+--- stderr
+--- status 0
+--- provider.log
+query 1 m1
+# and one that is killed before it publishes
+--- provider.log
+documents 7 m2
+the configuration and the snapshot are what they were
+$ aildb search p --text 'last' -k 1
+--- stdout
+{"source_revision":null,"model":"m1"}
+{"rank":1,"score":1.000000,"score_bits":"3feffffffca0b060","path":"g.txt","start_line":1,"end_line":1}
+--- stderr
+--- status 0
+--- provider.log
+query 1 m1
+# the change itself
+$ aildb index p -i m2 -d 8 -- FAKE spread
+--- stdout
+{"records":7,"dimension":8,"model":"m2","source_revision":null,"files":6,"embedded":0,"published":true}
+--- stderr
+--- status 0
+$ aildb search p --text 'last' -k 1
+--- stdout
+{"source_revision":null,"model":"m2"}
+{"rank":1,"score":1.000000,"score_bits":"3feffffffca0b060","path":"g.txt","start_line":1,"end_line":1}
+--- stderr
+--- status 0
+--- provider.log
+query 1 m2

@@ -234,6 +234,8 @@ The first index of a directory names its embedding provider with the
 options, which are written to `DIRECTORY/.aildb/config`; after that the
 command is given no option and reads that file. Options given again take
 the place of the whole configuration, which is how a model is changed.
+The file is written when the snapshot of the options is published: a run
+whose provider fails leaves the configuration that was there.
 
 | Option | Is |
 |---|---|

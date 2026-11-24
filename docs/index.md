@@ -95,7 +95,7 @@ made of changed, no snapshot is written.
 1. The directory `.aildb` is made, and the lock of `index.lock` taken; a
    run that finds it held ends with status 5. A temporary file that a
    killed run left is removed.
-2. The configuration is written from the options, or read. Its identity
+2. The configuration is that of the options, or the file is read. Its identity
    ([provider.md](provider.md#the-identity-of-a-configuration)) names the
    file of kept vectors, which is read.
 3. The manifest is read. It counts only if it has the identity of the
@@ -123,7 +123,10 @@ made of changed, no snapshot is written.
    Else a whole snapshot is written to a temporary file beside `index`,
    flushed, read back, renamed to `index`, and the directory flushed, as
    `build` does it ([durability.md](durability.md)); then the manifest is
-   written, to `manifest.new`, which is renamed.
+   written, to `manifest.new`, which is renamed. A configuration of the
+   options is written here, to `config.new`, which is renamed to
+   `config`: after the snapshot has its name and before the manifest, or
+   when the snapshot is left as it is.
 7. The vectors that no chunk of this run used are taken out of the file
    of kept vectors, and the files of other identities are removed.
 
@@ -249,10 +252,15 @@ vectors that no chunk used, when a run ends that had such.
   removes; after the rename, the new snapshot and the manifest of the old
   one, which the next run takes for none. In both the next run publishes
   a snapshot of the files as they are then and writes its manifest.
-- **A configuration is written before the provider is asked**, so after
-  options that name a provider which then fails, `config` is the new one
-  and `index` the old one, of the old model; the next run tries the new
-  provider again.
+- **A configuration is written when its snapshot is there**, not
+  before: after options that name a provider which then fails, or a run
+  of them that is killed before the snapshot has its name, `config` and
+  `index` are what they were, and a search by text goes on with the old
+  provider. The vectors that the new one gave are kept, and the same
+  options given again ask for the rest. A run that is killed between the
+  two renames leaves the new snapshot with the old configuration, which
+  the next run finds out by the manifest and makes one of the two again:
+  the old one, unless the options are given again.
 
 ## What was checked
 

@@ -55,6 +55,9 @@ var ixdp ixdn ixcount ixasked ixtaken ixpublished
 # file that is looked at, or 0 if it was not read; ixopen says that
 # snap is the snapshot that is there
 var ixmanok ixoldstart ixstarted ixshap ixopen
+# 1 while the configuration of the options is not yet the one of the
+# index, .aildb/config
+var ixstaged
 
 fn nomem
 	call bycut msg 0
@@ -227,29 +230,13 @@ fn ixoptions i
 end
 
 # Make the configuration of the index ixconf: the one of the options, if
-# given says that there are any, which is then written to .aildb/config
-# in the place of what was there; else the one that file has.
+# given says that there are any, which becomes .aildb/config when a
+# snapshot of it is there (ixcommit); else the one that .aildb/config
+# has.
 fn ixconfig given
 	call ixin ixpath "config" as p n
 	if given
-		call bycut ixcfg 0
-		call confwrite ixcfg ixconf as ok
-		ifz ok
-			call nomem
-		end
-		call ixin ixother "config.new" as q m
-		load ixcfg as a
-		load ixcfg+8 as an
-		call filewrite q m a an as r
-		ifz r
-			sys rename q p as r
-		end
-		if r
-			call about p n
-			call byadd msg "cannot write: "
-			call oserr r
-			call fail stio
-		end
+		ixstaged=1
 		ret 0
 	end
 	call bycut ixcfg 0
@@ -281,6 +268,36 @@ fn ixconfig given
 		end
 		call fail stinvalid
 	end
+end
+
+# The configuration of the options, if there is one, is written to
+# .aildb/config.new, which takes the place of .aildb/config: the
+# snapshot of it is there, so a run that failed before this left the
+# configuration that the snapshot it left is of.
+fn ixcommit
+	ifz ixstaged
+		ret 0
+	end
+	call bycut ixcfg 0
+	call confwrite ixcfg ixconf as ok
+	ifz ok
+		call nomem
+	end
+	call ixin ixpath "config" as p n
+	call ixin ixother "config.new" as q m
+	load ixcfg as a
+	load ixcfg+8 as an
+	call filewrite q m a an as r
+	ifz r
+		sys rename q p as r
+	end
+	if r
+		call about p n
+		call byadd msg "cannot write: "
+		call oserr r
+		call fail stio
+	end
+	ixstaged=0
 end
 
 # Make the directory .aildb of the directory that is indexed, with a file
@@ -1097,6 +1114,7 @@ fn ixrefresh
 	end
 	ixpublished=0
 	if same
+		call ixcommit
 		call ixwrite 0
 	else
 		call ixgather
@@ -1137,6 +1155,7 @@ fn ixrefresh
 		call hookstop 4
 		call publish vec count dim "the provider"
 		call hookstop 5
+		call ixcommit
 		ixpublished=1
 		call ixwrite 1
 	end

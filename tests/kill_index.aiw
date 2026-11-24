@@ -48,10 +48,10 @@ fn stopped s twice
 	call dirsh "ls p/.aildb | grep -c 'tmp$' || true\nls p/.aildb | grep -v 'tmp$'\n"
 end
 call dirsh "mkdir p o\nprintf 'one\\n' > p/a.txt\nprintf 'two\\n' > p/b.txt\nprintf 'other\\n' > o/x.txt\n"
-call print "# the configuration, by a run whose provider fails\n"
-call dirrun "index p -i m1 -d 3 -b 1 -- FAKE exit3"
+call print "# the configuration, by a run whose snapshot is then removed\n"
+call dirrun "index p -i m1 -d 3 -b 1 -- FAKE"
 call dirrun "index o -i m1 -d 3 -- FAKE"
-call dirsh "sed -i 's/^arg\\texit3$//;/^$/d' p/.aildb/config\n"
+call dirsh "rm -r p/.aildb/index p/.aildb/manifest p/.aildb/cache\n"
 call dirasked
 call print "# a first index, killed before its snapshot has its name\n"
 call stopped 2 1

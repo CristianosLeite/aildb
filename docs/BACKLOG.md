@@ -510,3 +510,15 @@ each chose.
   `mcp/tests/run.aiw` (8192 bytes run, 8193 not, thirteen arguments
   not, the command after them run) and `mcp/tests/directory.aiw` (such
   a call, and the next one served).
+- [x] `aildb index` with options wrote `.aildb/config` before it asked
+  the provider, so a change to a provider that failed left the old
+  snapshot under the new configuration, and no search by text worked
+  until the provider did. The configuration of the options is now
+  written when its snapshot has its name (`ixcommit` of
+  `src/index.aiw`), or when the snapshot is left as it is. Test
+  `tests/cli_search_text.aiw`: a change whose provider fails, and one
+  killed before it publishes, leave the bytes of `config` and `index`,
+  and the search answers with the old model; the change given again
+  asks for nothing that the killed run got. `build/provider-fake` reads
+  faults from a file `provider.fault` too, since a test can no longer
+  make a configuration by a run that fails and edit it.
