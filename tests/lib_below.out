@@ -1,0 +1,21 @@
+$ /bin/sh -e step.sh
+--- stdout
+--- stderr
+--- status 0
+[f] look: opened, mode 8; read: opened [inside]
+[sub/deep/g] look: opened, mode 8; read: opened [deep]
+[link] look: opened, mode 10; read: error 40
+[dir/deep/g] look: error 20; read: error 20
+[away/secret] look: error 20; read: error 20
+[sub/hop/g] look: error 20; read: error 20
+[sub] look: opened, mode 4; read: error 21
+[pipe] look: opened, mode 1; read: error 22
+[none] look: error 2; read: error 2
+[f/x] look: error 20; read: error 20
+[sub/../f] look: error 22; read: error 22
+[..] look: error 22; read: error 22
+[sub//deep/g] look: error 22; read: error 22
+[/f] look: error 22; read: error 22
+[] look: error 22; read: error 22
+[sub/deep/g] look: opened, mode 8; read: opened [deep]
+[f] look: error 2; read: error 2

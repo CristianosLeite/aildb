@@ -1,0 +1,28 @@
+# aildb index in a directory that is in no work tree of git: every
+# regular file below it is in the index, in the order of the paths, a
+# hidden one and one in a hidden directory too, and never a symbolic
+# link, what one leads to, a pipe, or anything in .aildb and in a
+# directory named .git; the index names no revision. An edit, a new
+# file and a removal are in the next index, and a directory with no
+# file gives an index of no records. The directory is this one when
+# none is named.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "tests/lib/cmd.aiw"
+use "tests/lib/dir.aiw"
+call dirsh "mkdir -p p/sub/deep p/.hidden p/.git p/empty p/sub/.aildb\nprintf 'alpha\\n' > p/a.txt\nprintf 'beta\\n' > p/B.txt\nprintf 'gamma\\n' > p/sub/b.txt\nprintf 'delta\\n' > p/sub/deep/c.txt\nprintf 'hidden\\n' > p/.hidden/d.txt\nprintf 'dot\\n' > p/.dot\nprintf 'not this\\n' > p/.git/config\nprintf 'nor this\\n' > p/sub/.aildb/index\nprintf 'outside\\n' > out.txt\nln -s ../out.txt p/link.txt\nln -s sub p/dir\nmkfifo p/pipe\n"
+call dirrun "index p -i m1 -d 3 -- FAKE"
+call dirasked
+call dirhits "p"
+call dirsh "ls -A p/.aildb\n"
+call print "# an edit, a new file and a removal\n"
+call dirsh "printf 'alpha\\nmore\\n' > p/a.txt\nprintf 'epsilon\\n' > p/sub/new.txt\nrm p/B.txt\n"
+call dirrunin "index" "p"
+call dirhits "p"
+call print "# a directory with no file\n"
+call dirsh "mkdir e\n"
+call dirrun "index e -i m1 -d 3 -- FAKE"
+call dirasked
+call dirrun "check e/.aildb/index"

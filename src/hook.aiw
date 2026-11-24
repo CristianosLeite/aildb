@@ -12,7 +12,9 @@ const hookfsync 74
 
 # the stop point hookn of build: 1 with the temporary file begun, 2 with
 # it complete, synced and validated, before the rename, 3 after the
-# rename, before the directory is synced
+# rename, before the directory is synced; and of index, which publishes
+# as build does: 4 before the publication, with the vectors kept, and 5
+# after it, before the manifest is written
 fn hookstop hookn
 end
 

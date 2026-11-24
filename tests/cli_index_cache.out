@@ -1,0 +1,10 @@
+# the provider puts a link at the name of the directory
+{"records":1,"dimension":3,"model":"m1","source_revision":null,"files":1,"embedded":1,"published":true}
+status 0
+outside: other
+keep
+files of vectors in the directory that was held: 1
+# the next run finds the link
+aildb: d/.aildb/cache: not a file of an index: a symbolic link, or something else that an index does not make, is at this name, and nothing was written; remove it
+status 4
+outside: other

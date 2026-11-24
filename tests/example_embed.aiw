@@ -183,6 +183,29 @@ call fileopen "bad.bin.part" 0 0 as fd2
 call print "bad.bin or its part is there: "
 call putn (fd!=-2)|(fd2!=-2)
 call print "\n"
+call print "# the options: other prefixes, another dimension, another model\n"
+call filewrite "t.jsonl" "\"ab\"\n"
+call embed "-D X: -Q Y:Z: document t.jsonl v.bin"
+call vectors "v.bin"
+call filewrite "q.tsv" "abc\n"
+call embed "-D X: -Q Y:Z: query q.tsv q.bin"
+call vectors "q.bin"
+# the fake answers a text with "short" in it with three numbers
+call filewrite "t.jsonl" "\"a short one\"\n"
+call embed "-d 3 document t.jsonl three.bin"
+call bycut b 0
+call fileread "three.bin" b
+load b+8 as n
+call putn n
+call print " bytes\n"
+call filewrite "t.jsonl" "\"ab\"\n"
+call embed "-d 3 document t.jsonl bad.bin"
+call embed "-m other model"
+call embed "-m none model"
+call embed "-d 0 document t.jsonl bad.bin"
+call embed "-d 70000 document t.jsonl bad.bin"
+call embed "-x 1 document t.jsonl bad.bin"
+call embed "-m model"
 sys kill fake 9
 call procwait fake 0 as r
 call filewrite "t.jsonl" "\"ab\"\n"

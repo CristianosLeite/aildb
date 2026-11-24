@@ -1,0 +1,263 @@
+# aildb-mcp with -d, the adapter of "aildb search DIRECTORY --text",
+# between a client written as lines and the command of aildb, on a
+# directory that the test makes, with build/provider-fake of aildb as
+# the embedding provider of its index, whose log shows what it was
+# asked. The first call makes the snapshot, since the directory has a
+# configuration and none, the one it had being removed: the provider is asked for the documents and
+# for the query, and the result is what the command prints for the same
+# query, shown after it. A call after an edit that is not committed
+# finds the edit, and asks for the changed text and the query. Then the
+# filters, a provider that fails, whose line is the failure of the call
+# as it is that of the command, arguments that are wrong, a directory
+# that was never indexed, and starts that are wrong. Then a directory
+# whose configuration came with it and names a command nobody allowed
+# here, which is not run; a call whose
+# values have no room together, and a provider that does not answer in
+# the time of a call, which is gone when the call has failed.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "aildb:tests/lib/cmd.aiw"
+const pipe2 293
+buf line 24
+buf out 24
+buf pend 8
+buf ts 16
+buf step 24
+buf log 24
+var seen
+
+# start the command line p n of the server after what every start has:
+# git is told to look for no work tree above the directory of the test,
+# the commands of providers that are allowed are noted in the directory
+# xdg of it, and the command of aildb is the one of the repository. Its stdin is a
+# pipe and its stdout the file mcp.out.
+fn server p n
+	call bycut line 0
+	call byadd line "/usr/bin/env GIT_CEILING_DIRECTORIES="
+	call strlen cmdtmp as l
+	call byadd line cmdtmp l
+	call byadd line " XDG_CONFIG_HOME="
+	call byadd line cmdtmp l
+	call byadd line "/xdg "
+	call byadd line cmdhome cmdhomen
+	call byadd line "/build/aildb-mcp -a "
+	call byadd line cmdhome cmdhomen
+	call byadd line "/../build/aildb "
+	call byadd line p n
+end
+fn start p n
+	call server p n
+	sys pipe2 pend 0x80000
+	load4 pend as rd
+	load line as q
+	load line+8 as m
+	call cmdspawnin q m rd "mcp.out" as pid
+	sys close rd
+	seen=0
+	ret pid
+end
+fn say p n
+	call print "> "
+	call print p n
+	call print "\n"
+	load4 pend+4 as wr
+	sys write wr p n
+	sys write wr "\n"
+end
+# print the next line of mcp.out, waiting five seconds for it at most
+fn hear
+	tries=0
+	label look
+	call bycut out 0
+	call fileread "mcp.out" out
+	load out as p
+	load out+8 as n
+	i=seen
+	label eol
+	if i<n
+		loadb p+i as c
+		if c!=10
+			i+=1
+			jmp eol
+		end
+		call print "< "
+		call print p+seen i+1-seen
+		seen=i+1
+		ret 0
+	end
+	if tries>5000
+		call print "< nothing\n"
+		ret 0
+	end
+	store ts 0
+	store ts+8 1000000
+	sys nanosleep ts 0
+	tries+=1
+	jmp look
+end
+fn ask p n
+	call say p n
+	call hear
+end
+fn finish pid
+	load4 pend+4 as wr
+	sys close wr
+	call procwait pid 5000 as st
+	call print "the server ended with status "
+	call putn st
+	call print "\n"
+end
+# a start that is to fail: its status and what it said
+fn refused p n
+	call server p n
+	load line as q
+	load line+8 as m
+	call cmdargs q m as av
+	call cmdrun av -1 cmdso cmdse as st
+	call print "$ aildb-mcp "
+	call print p n
+	call print "\nstatus "
+	call putn st
+	call print ", stdout "
+	load cmdso+8 as x
+	call putn x
+	call print " bytes: "
+	load cmdse as q
+	load cmdse+8 as m
+	call print q m
+end
+# run the lines p n with sh, which is given the path of the command of
+# aildb as $AILDB and that of the fake provider as $FAKE; what they
+# print is printed
+fn sh p n
+	call bycut step 0
+	call byadd step "export GIT_CEILING_DIRECTORIES=$PWD XDG_CONFIG_HOME=$PWD/xdg\nAILDB="
+	call byadd step cmdhome cmdhomen
+	call byadd step "/../build/aildb\nFAKE="
+	call byadd step cmdhome cmdhomen
+	call byadd step "/../build/provider-fake\n"
+	call byadd step p n
+	load step as q
+	load step+8 as m
+	call filewrite "step.sh" q m
+	call cmdargs "/bin/sh step.sh" as av
+	call cmdrun av -1 cmdso cmdse as st
+	load cmdso as q
+	load cmdso+8 as m
+	call print q m
+	load cmdse as q
+	load cmdse+8 as m
+	call print q m
+end
+# print what the provider was asked since the last call
+fn asked
+	call bycut log 0
+	call fileread "provider.log" log
+	call print "--- provider.log\n"
+	load log as q
+	load log+8 as m
+	call print q m
+	call fileunlink "provider.log"
+end
+
+call sh "mkdir -p p/sub e\nprintf 'alpha beta\\n' > p/a.txt\nprintf 'gamma\\n' > p/sub/b.py\nprintf '# One\\nfirst\\n\\n# Two\\nsecond\\n' > p/c.md\n\"$AILDB\" index p -i m1 -d 8 -- \"$FAKE\" spread\nrm -r p/.aildb/index p/.aildb/manifest p/.aildb/cache provider.log\nls p/.aildb\n"
+call print "\n# the first call makes the snapshot\n"
+call start "-d p" as pid
+call ask "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-11-25\",\"capabilities\":{},\"clientInfo\":{\"name\":\"test\",\"version\":\"0\"}}}"
+call say "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}"
+call ask "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"alpha beta\",\"k\":2}}}"
+call asked
+call sh "\"$AILDB\" search p --text 'alpha beta' -k 2\n"
+call asked
+call print "\n# an edit that is not committed, and a call at once\n"
+call sh "printf 'a text that was not there\\n' > p/sub/b.py\n"
+call ask "{\"jsonrpc\":\"2.0\",\"id\":4,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"a text that was not there\",\"k\":1}}}"
+call asked
+call sh "\"$AILDB\" search p --text 'a text that was not there' -k 1\n"
+call asked
+call print "\n# the filters, and a filter that takes nothing\n"
+call ask "{\"jsonrpc\":\"2.0\",\"id\":5,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"gamma\",\"path_prefix\":\"sub/\",\"language\":\"python\"}}}"
+call sh "\"$AILDB\" search p --text gamma -k 10 -p sub/ -l python\n"
+call ask "{\"jsonrpc\":\"2.0\",\"id\":6,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"gamma\",\"language\":\"rust\"}}}"
+call asked
+call print "\n# a provider that fails: for the query, and after an edit for the documents\n"
+call sh "printf after1 > provider.fault\nprintf x > provider.log\n"
+call ask "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"gamma\"}}}"
+call sh "\"$AILDB\" search p --text gamma -k 10; echo status $?\n"
+call sh "printf 'a\\0b' > p/bin.py\nprintf 'new\\n' > p/n.txt\n"
+call ask "{\"jsonrpc\":\"2.0\",\"id\":8,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"gamma\"}}}"
+call sh "\"$AILDB\" search p --text gamma -k 10; echo status $?\nrm provider.log provider.fault\n"
+call print "\n# and well again: the snapshot of before was the one searched\n"
+call ask "{\"jsonrpc\":\"2.0\",\"id\":9,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"new\",\"k\":1}}}"
+call asked
+call print "\n# arguments that are wrong\n"
+call ask "{\"jsonrpc\":\"2.0\",\"id\":10,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"k\":3}}}"
+call ask "{\"jsonrpc\":\"2.0\",\"id\":11,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"\"}}}"
+call ask "{\"jsonrpc\":\"2.0\",\"id\":12,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"a\\u0000b\"}}}"
+call ask "{\"jsonrpc\":\"2.0\",\"id\":13,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"alpha\",\"k\":51}}}"
+call asked
+call finish pid
+call print "\n# a directory that was never indexed\n"
+call start "-d e" as pid
+call ask "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-11-25\",\"capabilities\":{},\"clientInfo\":{\"name\":\"test\",\"version\":\"0\"}}}"
+call say "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}"
+call ask "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"alpha\"}}}"
+call finish pid
+call print "\n# starts that are wrong\n"
+call refused "-d p -s s.idx"
+call refused "-d p -i m"
+call refused "-d p -e http://127.0.0.1:1"
+call refused "-d p -p prefix"
+call refused "-d"
+call refused "-d p -t 0"
+call print "\n# a directory with a configuration that came with it: no provider is run\n"
+call sh "mkdir -p c/.aildb\ncp p/a.txt c/\nprintf 'aildb\\t1\\nprovider\\tx\\nmodel\\tm1\\ndimension\\t8\\narg\\t/bin/sh\\narg\\t-c\\narg\\ttouch ran\\n' > c/.aildb/config\n"
+call start "-d c" as pid
+call ask "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-11-25\",\"capabilities\":{},\"clientInfo\":{\"name\":\"test\",\"version\":\"0\"}}}"
+call say "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}"
+call ask "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"alpha\"}}}"
+call sh "ls ran 2>/dev/null || echo the command was not run\n"
+call finish pid
+call print "\n# a directory, a query and filters that are each within their limit\n# and have no room together: a failure of the call, and the next is served\n"
+buf big 24
+# add k times the n bytes at p to big
+fn times k p n
+	while k
+		call byadd big p n
+		k-=1
+	end
+end
+call byadd big "-d p"
+call times 998 "/."
+load big as q
+load big+8 as m
+call start q m as pid
+call ask "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-11-25\",\"capabilities\":{},\"clientInfo\":{\"name\":\"test\",\"version\":\"0\"}}}"
+call say "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}"
+call bycut big 0
+call byadd big "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\""
+call times 4000 "q"
+call byadd big "\",\"path_prefix\":\""
+call times 2000 "x"
+call byadd big "\",\"language\":\""
+call times 255 "l"
+call byadd big "\"}}}\n"
+call print "> a query of 4000 bytes, a path_prefix of 2000 and a language of 255\n"
+load big as q
+load big+8 as m
+load4 pend+4 as wr
+call fdwrite wr q m
+call hear
+call ask "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"new\",\"k\":1}}}"
+call finish pid
+call print "\n# a provider that does not answer in the time of a call: the command is\n# killed, and the provider it started ends with it\n"
+call sh "printf hang > provider.fault\n"
+call start "-d p -t 500" as pid
+call ask "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-11-25\",\"capabilities\":{},\"clientInfo\":{\"name\":\"test\",\"version\":\"0\"}}}"
+call say "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}"
+call ask "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"new\",\"k\":1}}}"
+call sh "pid=$(cat provider.pid)\nrm provider.pid provider.fault\ni=0\nwhile [ $i -lt 200 ]\ndo\n\ts=$(cut -d' ' -f3 /proc/$pid/stat 2>/dev/null) || s=\n\tcase \"$s\" in ''|Z) echo the provider is gone; exit 0;; esac\n\tsleep 0.01\n\ti=$((i+1))\ndone\necho the provider still runs\nkill -9 $pid\n"
+call ask "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"new\",\"k\":1}}}"
+call finish pid

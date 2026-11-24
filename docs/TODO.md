@@ -50,17 +50,10 @@ Nothing is left of this step (`BACKLOG.md`).
 
 ## 15. Semantic retrieval evaluation
 
-The fixed queries, their places and the measures are done (`BACKLOG.md`,
-[evaluation.md](evaluation.md)).
-
-- [ ] Use the queries of `make eval` to compare chunk sizes, overlap,
-  the path as part of the embedded text and embedding models. The limits
-  of a chunk are constants of `example/chunk.aiw` and the model, its
-  dimension and its prefixes constants of `example/embed.aiw`; make them
-  arguments, run each variant on both corpora and add the measures to
-  `docs/evaluation.md`. Add queries on a repository of another author
-  first, in a language the chunker is taught, since both corpora are
-  AIL and Markdown.
+The fixed queries, their places, the measures and the comparison of
+variants are done (`BACKLOG.md`, [evaluation.md](evaluation.md)). Whether
+a default changes for what the comparison showed is the user's to decide
+(`.agents/knowledge/status/open-items.md`).
 
 ## 16. MCP server for coding agents
 
@@ -69,3 +62,20 @@ The server is written (`BACKLOG.md`, [mcp.md](mcp.md)).
 - [ ] If the measurements of aildb-bench justify keeping a mapping open,
   an AIL worker on `src/lib/search.aiw` in place of a command a query,
   with a test of its reload across atomic replacements.
+
+## 17. On-demand indexing and text search
+
+The user wants indexing to run only when the aildb CLI is invoked, with
+no daemon or filesystem watcher, and wants to choose an embedding provider
+independently of the LLM that asks the questions. It is written
+([install.md](install.md), [index.md](index.md), [provider.md](provider.md)).
+
+The eight findings of the review of `5eeba0b` are fixed but one, the
+six of the review of `6c707bc` but the same one, and the four others
+of the review of `cb9285a`, the three of the review of `b515e72` and
+the one of the review of `acb1a70` all (`BACKLOG.md`); their choices
+wait for the user's review
+(`.agents/knowledge/status/open-items.md`).
+
+Nothing of them is open: the AIL that `Ailfile` asks for is 0.1.2
+since 2026-11-24 (`BACKLOG.md`).

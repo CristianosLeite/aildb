@@ -1,0 +1,35 @@
+# three vectors, flushed in two steps
+open c.vec: 0 records
+0
+c.vec has 104 bytes
+c.vec has 148 bytes
+0
+c.vec has 148 bytes
+# opened again: 1 and 3 are used, 4 is new, 2 is dropped at the end
+open c.vec: 3 records
+c.vec has 192 bytes
+0
+c.vec has 148 bytes
+open c.vec: 3 records
+ 1=(1,2) 3=(3,4) 4=(4,5)
+# cut short in its last record
+open cut.vec: 2 records
+ 1=(1,2) 3=(3,4)
+cut.vec has 148 bytes
+open cut.vec: 3 records
+ 1=(1,2) 3=(3,4) 5=(5,6)
+# a byte of the second record changed, and bytes after the file
+open bad.vec: 1 records
+ 1=(1,2)
+bad.vec has 104 bytes
+open bad.vec: 2 records
+ 1=(1,2) 6=(6,7)
+# another dimension, no cache, and no file
+open c.vec: 0 records
+open junk.vec: 0 records
+junk.vec has 60 bytes
+open junk.vec: 1 records
+ 1=(1,2)
+open short.vec: 0 records
+open none/c.vec: 0 records
+flush 2

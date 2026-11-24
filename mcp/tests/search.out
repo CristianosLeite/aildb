@@ -104,8 +104,10 @@ status 3, stdout 0 bytes: aildb-mcp: the snapshot is of the model "m"
 $ aildb-mcp -s absent.idx -i m
 status 3, stdout 0 bytes: aildb-mcp: aildb: absent.idx: cannot open: no such file or directory
 $ aildb-mcp -s s.idx
-status 2, stdout 0 bytes: usage: aildb-mcp -s SNAPSHOT -i MODEL -e ENDPOINT [-a AILDB] [-p PREFIX] [-t MS]
+status 2, stdout 0 bytes: usage: aildb-mcp -d DIRECTORY [-a AILDB] [-t MS]
+       aildb-mcp -s SNAPSHOT -i MODEL -e ENDPOINT [-a AILDB] [-p PREFIX] [-t MS]
 $ aildb-mcp -s s.idx -i m -t 0
-status 2, stdout 0 bytes: usage: aildb-mcp -s SNAPSHOT -i MODEL -e ENDPOINT [-a AILDB] [-p PREFIX] [-t MS]
+status 2, stdout 0 bytes: usage: aildb-mcp -d DIRECTORY [-a AILDB] [-t MS]
+       aildb-mcp -s SNAPSHOT -i MODEL -e ENDPOINT [-a AILDB] [-p PREFIX] [-t MS]
 $ aildb-mcp -s junk.idx -i m
 status 3, stdout 0 bytes: aildb-mcp: aildb: junk.idx: not a snapshot

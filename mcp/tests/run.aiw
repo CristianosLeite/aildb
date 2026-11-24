@@ -5,6 +5,10 @@
 # are made and the third is not: run says that the command could not be
 # started, what the command before printed and said is gone, and the
 # two files are closed. With no descriptor to be had it is the same.
+# Before that, the room of the arguments: a command whose arguments are
+# the 8192 bytes there are is run, one of a byte more is not, and neither
+# is one of more arguments than there are places; the command after it
+# is run.
 use "lib/std/io.aiw"
 use "lib/std/bytes.aiw"
 use "lib/std/file.aiw"
@@ -60,6 +64,42 @@ zn=0
 call arg 0 "/bin/sh"
 call arg 1 "-c"
 call arg 2 "echo printed; echo the command said this >&2; exit 3"
+call run "in" as st
+call show st
+# "/bin/sh", "-c" and a NUL byte after each are 11 bytes
+buf long 8192
+i=0
+while i<8192
+	storeb long+i 32
+	i+=1
+end
+call bycopy long "exit 5"
+call print "# arguments of 8192 bytes, and of 8193\n"
+call arg 0 "/bin/sh"
+call arg 1 "-c"
+call arg 2 long 8180
+call run "in" as st
+call show st
+call arg 0 "/bin/sh"
+call arg 1 "-c"
+call arg 2 long 8181
+call run "in" as st
+call show st
+call print "# thirteen arguments\n"
+call arg 0 "/bin/sh"
+call arg 1 "-c"
+call arg 2 "exit 6"
+i=3
+while i<13
+	call arg i "x"
+	i+=1
+end
+call run "in" as st
+call show st
+call print "# and a command after them\n"
+call arg 0 "/bin/sh"
+call arg 1 "-c"
+call arg 2 "exit 7"
 call run "in" as st
 call show st
 store lim first+2

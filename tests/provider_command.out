@@ -1,0 +1,34 @@
+0 
+ 3f800000 42c20000 3dcccccd
+ 40000000 43450000 3dcccccd
+ 3f800000 3f800000 3dcccccd
+ 40400000 43530000 3dcccccd
+ 40400000 439a8000 3dcccccd
+--- provider.log
+documents 2 m1 [d: ] [q: ]
+documents 2 m1 [d: ] [q: ]
+documents 1 m1 [d: ] [q: ]
+0 
+ 3f800000 42c20000 3dcccccd
+ 40000000 43450000 3dcccccd
+ 3f800000 3f800000 3dcccccd
+ 40400000 43530000 3dcccccd
+ 40400000 439a8000 3dcccccd
+ 40000000 43450000 3dcccccd
+--- provider.log
+query 1 m1 [d: ] [q: ]
+--- no vectors
+14 a text that is not well-formed UTF-8
+14 a text that is not well-formed UTF-8
+4 the answer has not as many vectors as there were texts
+5 a vector of the answer is not at the place of its text
+6 a vector of the answer has not the dimension of the index
+7 a vector of the answer has an element that is no finite number
+8 a vector of the answer is all zeros
+1 the answer is not one object of JSON
+11 the provider ended with the status 3: provider-fake: the model is not there
+13 the provider took longer than it may
+10 the provider could not be started
+12 the provider was ended by the signal 15
+0 
+ 3f800000 42c20000 3dcccccd

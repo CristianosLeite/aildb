@@ -1,8 +1,15 @@
 # embed -- the embeddings of the example, from a model that Ollama runs.
 #
-#   embed document TEXT VECTORS
-#   embed query QUERIES VECTORS
-#   embed model
+#   embed [OPTIONS] document TEXT VECTORS
+#   embed [OPTIONS] query QUERIES VECTORS
+#   embed [OPTIONS] model
+#
+# The options are for the evaluation that compares models
+# (docs/evaluation.md): -m MODEL is the model that Ollama is asked for,
+# nomic-embed-text without it; -d DIMENSION the elements of its vectors,
+# 768 without it; -D PREFIX and -Q PREFIX what stands before a chunk
+# and before a query, "search_document: " and "search_query: " without
+# them, and either may be empty.
 #
 # TEXT has a string of JSON on each line, as build/chunk writes it;
 # QUERIES has lines of fields with tabs between, of which the first is a
@@ -36,8 +43,12 @@ use "lib/async/task.aiw"
 use "lib/async/time.aiw"
 use "lib/async/io.aiw"
 use "lib/net/http.aiw"
+use "adapters/lib/ollama.aiw"
 
-const dimension 768
+# the model, the elements of a vector and the two prefixes, as the
+# options or the lines below say them
+var dimension modelp modeln dprep dpren qprep qpren
+buf words 24
 const batch 16
 const rename 82
 buf raw 24      # the file as it is
@@ -46,16 +57,23 @@ buf body 24     # a request
 buf resp 24     # and its response
 buf out 24      # the vectors
 buf one 8
-buf host 24     # the address as httpurl takes it
 buf line 24
-buf req 128
 buf from 4096
 buf to 4096
-data model "nomic-embed-text"
-data modelend ""
-data local "http://127.0.0.1:11434"
-data localend ""
+data defmodel "nomic-embed-text"
+data defmodelend ""
 var ip port
+
+# end the program for an answer that is not vectors of the dimension
+fn badvector
+	call bycut words 0
+	call byadd words "a vector is not "
+	call byaddn words dimension
+	call byadd words " finite numbers"
+	load words as p
+	load words+8 as n
+	call fail p n ""
+end
 
 fn fail p n q m
 	call eprint "embed: "
@@ -143,30 +161,7 @@ end
 # ask the model at the path p n, with the body of bn bytes at bp or with
 # none, and leave the answer in resp: the address and length of its body
 fn ask p n bp bn
-	i=0
-	while i<128
-		store req+i 0
-		i+=8
-	end
-	store req ip
-	store req+8 port
-	if bn
-		store req+16 "POST"
-		store req+24 4
-		store req+64 "application/json"
-		store req+72 16
-	end
-	store req+32 p
-	store req+40 n
-	store req+48 bp
-	store req+56 bn
-	store req+96 600000
-	store req+104 0x40000000
-	call httpcall req resp as h
-	st=0-12
-	if h
-		await h as st
-	end
+	call ollask ip port p n bp bn resp 600000 as st q m
 	ifslt st 0
 		call bycut line 0
 		call byadd line "error "
@@ -175,24 +170,20 @@ fn ask p n bp bn
 		load line+8 as m
 		call fail "Ollama cannot be asked: " q m
 	end
-	load resp as q
-	load resp+8 as m
-	load req+112 as hn
 	if st!=200
 		call bycut line 0
 		call byadd line "status "
 		call byaddn line st
 		call byaddb line 32
-		m-=hn
 		if m>300
 			m=300
 		end
-		call byadd line q+hn m
+		call byadd line q m
 		load line as q
 		load line+8 as m
 		call fail "Ollama refused: " q m
 	end
-	ret q+hn m-hn
+	ret q m
 end
 
 # send the texts that body holds, k of them, and add their vectors to out
@@ -215,7 +206,7 @@ fn embed k
 	call jsonelem q v+vn as e en ek q
 	if ek
 		if ek!=6
-			call fail "a vector is not 768 finite numbers" ""
+			call badvector
 		end
 		p=e+1
 		count=0
@@ -226,7 +217,7 @@ fn embed k
 			f8to4 d as w
 			# finite as a binary32 too: its exponent is not all ones
 			if (fk!=4)|(ok==0)|((w>>23&255)==255)
-				call fail "a vector is not 768 finite numbers" ""
+				call badvector
 			end
 			store4 one w
 			call byadd out one 4 as ok
@@ -237,7 +228,7 @@ fn embed k
 			jmp number
 		end
 		if count!=dimension
-			call fail "a vector is not 768 finite numbers" ""
+			call badvector
 		end
 		got+=1
 		jmp vector
@@ -251,44 +242,14 @@ end
 fn begin
 	call bycut body 0
 	call byadd body "{\"model\":"
-	call jsonadds body model modelend-model
+	call jsonadds body modelp modeln
 	call byadd body ",\"truncate\":true,\"input\":["
 end
 
 # the address of Ollama, from the environment or the one it has on the
 # machine: ip and port
 fn where
-	call procvar "OLLAMA_HOST" as p n
-	ifz n
-		p=local
-		n=localend-local
-	end
-	label slash
-	if n
-		loadb p+n-1 as c
-		if c==47
-			n-=1
-			jmp slash
-		end
-	end
-	call bycut host 0
-	i=0
-	scheme=0
-	while i+2<n
-		load2 p+i as c
-		loadb p+i+2 as d
-		if (c==0x2f3a)&(d==47)
-			scheme=1
-		end
-		i+=1
-	end
-	ifz scheme
-		call byadd host "http://"
-	end
-	call byadd host p n
-	load host as p
-	load host+8 as n
-	call httpurl p n as ip port q m ok
+	call ollwhere 0 0 as ip port ok p n
 	ifz ok
 		call fail "OLLAMA_HOST is to be an IPv4 address or localhost, with a port or not: " p n
 	end
@@ -317,11 +278,16 @@ fn about
 		call jsonelem q v+vn as e en ek q
 	end
 	ifz ek
-		call fail "Ollama has no model nomic-embed-text" ""
+		call fail "Ollama has no model " modelp modeln
 	end
 	call jsonget e en "name" as np nn nk
-	call jsoneq np nn "nomic-embed-text" as same
-	call jsoneq np nn "nomic-embed-text:latest" as same2
+	call jsoneq np nn modelp modeln as same
+	call bycut words 0
+	call byadd words modelp modeln
+	call byadd words ":latest"
+	load words as wp
+	load words+8 as wn
+	call jsoneq np nn wp wn as same2
 	ifz (nk==5)&(same|same2)
 		jmp next
 	end
@@ -354,13 +320,62 @@ fn about
 	call print p n
 end
 
+dimension=768
+modelp=defmodel
+modeln=defmodelend-defmodel
+set "search_document: " as dprep
+dpren=17
+set "search_query: " as qprep
+qpren=14
 call argc as c
-call argv 1 as kp kn
+i=1
+label option
+call argv i as p n
+loadb p as x
+if (i+1<c)&(n==2)&(x==45)
+	loadb p+1 as y
+	call argv i+1 as q m
+	known=0
+	if y==109
+		modelp=q
+		modeln=m
+		known=m>0
+	end
+	if y==100
+		dimension=0
+		j=0
+		while j<m
+			loadb q+j as d
+			if (d-48>9)|(dimension>65536)
+				dimension=70000
+			end
+			dimension=dimension*10+d-48
+			j+=1
+		end
+		known=(dimension>0)&(dimension<=65536)
+	end
+	if y==68
+		dprep=q
+		dpren=m
+		known=1
+	end
+	if y==81
+		qprep=q
+		qpren=m
+		known=1
+	end
+	ifz known
+		c=0
+	end
+	i+=2
+	jmp option
+end
+call argv i as kp kn
 call httpis kp kn "model" as ismodel
 call httpis kp kn "document" as isdoc
 call httpis kp kn "query" as isquery
-if ((c!=2)|(ismodel==0))&((c!=4)|((isdoc|isquery)==0))
-	call eprint "    embed document TEXT VECTORS\n    embed query QUERIES VECTORS\n    embed model\n"
+if ((c!=i+1)|(ismodel==0))&((c!=i+3)|((isdoc|isquery)==0))
+	call eprint "    embed [OPTIONS] document TEXT VECTORS\n    embed [OPTIONS] query QUERIES VECTORS\n    embed [OPTIONS] model\n    OPTIONS: [-m MODEL] [-d DIMENSION] [-D PREFIX] [-Q PREFIX]\n"
 	sys exit_group 2
 end
 call where
@@ -368,7 +383,7 @@ if ismodel
 	call about
 	sys exit_group 0
 end
-call argv 2 as p n
+call argv i+1 as p n
 call fileread p n raw as r
 ifslt r 0
 	call fail "cannot read " p n
@@ -400,7 +415,7 @@ while n
 	end
 	call bycut line 0
 	if isdoc
-		call byadd line "search_document: "
+		call byadd line dprep dpren
 		call jsonvalue p l as a an kind
 		if kind!=5
 			call fail "a line of the text is no string of JSON" ""
@@ -408,7 +423,7 @@ while n
 		call jsonstr line a an as ok
 		take=1
 	else
-		call byadd line "search_query: "
+		call byadd line qprep qpren
 		# the field before the first tab
 		m=0
 		label tab
@@ -455,7 +470,7 @@ if k
 	call embed k
 end
 # the whole file or none: build reads no half of it
-call argv 3 as p n
+call argv i+2 as p n
 if n>4000
 	call fail "the path of the vectors is too long" ""
 end
@@ -477,4 +492,6 @@ if r
 	call fail "cannot write " p n
 end
 call putn total
-call print " vectors of 768 dimensions\n"
+call print " vectors of "
+call putn dimension
+call print " dimensions\n"

@@ -1,0 +1,169 @@
+# the cache of src/lib/cache.aiw keeps vectors under keys of 32 bytes in
+# a file: what was added and flushed is there when the file is opened
+# again; a record that a run did not use is gone from the file when the
+# run ends, and the others stay; a file that is cut short keeps its
+# whole records, one with a byte changed keeps those before it, and what
+# follows is written over; a file of another dimension and one that is
+# no cache are as good as none and are begun again
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "src/lib/cache.aiw"
+use "tests/lib/cmd.aiw"
+buf c cachesize
+buf k 32
+buf v 16
+buf f 24
+# make k the key of the number x
+fn key x
+	i=0
+	while i<32
+		storeb k+i x*7+i
+		i+=1
+	end
+end
+# add the vector (x, x+1) under the key of x
+fn add x
+	call key x
+	store4 v x
+	store4 v+4 x+1
+	call cacheadd c k v as ok
+	ifz ok
+		call print "no memory\n"
+	end
+end
+# print which of the keys 1 to 6 the cache has, with the first element
+# of each vector
+fn has
+	x=1
+	while x<=6
+		call key x
+		call cacheget c k as p
+		if p
+			load4 p as a
+			load4 p+4 as b
+			call print " "
+			call putn x
+			call print "=("
+			call putn a
+			call print ","
+			call putn b
+			call print ")"
+		end
+		x+=1
+	end
+	call print "\n"
+end
+fn open p n dim
+	call cacheopen c p n dim as r
+	call print "open "
+	call print p n
+	call print ": "
+	ifslt r 0
+		call print "error "
+		call putn 0-r
+	else
+		call cachecount c as count
+		call putn count
+		call print " records"
+	end
+	call print "\n"
+end
+fn size p n
+	call bycut f 0
+	call fileread p n f as r
+	call print p n
+	call print " has "
+	load f+8 as m
+	call putn m
+	call print " bytes\n"
+end
+call print "# three vectors, flushed in two steps\n"
+call open "c.vec" 2
+call add 1
+call add 2
+call cacheflush c as r
+call putn r
+call print "\n"
+call size "c.vec"
+call add 3
+call add 2
+call cacheflush c as r
+call cacheflush c as r
+call size "c.vec"
+call cacheclose c as r
+call putn r
+call print "\n"
+call size "c.vec"
+call print "# opened again: 1 and 3 are used, 4 is new, 2 is dropped at the end\n"
+call open "c.vec" 2
+call key 1
+call cacheget c k as p
+call key 3
+call cacheget c k as p
+call add 4
+call cacheflush c as r
+call size "c.vec"
+call cacheclose c as r
+call putn r
+call print "\n"
+call size "c.vec"
+call open "c.vec" 2
+call has
+call cacheclose c as r
+call print "# cut short in its last record\n"
+call bycut f 0
+call fileread "c.vec" f
+load f as p
+load f+8 as n
+call filewrite "cut.vec" p n-5
+call open "cut.vec" 2
+call has
+call add 5
+call cacheflush c as r
+call cacheclose c as r
+call size "cut.vec"
+call open "cut.vec" 2
+call has
+call cacheclose c as r
+call print "# a byte of the second record changed, and bytes after the file\n"
+call bycut f 0
+call fileread "c.vec" f
+call byadd f "more bytes"
+load f as p
+load f+8 as n
+loadb p+16+44+33 as x
+storeb p+16+44+33 x^1
+call filewrite "bad.vec" p n
+call open "bad.vec" 2
+call has
+call add 6
+call cacheflush c as r
+call cacheclose c as r
+call size "bad.vec"
+call open "bad.vec" 2
+call has
+call cacheclose c as r
+call print "# another dimension, no cache, and no file\n"
+call open "c.vec" 3
+call cachefree c
+call filewrite "junk.vec" "this is no cache, of more than sixteen bytes\n"
+call open "junk.vec" 2
+call add 1
+call cacheflush c as r
+call cacheclose c as r
+call size "junk.vec"
+call open "junk.vec" 2
+call has
+call cacheclose c as r
+call filewrite "short.vec" "AILDB"
+call open "short.vec" 2
+call cachefree c
+call open "none/c.vec" 2
+call add 1
+call cacheflush c as r
+call print "flush "
+call putn 0-r
+call print "\n"
+call cachefree c

@@ -2,7 +2,18 @@
 
 A local, file-based vector search engine written in [AIL](https://github.com/CristianosLeite/ail). Given the embedding of a query, it returns ranked source locations (path, first and last line) that an agent can open. An index is one portable file, and a query runs locally, without a server.
 
-Embeddings are made outside the engine. The search is exhaustive cosine similarity; SQL, approximate indexes, incremental writes and a network service are outside version 1.
+Embeddings are made outside the engine, by a provider that is a command: a model file run by llama.cpp, Ollama, or a program of one's own. The search is exhaustive cosine similarity; SQL, approximate indexes and a network service are outside version 1.
+
+## A directory, searched in words
+
+After the first command, which names the model once, a directory is searched in words and its index follows the files by itself, with no service and no watcher:
+
+```
+aildb index ~/src/project -i nomic-embed-text -d 768 -s 'document_prefix=search_document: ' -s 'query_prefix=search_query: ' -- aildb-llama -m ~/models/nomic-embed-text-v1.5.f16.gguf
+aildb search ~/src/project --text "what happens when a build is interrupted" -k 5
+```
+
+A search looks at the files first and indexes what changed, committed or not. [docs/install.md](docs/install.md) is the whole way from nothing, [docs/index.md](docs/index.md) what the index of a directory is, and [docs/provider.md](docs/provider.md) the providers. These commands are in the sources and in no release yet.
 
 ## Install
 
@@ -14,7 +25,7 @@ tar -xzf aildb-0.1.1-x86_64-linux.tar.gz
 aildb-0.1.1-x86_64-linux/aildb check an.idx
 ```
 
-Or build it from the sources, with [AIL](https://github.com/CristianosLeite/ail) 0.1.1 or later installed:
+Or build it from the sources, with [AIL](https://github.com/CristianosLeite/ail) 0.1.2 or later installed:
 
 ```
 ail build       # build/aildb, one static executable
@@ -62,8 +73,11 @@ $ build/aildb check index.aildb
 
 ## More
 
-- [docs/usage.md](docs/usage.md): the three commands in full
-- [docs/mcp.md](docs/mcp.md): `aildb-mcp`, the MCP server that lets Claude Code or Codex search an index in words, and `make index`, which makes the index of a repository for it
+- [docs/usage.md](docs/usage.md): the commands in full
+- [docs/install.md](docs/install.md): from nothing to a directory searched in words, with a model that runs with no service
+- [docs/index.md](docs/index.md): `aildb index` and `aildb search --text`, the index of a directory that follows its files
+- [docs/provider.md](docs/provider.md): the embedding provider, `aildb-llama` and `aildb-ollama`, and the protocol for one's own
+- [docs/mcp.md](docs/mcp.md): `aildb-mcp`, the MCP server that lets Claude Code or Codex search a directory or a snapshot in words, and `make index`, which makes the index of a revision of a repository
 - [docs/library.md](docs/library.md): aildb as a dependency of a program written in AIL
 - [docs/example.md](docs/example.md): `make example`, which indexes the AIL repository with a local embedding model and queries it
 - [docs/evaluation.md](docs/evaluation.md): `make eval`, how well queries find their lines
@@ -75,4 +89,4 @@ $ build/aildb check index.aildb
 
 ## License
 
-Copyright 2026 Cristiano Leite. [Apache License 2.0](LICENSE). An executable of aildb has code of the AIL library in it, under the MIT License: [NOTICE](NOTICE) goes with every copy.
+Copyright 2026 Cristiano Leite. [Apache License 2.0](LICENSE). An executable of aildb has code of the AIL library and of ail-extensions in it, under the MIT License: [NOTICE](NOTICE) goes with every copy.

@@ -36,20 +36,64 @@ $ embed document absent.jsonl bad.bin
 embed: cannot read absent.jsonl
 status 1
 $ embed query q.tsv
-    embed document TEXT VECTORS
-    embed query QUERIES VECTORS
-    embed model
+    embed [OPTIONS] document TEXT VECTORS
+    embed [OPTIONS] query QUERIES VECTORS
+    embed [OPTIONS] model
+    OPTIONS: [-m MODEL] [-d DIMENSION] [-D PREFIX] [-Q PREFIX]
 status 2
 $ embed other q.tsv q.bin
-    embed document TEXT VECTORS
-    embed query QUERIES VECTORS
-    embed model
+    embed [OPTIONS] document TEXT VECTORS
+    embed [OPTIONS] query QUERIES VECTORS
+    embed [OPTIONS] model
+    OPTIONS: [-m MODEL] [-d DIMENSION] [-D PREFIX] [-Q PREFIX]
 status 2
 bad.bin or its part is there: 0
 $ embed document big.jsonl bad.bin, with 32 MiB of memory
 embed: no memory
 status 1
 bad.bin or its part is there: 0
+# the options: other prefixes, another dimension, another model
+$ embed -D X: -Q Y:Z: document t.jsonl v.bin
+1 vectors of 768 dimensions
+status 0
+3072 bytes: (4 341 1)
+$ embed -D X: -Q Y:Z: query q.tsv q.bin
+1 vectors of 768 dimensions
+status 0
+3072 bytes: (7 589 1)
+$ embed -d 3 document t.jsonl three.bin
+1 vectors of 3 dimensions
+status 0
+12 bytes
+$ embed -d 3 document t.jsonl bad.bin
+embed: a vector is not 3 finite numbers
+status 1
+$ embed -m other model
+Ollama 9.9.9, other:latest: digest 00, ?, a context of ? tokens
+status 0
+$ embed -m none model
+embed: Ollama has no model none
+status 1
+$ embed -d 0 document t.jsonl bad.bin
+    embed [OPTIONS] document TEXT VECTORS
+    embed [OPTIONS] query QUERIES VECTORS
+    embed [OPTIONS] model
+    OPTIONS: [-m MODEL] [-d DIMENSION] [-D PREFIX] [-Q PREFIX]
+status 2
+$ embed -d 70000 document t.jsonl bad.bin
+    embed [OPTIONS] document TEXT VECTORS
+    embed [OPTIONS] query QUERIES VECTORS
+    embed [OPTIONS] model
+    OPTIONS: [-m MODEL] [-d DIMENSION] [-D PREFIX] [-Q PREFIX]
+status 2
+$ embed -x 1 document t.jsonl bad.bin
+    embed [OPTIONS] document TEXT VECTORS
+    embed [OPTIONS] query QUERIES VECTORS
+    embed [OPTIONS] model
+    OPTIONS: [-m MODEL] [-d DIMENSION] [-D PREFIX] [-Q PREFIX]
+status 2
+$ embed -m model
+status 18446744073709551605
 $ embed document t.jsonl bad.bin
 embed: Ollama cannot be asked: error 111
 status 1

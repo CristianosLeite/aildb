@@ -1,0 +1,342 @@
+# src/lib/cache.aiw -- the vectors that an index keeps, so that a text
+# whose vector the provider gave once is not asked for again: a file of
+# records, each a key of 32 bytes, a vector and a CRC-32 of the two.
+# docs/index.md has the file. The key is chosen by the caller and says
+# what the vector is of; the file holds the vectors of one dimension,
+# and those of one provider, which is the caller's to see to.
+#
+# The file may be lost: it is read as far as it is good, a record that
+# is cut short or does not have its sum ends it, and a file that is no
+# such file is as good as none. New records are added at its end as they
+# come, so that what a run got before it was stopped is there for the
+# next; a record that the run did not use is left out when the run ends.
+#
+# A cache is cachesize bytes that the caller owns. The functions return
+# what they found and print nothing. Every name of this file starts with
+# "cache"; a program has no var of such a name.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/map.aiw"
+use "src/lib/crc.aiw"
+
+const cachesize 136
+# what the cachesize bytes hold: the records in memory at 0, each a key
+# and a vector; at 24 the map from the first 8 bytes of a key to the
+# number of its record; at 56 the dimension; at 64 a byte for each
+# record, 1 if this run used it; at 88 the path of the file, with a NUL
+# byte; at 112 the number of records that the file has; at 120 the bytes
+# of the file that are good, 0 for a file that is to be begun; at 128
+# the number of records
+const cachepwrite 18
+const cacheftruncate 77
+buf cachework 24        # a file as it is read, and records as they go out
+data cachemagic "AILDBVEC"
+
+# the address of the record cachei of the cache and its length in memory
+fn cacherec cachec cachei
+	load cachec as cachep
+	load cachec+56 as cached
+	cachen=32+cached*4
+	ret cachep+cachei*cachen cachen
+end
+
+# the number of the record with the 32 bytes at cachek as its key and 1,
+# or 0 and 0
+fn cachefind cachec cachek
+	load cachek as cachex
+	call mapget cachec+24 cachex as cachei cacheok
+	ifz cacheok
+		ret 0 0
+	end
+	call cacherec cachec cachei as cachep cachen
+	cachej=0
+	while cachej<32
+		load cachep+cachej as cachea
+		load cachek+cachej as cacheb
+		if cachea!=cacheb
+			ret 0 0
+		end
+		cachej+=8
+	end
+	ret cachei 1
+end
+
+# add a record in memory, the key at cachek and the vector at cachev,
+# with cacheu as its byte of use: 1, or 0 without memory
+fn cachepush cachec cachek cachev cacheu
+	load cachec+56 as cached
+	load cachec+128 as cachei
+	call byadd cachec cachek 32
+	call byadd cachec cachev cached*4 as cachea
+	call byaddb cachec+64 cacheu as cacheb
+	load cachek as cachex
+	call mapput cachec+24 cachex cachei as cacheok
+	ifz cachea&cacheb&cacheok
+		ret 0
+	end
+	store cachec+128 cachei+1
+	ret 1
+end
+
+# Make the cachesize bytes at cachec the cache of the file at the path
+# cachep cachen, for vectors of cached binary32: the records of the file
+# that are good are read. 0, or the error of the kernel: -12 without
+# memory, or what reading the file gave. A file that is not there, one
+# of another dimension and one that is no such file give a cache with no
+# record, and the file is begun again by the first cacheflush.
+fn cacheopen cachec cachep cachen cached
+	cachei=0
+	while cachei<cachesize
+		store cachec+cachei 0
+		cachei+=8
+	end
+	store cachec+56 cached
+	call byadd cachec+88 cachep cachen
+	call byaddb cachec+88 0 as cacheok
+	ifz cacheok
+		ret -12
+	end
+	call bycut cachework 0
+	call fileread cachep cachen cachework as cacher
+	if cacher==-2
+		ret 0
+	end
+	ifslt cacher 0
+		ret cacher
+	end
+	load cachework as cacheq
+	load cachework+8 as cachem
+	if cachem<16
+		ret 0
+	end
+	load cacheq as cachex
+	load cachemagic as cachey
+	load4 cacheq+8 as cachea
+	load4 cacheq+12 as cacheb
+	if (cachex!=cachey)|(cachea!=1)|(cacheb!=cached)
+		ret 0
+	end
+	cachel=36+cached*4
+	cacheo=16
+	label more
+	if cacheo+cachel<=cachem
+		call crc32 0 cacheq+cacheo cachel-4 as cachex
+		load4 cacheq+cacheo+cachel-4 as cachey
+		if cachex==cachey
+			call cachepush cachec cacheq+cacheo cacheq+cacheo+32 0 as cacheok
+			ifz cacheok
+				ret -12
+			end
+			cacheo+=cachel
+			jmp more
+		end
+	end
+	store cachec+120 cacheo
+	load cachec+128 as cachei
+	store cachec+112 cachei
+	ret 0
+end
+
+# The vector of the key of 32 bytes at cachek, its address, or 0 if the
+# cache has none. The address is good until the next cacheadd. The
+# record is one that this run used.
+fn cacheget cachec cachek
+	call cachefind cachec cachek as cachei cacheok
+	ifz cacheok
+		ret 0
+	end
+	load cachec+64 as cachep
+	storeb cachep+cachei 1
+	call cacherec cachec cachei as cachep cachen
+	ret cachep+32
+end
+
+# Keep the vector at cachev under the key at cachek, if the cache has
+# none for it: 1, or 0 without memory.
+fn cacheadd cachec cachek cachev
+	call cachefind cachec cachek as cachei cacheok
+	if cacheok
+		load cachec+64 as cachep
+		storeb cachep+cachei 1
+		ret 1
+	end
+	tail cachepush cachec cachek cachev 1
+end
+
+# the number of records
+fn cachecount cachec
+	load cachec+128 as cachei
+	ret cachei
+end
+
+# add to cachework the records from cachei on as the file has them, with
+# their sums, those that this run used alone if cacheonly: 1, or 0
+# without memory
+fn cachepack cachec cachei cacheonly
+	local cachesum 8
+	load cachec+128 as cachek
+	cacheok=1
+	while cachei<cachek
+		load cachec+64 as cacheu
+		loadb cacheu+cachei as cacheu
+		if cacheu|(cacheonly==0)
+			call cacherec cachec cachei as cachep cachen
+			call crc32 0 cachep cachen as cachex
+			store cachesum cachex
+			call byadd cachework cachep cachen
+			call byadd cachework cachesum 4 as cacheok
+			ifz cacheok
+				ret 0
+			end
+		end
+		cachei+=1
+	end
+	ret cacheok
+end
+
+# add the 16 bytes that begin a file to cachework
+fn cachehead cachec
+	local cacheh 16
+	load cachemagic as cachex
+	store cacheh cachex
+	store4 cacheh+8 1
+	load cachec+56 as cached
+	store4 cacheh+12 cached
+	tail byadd cachework cacheh 16
+end
+
+# write the cachen bytes at cachep to the file cachefd at the offset
+# cacheo: 0, or the error of the kernel
+fn cachewrite cachefd cachep cachen cacheo
+	while cachen
+		sys cachepwrite cachefd cachep cachen cacheo as cacher
+		ifz cacher
+			cacher=-5
+		end
+		ifslt cacher 0
+			if cacher!=-4
+				ret cacher
+			end
+			cacher=0
+		end
+		cachep+=cacher
+		cachen-=cacher
+		cacheo+=cacher
+	end
+	ret 0
+end
+
+# Add the records that the file has not got yet to its end: 0, or the
+# error of the kernel, after which the file is as good as it was. A file
+# that was no cache is begun again.
+fn cacheflush cachec
+	load cachec+112 as cachei
+	load cachec+128 as cachek
+	load cachec+120 as cacheo
+	if (cachei==cachek)&(cacheo!=0)
+		ret 0
+	end
+	call bycut cachework 0
+	ifz cacheo
+		call cachehead cachec as cacheok
+		ifz cacheok
+			ret -12
+		end
+		cachei=0
+	end
+	call cachepack cachec cachei 0 as cacheok
+	ifz cacheok
+		ret -12
+	end
+	load cachec+88 as cachep
+	load cachec+96 as cachen
+	# O_WRONLY, O_CREAT and O_NOFOLLOW: a link at the name is not written through
+	call fileopen cachep cachen-1 0x20041 420 as cachefd
+	ifslt cachefd 0
+		ret cachefd
+	end
+	# what stands after the good bytes is no record
+	sys cacheftruncate cachefd cacheo as cacher
+	ifz cacher
+		load cachework as cachep
+		load cachework+8 as cachen
+		call cachewrite cachefd cachep cachen cacheo as cacher
+	end
+	sys close cachefd
+	if cacher
+		ret cacher
+	end
+	load cachework+8 as cachen
+	store cachec+120 cacheo+cachen
+	store cachec+112 cachek
+	ret 0
+end
+
+# Make the file at the path cachep cachen hold the cachem bytes at
+# cacheq: what is at the name is removed and the file made new (O_EXCL),
+# so nothing that is there is written to, a link least of all. 0, or the
+# error of the kernel.
+fn cachesave cachep cachen cacheq cachem
+	call fileunlink cachep cachen
+	# O_WRONLY, O_CREAT, O_EXCL and O_NOFOLLOW
+	call fileopen cachep cachen 0x200c1 420 as cachefd
+	ifslt cachefd 0
+		ret cachefd
+	end
+	call cachewrite cachefd cacheq cachem 0 as cacher
+	sys close cachefd as cachee
+	if cacher
+		ret cacher
+	end
+	ret cachee
+end
+
+# End the cache: if it has a record that this run did not use, the file
+# is written anew without those, to a file of its name and ".new" that
+# then takes its place; the memory is given back. 0, or the error of the
+# kernel, after which the file is the one it was.
+fn cacheclose cachec
+	local cachez 4096
+	load cachec+128 as cachek
+	load cachec+64 as cacheu
+	cachei=0
+	cachel=0
+	while cachei<cachek
+		loadb cacheu+cachei as cachex
+		cachel+=cachex
+		cachei+=1
+	end
+	cacher=0
+	if cachel<cachek
+		call bycut cachework 0
+		call cachehead cachec as cachea
+		call cachepack cachec 0 1 as cacheb
+		load cachec+88 as cachep
+		load cachec+96 as cachen
+		cacher=-12
+		if cachea&cacheb&(cachen+4<4096)
+			call bycopy cachez cachep cachen-1
+			call bycopy cachez+cachen-1 ".new\0"
+			load cachework as cacheq
+			load cachework+8 as cachem
+			call cachesave cachez cachen+3 cacheq cachem as cacher
+			ifsge cacher 0
+				sys rename cachez cachep as cacher
+			end
+		end
+	end
+	call cachefree cachec
+	ret cacher
+end
+
+# give the memory of the cache back
+fn cachefree cachec
+	call byfree cachec
+	call mapfree cachec+24
+	call byfree cachec+64
+	call byfree cachec+88
+	store cachec+128 0
+	store cachec+112 0
+	store cachec+120 0
+end

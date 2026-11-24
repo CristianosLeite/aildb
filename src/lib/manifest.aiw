@@ -1,0 +1,392 @@
+# src/lib/manifest.aiw -- the manifest of an index of a directory: which
+# files the snapshot was made of, what the filesystem said of each, the
+# SHA-256 of its bytes, and its chunks with the key of the vector of
+# each. With it a run tells a file that did not change without reading
+# it, and makes its records again without cutting it. docs/index.md has
+# the file, which is text.
+#
+# A manifest says of which snapshot it is, by the size and the two sums
+# of that file, and of which provider, by the identity of its
+# configuration; the caller compares both before it believes anything
+# else in it. A file that is no manifest is as good as none.
+#
+# A manifest that was read is mansize bytes that the caller owns. The
+# functions return what they found and print nothing. Every name of
+# this file starts with "man"; a program has no var of such a name.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/map.aiw"
+use "src/lib/text.aiw"
+
+const mansize 120
+# what the mansize bytes hold: the text at 0; at 24 the map from the
+# hash of a path to the offset of the line of its file; at 56, 1 if the
+# text is a manifest; at 64 the address of the 64 digits of the
+# identity; at 72 the size of the snapshot, at 80 the sum of its header
+# and metadata and at 88 that of its vectors; at 96 the nanoseconds at
+# which the run that wrote it began; at 104 the address of the 64 digits
+# of the state; at 112 the number of files
+# and what manentry writes of a file, maninfo bytes
+const maninfo 64
+const manfsize 0        # its size
+const manfmtime 8       # the nanoseconds of its last change of contents
+const manfctime 16      # and of its last change of anything
+const manfsha 24        # the address of the 64 digits of its SHA-256, or 0 for a file that was not read
+const manfwhy 32        # why it gave no chunk, a reason of the chunker, or 0
+const manfchunks 40     # the number of its chunks
+const manffirst 48      # the address of the line of the first
+const manfend 56        # and the address after the last
+
+# a number for the mann bytes at manp (FNV-1a, 64 bits)
+fn manhash manp mann
+	manh=0xcbf29ce484222325
+	mani=0
+	while mani<mann
+		loadb manp+mani as manc
+		manh=(manh^manc)*0x100000001b3
+		mani+=1
+	end
+	ret manh
+end
+
+# the field that starts at manp and ends before mane: its length, and 1
+# if a tab follows it or 0 if it is the last of its line
+fn manfield manp mane
+	mani=0
+	label more
+	if manp+mani<mane
+		loadb manp+mani as manc
+		if manc==9
+			ret mani 1
+		end
+		if manc!=10
+			mani+=1
+			jmp more
+		end
+	end
+	ret mani 0
+end
+
+# the number in the field at manp, which ends before mane: its value,
+# the address after the field and its tab, and 1; or zeros
+fn mannum manp mane
+	call manfield manp mane as manl mant
+	call textnum manp manl as manv manok
+	ifz manok
+		ret 0 0 0
+	end
+	ret manv manp+manl+mant 1
+end
+
+# 1 if the mann bytes at manp are 64 hexadecimal digits, the letters
+# small
+fn manhex manp mann
+	if mann!=64
+		ret 0
+	end
+	mani=0
+	while mani<64
+		loadb manp+mani as manc
+		if (manc-48>9)&(manc-97>5)
+			ret 0
+		end
+		mani+=1
+	end
+	ret 1
+end
+
+# What the line of a file at manp says, written to the maninfo bytes at
+# mano; mane is the address after the text. 1, or 0 for a line that is
+# none or whose chunks are not all there. The path is the field after
+# "file", which the caller has.
+fn manentry manp mane mano
+	call textprefix manp mane-manp "file\t" as manok
+	ifz manok
+		ret 0
+	end
+	manp+=5
+	call manfield manp mane as manl mant
+	ifz mant
+		ret 0
+	end
+	manp+=manl+1
+	call mannum manp mane as manv manp manok
+	ifz manok
+		ret 0
+	end
+	store mano+manfsize manv
+	call mannum manp mane as manv manp manok
+	ifz manok
+		ret 0
+	end
+	store mano+manfmtime manv
+	call mannum manp mane as manv manp manok
+	ifz manok
+		ret 0
+	end
+	store mano+manfctime manv
+	call manfield manp mane as manl mant
+	call manhex manp manl as manok
+	store mano+manfsha 0
+	if manok
+		store mano+manfsha manp
+	else
+		# a file that was not read has a "-" here
+		loadb manp as manc
+		if (manl!=1)|(manc!=45)
+			ret 0
+		end
+	end
+	ifz mant
+		ret 0
+	end
+	manp+=manl+1
+	call mannum manp mane as manv manp manok
+	ifz manok
+		ret 0
+	end
+	store mano+manfwhy manv
+	call manfield manp mane as manl mant
+	call textnum manp manl as manv manok
+	if (manok==0)|(mant!=0)|(manp+manl>=mane)
+		ret 0
+	end
+	store mano+manfchunks manv
+	manp+=manl+1
+	store mano+manffirst manp
+	# the lines of its chunks: two numbers, a language and a key
+	while manv
+		call mannum manp mane as manx manp manok
+		ifz manok
+			ret 0
+		end
+		call mannum manp mane as manx manp manok
+		ifz manok
+			ret 0
+		end
+		call manfield manp mane as manl mant
+		ifz mant
+			ret 0
+		end
+		manp+=manl+1
+		call manfield manp mane as manl mant
+		call manhex manp manl as manok
+		if (manok==0)|(mant!=0)|(manp+manl>=mane)
+			ret 0
+		end
+		manp+=manl+1
+		manv-=1
+	end
+	store mano+manfend manp
+	ret 1
+end
+
+# read the text that the manifest holds: 1 if it is a manifest
+fn manparse manm
+	local mano maninfo
+	load manm as manp
+	load manm+8 as mann
+	mane=manp+mann
+	call textprefix manp mann "aildb-manifest\t1\nidentity\t" as manok
+	ifz manok
+		ret 0
+	end
+	manp+=26
+	call manfield manp mane as manl mant
+	call manhex manp manl as manok
+	if (manok==0)|(mant!=0)
+		ret 0
+	end
+	store manm+64 manp
+	manp+=65
+	call textprefix manp mane-manp "snapshot\t" as manok
+	ifz manok
+		ret 0
+	end
+	manp+=9
+	call mannum manp mane as manv manp manok
+	ifz manok
+		ret 0
+	end
+	store manm+72 manv
+	call mannum manp mane as manv manp manok
+	ifz manok
+		ret 0
+	end
+	store manm+80 manv
+	call mannum manp mane as manv manp manok
+	ifz manok
+		ret 0
+	end
+	store manm+88 manv
+	# the number was the last of its line, and its line feed is passed
+	manp+=1
+	call textprefix manp mane-manp "started\t" as manok
+	ifz manok
+		ret 0
+	end
+	manp+=8
+	call mannum manp mane as manv manp manok
+	ifz manok
+		ret 0
+	end
+	store manm+96 manv
+	manp+=1
+	call textprefix manp mane-manp "state\t" as manok
+	ifz manok
+		ret 0
+	end
+	manp+=6
+	call manfield manp mane as manl mant
+	call manhex manp manl as manok
+	if (manok==0)|(mant!=0)
+		ret 0
+	end
+	store manm+104 manp
+	manp+=65
+	mank=0
+	while manp<mane
+		call manentry manp mane mano as manok
+		ifz manok
+			ret 0
+		end
+		call manfield manp+5 mane as manl mant
+		call manhash manp+5 manl as manh
+		load manm as manq
+		call mapput manm+24 manh manp-manq as manok
+		ifz manok
+			ret 0
+		end
+		load mano+manfend as manp
+		mank+=1
+	end
+	if manp!=mane
+		ret 0
+	end
+	store manm+112 mank
+	ret 1
+end
+
+# Make the mansize bytes at manm the manifest of the file at the path
+# manp mann: 0, or the error of the kernel for a file that is there and
+# cannot be read, or -12 without memory. A file that is not there and
+# one that is no manifest give a manifest that manvalid says is none.
+fn manopen manm manp mann
+	mani=0
+	while mani<mansize
+		store manm+mani 0
+		mani+=8
+	end
+	call fileread manp mann manm as manr
+	if manr==-2
+		ret 0
+	end
+	ifslt manr 0
+		ret manr
+	end
+	call manparse manm as manok
+	store manm+56 manok
+	ret 0
+end
+
+# 1 if the manifest is one
+fn manvalid manm
+	load manm+56 as manok
+	ret manok
+end
+
+# The line of the file of the path manp mann in the manifest: its
+# address and the address after the text, for manentry, or two zeros if
+# the manifest has no such file.
+fn manfind manm manp mann
+	load manm+56 as manok
+	ifz manok
+		ret 0 0
+	end
+	call manhash manp mann as manh
+	call mapget manm+24 manh as mano manok
+	ifz manok
+		ret 0 0
+	end
+	load manm as manq
+	load manm+8 as manl
+	mane=manq+manl
+	manq+=mano+5
+	call manfield manq mane as manl mant
+	call texteq manq manl manp mann as manok
+	ifz manok
+		ret 0 0
+	end
+	ret manq-5 mane
+end
+
+# give the memory of the manifest back
+fn manfree manm
+	call byfree manm
+	call mapfree manm+24
+	store manm+56 0
+end
+
+# Add the five lines that begin a manifest to the bytes buffer manb: the
+# 64 digits of the identity at manid, the size mans and the two sums
+# mana and manv of the snapshot, the nanoseconds mant, and the 64 digits
+# of the state at manst. 1, or 0 without memory.
+fn manhead manb manid mans mana manv mant manst
+	call byadd manb "aildb-manifest\t1\nidentity\t"
+	call byadd manb manid 64
+	call byadd manb "\nsnapshot\t"
+	call byaddn manb mans
+	call byaddb manb 9
+	call byaddn manb mana
+	call byaddb manb 9
+	call byaddn manb manv
+	call byadd manb "\nstarted\t"
+	call byaddn manb mant
+	call byadd manb "\nstate\t"
+	call byadd manb manst 64
+	tail byaddb manb 10
+end
+
+# Add the line of a file: its path manp mann, what the 32 bytes at
+# manst that treestat wrote say of it, the 64 digits of its SHA-256 at
+# mansha, or a "-" if mansha is 0, the reason manw and the number mank
+# of its chunks, whose lines follow. 1, or 0 without memory.
+fn manfile manb manp mann manst mansha manw mank
+	call byadd manb "file\t"
+	call byadd manb manp mann
+	call byaddb manb 9
+	load manst+8 as manv
+	call byaddn manb manv
+	call byaddb manb 9
+	load manst+16 as manv
+	call byaddn manb manv
+	call byaddb manb 9
+	load manst+24 as manv
+	call byaddn manb manv
+	call byaddb manb 9
+	if mansha
+		call byadd manb mansha 64
+	else
+		call byaddb manb 45
+	end
+	call byaddb manb 9
+	call byaddn manb manw
+	call byaddb manb 9
+	call byaddn manb mank
+	tail byaddb manb 10
+end
+
+# Add the line of a chunk: its first line manf, its last line manl, its
+# language manp mann and the 64 digits of its key at mank. 1, or 0
+# without memory.
+fn manchunk manb manf manl manp mann mank
+	call byaddn manb manf
+	call byaddb manb 9
+	call byaddn manb manl
+	call byaddb manb 9
+	call byadd manb manp mann
+	call byaddb manb 9
+	call byadd manb mank 64
+	tail byaddb manb 10
+end
