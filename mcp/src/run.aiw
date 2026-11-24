@@ -99,3 +99,29 @@ fn said
 	end
 	ret p i
 end
+
+# the last line of what the command said that has a byte on it: its
+# address and length. A command that says several things says why it
+# failed last.
+fn saidlast
+	load se as p
+	load se+8 as n
+	label trim
+	if n
+		loadb p+n-1 as c
+		if c==10
+			n-=1
+			jmp trim
+		end
+	end
+	i=n
+	label back
+	if i
+		loadb p+i-1 as c
+		if c!=10
+			i-=1
+			jmp back
+		end
+	end
+	ret p+i n-i
+end

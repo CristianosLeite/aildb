@@ -7,6 +7,14 @@
 # says which revisions of aildb and of AIL made it. The file .sha256
 # beside the archive is its checksum, as sha256sum prints and checks it.
 #
+# A revision that has the directory adapters/ has the index of a
+# directory and the search by text (docs/install.md), and its archive
+# has what they need beside aildb: the providers aildb-llama and
+# aildb-ollama, and aildb-mcp, the package of mcp/. Their packages name
+# ail-extensions as a dependency, which the command AIL fetches from
+# the network the first time. The archive of an older revision has
+# aildb alone, as it had.
+#
 # The revision of AIL is the one of the checkout the command is in; for
 # an AIL that is installed, which has none, name it: AILREV=<revision>.
 set -eu
@@ -35,17 +43,31 @@ git archive "$commit" | tar -x -C "$d/src"
 version=$(sed -n 's/^version //p' "$d/src/Ailfile")
 [ -n "$version" ] || { echo "dist: $rev has no version in Ailfile" >&2; exit 1; }
 case $ail in */*) ail=$(readlink -f "$ail") ;; esac
-(cd "$d/src" && "$ail" build aildb)
+programs=aildb
+if [ -d "$d/src/adapters" ]; then
+	programs="aildb aildb-llama aildb-ollama aildb-mcp"
+	(cd "$d/src" && "$ail" build)
+	(cd "$d/src/mcp" && "$ail" build aildb-mcp)
+	cp "$d/src/mcp/build/aildb-mcp" "$d/src/build/"
+else
+	(cd "$d/src" && "$ail" build aildb)
+fi
 name=aildb-$version-x86_64-linux
 mkdir "$d/$name"
-cp "$d/src/build/aildb" "$d/src/LICENSE" "$d/src/NOTICE" "$d/$name/"
+cp "$d/src/LICENSE" "$d/src/NOTICE" "$d/$name/"
+for p in $programs; do
+	cp "$d/src/build/$p" "$d/$name/"
+done
 {
 	echo "aildb $version for x86-64 Linux"
 	echo "aildb: $commit ($rev)"
 	echo "AIL: $ailrev ($("$ail" version))"
 } > "$d/$name/BUILD"
 # the same bytes whoever makes it: the modes, the owner and the times
-chmod 755 "$d/$name" "$d/$name/aildb"
+chmod 755 "$d/$name"
+for p in $programs; do
+	chmod 755 "$d/$name/$p"
+done
 chmod 644 "$d/$name/LICENSE" "$d/$name/NOTICE" "$d/$name/BUILD"
 tar -C "$d" --sort=name --owner=0 --group=0 --numeric-owner --mtime=@0 -czf "$d/$name.tar.gz" "$name"
 rm -rf "$d/$name"
