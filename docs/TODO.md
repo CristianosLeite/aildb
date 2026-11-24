@@ -74,12 +74,13 @@ no daemon or filesystem watcher, and wants to choose an embedding provider
 independently of the LLM that asks the questions. It is written
 ([install.md](install.md), [index.md](index.md), [provider.md](provider.md)).
 
-The eight findings of the review of `5eeba0b` are fixed but one
-(`BACKLOG.md`); its choices wait for the user's review
+The eight findings of the review of `5eeba0b` are fixed but one, and
+the six of the review of `6c707bc` but the same one (`BACKLOG.md`);
+their choices wait for the user's review
 (`.agents/knowledge/status/open-items.md`).
 
-- [ ] The AIL that `Ailfile` asks for cannot build the sources (the
-  review of `5eeba0b`): they use `lib/std/sha.aiw` and `procheld` of
+- [ ] The AIL that `Ailfile` asks for cannot build the sources (both
+  reviews): they use `lib/std/sha.aiw` and `procheld` of
   `lib/std/proc.aiw`, the pull requests 33 and 34 of AIL, which are in
   no version. When the user has given AIL a version with both: the
   lines `ail` of `Ailfile` and `mcp/Ailfile` and the version in
