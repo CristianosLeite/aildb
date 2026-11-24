@@ -1,7 +1,7 @@
 ---
 title: The fixes after the review of 6c707bc
 last-verified: 2026-11-24
-sources: [conversation 2026-11-24, REVIEW.md (never part of the repository), docs/BACKLOG.md (step 17), src/lib/trust.aiw, src/index.aiw, docs/provider.md, tests/lib_trust.aiw, tests/cli_index_trust.aiw, tests/cli_index_refresh.aiw, tests/cli_index_links.aiw, src/lib/cache.aiw, docs/index.md, tests/cli_search_text.aiw]
+sources: [conversation 2026-11-24, REVIEW.md (never part of the repository), docs/BACKLOG.md (step 17), src/lib/trust.aiw, src/index.aiw, docs/provider.md, tests/lib_trust.aiw, tests/cli_index_trust.aiw, tests/cli_index_refresh.aiw, tests/cli_index_links.aiw, src/lib/cache.aiw, docs/index.md, tests/cli_search_text.aiw, adapters/llama.aiw, the pull request 34 of AIL (880195c)]
 status: current
 ---
 # The fixes after the review of 6c707bc
@@ -122,3 +122,28 @@ findings marked P1 and three marked P2. Each fix is one commit of the branch
 - **The review's own case**, a directory at `config.new`, is now refused before
   anything by the look at the names of `.aildb`; the test of the write failure makes
   `.aildb` not writable instead, which a run as root would not notice.
+
+## A child that is not held (P2, in AIL)
+
+- **Finding.** `procheld` did not look at what `prctl(PR_SET_PDEATHSIG)` returned; under
+  a filter of system calls that denies it the program ran with nothing to end it.
+  `adapters/llama.aiw` had its own fork with the same gap, and looked only whether its
+  parent was the process 1.
+- **Decision (agent, 2026-11-24).** In AIL, the child ends with status 127 when
+  `prctl` fails, as for every other failure before the exec: the second commit of its
+  pull request 34 (`880195c`), with a third case of `tests/lib_proc_held.aiw` that
+  denies the request with a seccomp filter (the case printed "the program was started"
+  with the old code). Here, `aildb-llama` starts its program with `procheld` and has no
+  fork of its own; `/usr/bin/env`, which was there to look in `PATH`, is gone, since
+  `procheld` looks there.
+- **What a refusal looks like.** A provider under such a filter is a command that
+  ends with 127: status 7 of `aildb`, "the provider could not be started". Nothing
+  says that the filter is the reason.
+- **Not tested here.** That the program of `aildb-llama` ends with the adapter: by
+  hand, as before.
+
+## The version of AIL (P1)
+
+Open as it was: the sources need the pull requests 33 and 34 of AIL, 34 now with two
+commits, and `Ailfile` names 0.1.1. The version is the user's to give
+(`docs/TODO.md`, `status/open-items.md`).

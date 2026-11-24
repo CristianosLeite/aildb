@@ -37,9 +37,6 @@ use "lib/std/json.aiw"
 
 const memfd 319
 const lseek 8
-const dup2 33
-const getppid 110
-const prctl 157
 buf in 24       # the request
 buf texts 24    # what the program reads
 buf so 24       # what it printed
@@ -247,8 +244,7 @@ ifz count
 	sys exit_group 0
 end
 
-# the program, through env, which looks for it in PATH
-call arg "/usr/bin/env"
+# the program, which procheld looks for in PATH
 call arg xp xn
 call arg "-m"
 call arg mp mn
@@ -285,23 +281,10 @@ load texts+8 as n
 call memfile p n as fin
 call memfile 0 0 as fout
 call memfile 0 0 as ferr
-call procenv as env
-sys fork as pid
-ifz pid
-	# the child: it is to end when this program is killed, as it is when
-	# it takes longer than aildb allows
-	sys prctl 1 9
-	sys getppid as parent
-	if parent==1
-		sys exit 127
-	end
-	sys dup2 fin 0
-	sys dup2 fout 1
-	sys dup2 ferr 2
-	load vec as z
-	sys execve z vec env
-	sys exit 127
-end
+# held: the program is to end when this one is killed, as it is when it
+# takes longer than aildb allows; procheld starts none that the kernel
+# would not hold, and looks for the program in PATH
+call procheld vec fin fout ferr as pid
 ifslt pid 0
 	call fail "cannot start a process" ""
 end

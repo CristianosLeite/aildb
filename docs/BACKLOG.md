@@ -646,4 +646,13 @@ each chose.
   they were; a change killed after its snapshot has its name is ended
   by the next search, which answers with the new model and asks for
   its query alone.
+- [x] `procheld` of AIL started the program when the kernel refused to
+  hold the child, and `aildb-llama` had a start of its own with the
+  same gap and a check of the parent that only saw a parent that had
+  ended. `procheld` now starts no program then (the second commit of
+  the pull request 34 of AIL, with a test under a filter of system
+  calls), and `adapters/llama.aiw` starts `llama-embedding` with it,
+  without `/usr/bin/env` in between. `tests/adapter_llama.aiw` prints
+  what it printed; that the program ends with the adapter was checked
+  by hand, a script that sleeps gone after `kill -9` of the adapter.
 

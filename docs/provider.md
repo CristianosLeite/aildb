@@ -357,8 +357,10 @@ loaded for each request and gone after it.
   by it, so the last text of a request loses one if it ends with one. A
   chunk does not end with a line feed.
 - **The program ends when the adapter is killed**: it is started with
-  the request that the kernel kill it when its parent dies, so a request
-  that takes too long leaves no llama.cpp behind.
+  `procheld` of AIL, as aildb starts a provider, with the request that
+  the kernel kill it when its parent dies, so a request that takes too
+  long leaves no llama.cpp behind. Where the kernel refuses that
+  request, the program is not started and the adapter ends with 1.
 - The status is 0, 2 for wrong usage, and 1 with a line on stderr for a
   request that is none or a program that cannot be started, fails or
   prints no embeddings; the line has the last line the program said.

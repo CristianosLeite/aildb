@@ -90,13 +90,15 @@ for review.
 - **`aildb-llama` asks for vectors that are not divided by their norm** (agent,
   2026-11-24): the program prints seven decimals, so a number near 1 keeps more digits
   than one near 0.03, and aildb normalizes.
-- **The program of `aildb-llama` dies with it** (agent, 2026-11-24): the adapter forks
-  itself, asks the kernel to kill the child when the parent dies (`prctl`,
-  `PR_SET_PDEATHSIG`), and starts the program through `/usr/bin/env`, which looks for it
-  in `PATH`; `procstart` of AIL has no place for the request between its fork and its
-  exec. Checked by hand: a program that sleeps was gone after `kill -9` of the adapter.
-  Rejected: a process group of the provider that aildb kills, which takes the provider
-  out of the group that Ctrl-C of a terminal ends.
+- **The program of `aildb-llama` dies with it** (agent, 2026-11-24): the adapter starts
+  it with `procheld` of AIL since the review of `6c707bc` ([page](review-6c707bc.md)).
+  Before, it forked itself, asked the kernel to kill the child when the parent dies
+  (`prctl`, `PR_SET_PDEATHSIG`) without a look at the answer, and started the program
+  through `/usr/bin/env`, because `procstart` had no place for the request between its
+  fork and its exec; `procheld` is that place. Checked by hand again on 2026-11-24: a
+  program that sleeps was gone after `kill -9` of the adapter. Rejected: a process
+  group of the provider that aildb kills, which takes the provider out of the group
+  that Ctrl-C of a terminal ends.
 - **The adapters pass the numbers on as text** (agent, 2026-11-24): they copy the bytes
   of each vector into the answer, and aildb reads and checks them once.
 - **`adapters/lib/ollama.aiw` is shared with `build/embed`** (agent, 2026-11-24): the
