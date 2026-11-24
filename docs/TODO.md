@@ -14,9 +14,10 @@ to `BACKLOG.md`, under the same section.
 
 ## 1. binary32 in AIL (work in the AIL repository)
 
-The statements are written and in `main` of AIL (`docs/BACKLOG.md`).
+The statements are written and in `main` of AIL, and float literals are
+written in a pull request of AIL (`docs/BACKLOG.md`).
 
-- [ ] Float literals (user's proposal): not needed for version 1.
+Nothing is left of this step here.
 
 ## 12. aildb as a package
 

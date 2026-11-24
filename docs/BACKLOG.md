@@ -48,6 +48,13 @@ and `a5b4559`, 2026-11-21); `make test` passed there.
   fetched it, built the compiler from the seed and passed `make test`.
   The branch was merged into `main` there afterwards (`e8acf57`) with
   its commits kept, so the pin stays.
+- [x] Float literals in AIL (user's proposal of 2026-11-21, asked for on
+  2026-11-24 with every open item): `1.5`, `-0.25`, `2.5e-3` are the
+  64 bits of the nearest double wherever a number is read. Written in
+  the AIL repository, its branch `float-literals` and its pull request
+  32, at `f800bb2`: the compiler reads a literal with `numdouble` of
+  `lib/std/num.aiw`, and its `make test` passes. aildb writes no float
+  literal: its `Ailfile` asks for AIL 0.1.1, which has none.
 
 ## 2. Skeleton
 
