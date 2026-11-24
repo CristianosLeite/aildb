@@ -171,7 +171,11 @@ another run holds the lock, it waits for it, looking every 50 ms, for the
 time `-w` gives or the time of a request of the provider, and then looks
 at the files itself; a run that is still going after that is status 5.
 Waiting is what makes a search after an edit see the edit, and a first
-search has no older snapshot to fall back on.
+search has no older snapshot to fall back on. With the lock it reads the
+configuration again and looks once more whether the index is up to date:
+the run it waited for may have changed the provider, and has usually made
+the snapshot what the files are, so that nothing is left to do but the
+query, which is asked of the provider the configuration names then.
 
 - **The revision is not asked of git for an index that is up to date.**
   A snapshot whose files did not change still has the revision it was

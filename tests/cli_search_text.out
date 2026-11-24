@@ -255,3 +255,15 @@ $ aildb search p --text 'last' -k 1
 --- status 0
 --- provider.log
 query 1 m2
+# a search that waits for a run which changes the provider asks the new one
+$ aildb search p --text 'queued' -k 1 -w 5000
+--- stdout
+{"source_revision":null,"model":"m3"}
+{"rank":1,"score":1.000000,"score_bits":"3ff00000054ff196","path":"h.txt","start_line":1,"end_line":1}
+--- stderr
+--- status 0
+--- provider.log
+documents 8 m3
+query 1 m3
+{"records":8,"dimension":8,"model":"m3","source_revision":null,"files":7,"embedded":8,"published":true}
+model	m3

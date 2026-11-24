@@ -522,3 +522,13 @@ each chose.
   asks for nothing that the killed run got. `build/provider-fake` reads
   faults from a file `provider.fault` too, since a test can no longer
   make a configuration by a run that fails and edit it.
+- [x] A search by text read the configuration, found the index not up
+  to date and waited for the lock; a run that held it and changed the
+  provider meanwhile was followed by a refresh with the configuration
+  read before, which published a snapshot of the old model under the
+  new configuration. With the lock the search now reads the
+  configuration again and looks again whether the index is up to date.
+  Test `tests/cli_search_text.aiw`: a search started while a run with a
+  slow provider changes the model answers with the new model and asks
+  for its query alone (before the fix: the documents and the query of
+  the old model).

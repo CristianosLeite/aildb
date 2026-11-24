@@ -1310,7 +1310,14 @@ fn textsearch
 	call ixfresh as fresh
 	ifz fresh
 		call ixlockwait wait
-		call ixrefresh
+		# the run that held the lock may have changed the provider, and
+		# made the snapshot what the files are: both are looked at again
+		call conffree ixconf
+		call ixconfig 0
+		call ixfresh as fresh
+		ifz fresh
+			call ixrefresh
+		end
 	end
 	call hookmark 2
 	# snap is the snapshot now; the query

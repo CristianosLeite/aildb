@@ -50,3 +50,22 @@ was chosen by the agent and is for the user to review.
   `exit3` and took the fault out of `config` with `sed`. That gives no configuration
   now: they index and remove the snapshot, and faults that come and go are words of a
   file `provider.fault` that `build/provider-fake` reads beside its arguments.
+
+## A search that waited for the lock (P2)
+
+- **Finding.** `textsearch` read the configuration, found the index stale, waited for
+  the lock, and refreshed with what it had read. Behind a run that changed the provider
+  it published a snapshot of the old model while `config` named the new one. Reproduced
+  in the test before the fix: the log of the provider had `documents 8 m2` and
+  `query 1 m2` after the run of `m3`.
+- **Decision (agent, 2026-11-24).** With the lock, the configuration is read again and
+  `ixfresh` is asked again; the refresh runs only if the index is still stale. So a
+  search that waited for a run of the same files does no run of its own any more,
+  which is also less work.
+- **The path without the lock** needs nothing: `ixmanifest` opens the snapshot only
+  if the manifest has the identity of the configuration in memory and the size and the
+  sums of the snapshot, so the three are of one another or the search goes to the lock.
+- **Test.** `build/provider-fake` has the word `slow`: the first request makes a file
+  `provider.started` and waits a second. The test starts the run that changes the
+  model, waits for that file and searches; a search that came too late for the lock
+  would print the same, so the test cannot fail by timing, only not show the fault.

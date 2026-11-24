@@ -13,7 +13,9 @@
 # holds for longer than the search waits. Last, a change of the
 # provider that does not get to its snapshot, because the provider
 # fails or the run is killed before it publishes: the configuration is
-# the one it was, and the search is of the snapshot that is there.
+# the one it was, and the search is of the snapshot that is there; and
+# a search that waits for a run which changes the provider, a slow one,
+# and then asks the new provider for its query and for nothing else.
 use "lib/std/io.aiw"
 use "lib/std/bytes.aiw"
 use "lib/std/file.aiw"
@@ -173,3 +175,11 @@ call print "# the change itself\n"
 call dirrun "index p -i m2 -d 8 -- FAKE spread"
 call find "p" "last" "-k 1"
 call dirasked
+call print "# a search that waits for a run which changes the provider asks the new one\n"
+call dirsh "printf slow > provider.fault\nprintf 'queued\\n' > p/h.txt\n"
+call dirspawn "index p -i m3 -d 8 -- FAKE spread" as pid
+call cmdawait "provider.started" 5000 as r
+call find "p" "queued" "-k 1 -w 5000"
+call procwait pid 5000 as x
+call dirasked
+call dirsh "cat bg.out bg.err\ngrep model p/.aildb/config\nrm provider.fault provider.started\n"
