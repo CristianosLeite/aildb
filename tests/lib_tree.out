@@ -1,0 +1,50 @@
+# a directory that git ignores, with links and a pipe in it
+--- o: 2 files, git 1, reason 0
+.gitignore
+out.txt
+--- o/p: 0 files, git 1, reason 0
+: kind 2
+B.txt: kind 1, 2 bytes
+sub: kind 2
+link.txt: kind 3
+dir: kind 3
+pipe: kind 4
+none: error 2
+o/p: revision 0
+--- none: 0 files, git 0, reason 2
+# a work tree of git
+r: revision 0
+--- r: 5 files, git 1, reason 0
+.gitignore
+a.md
+gone.md
+other/d.md
+sub/b.md
+r: revision 1, that of HEAD
+# an index in it, which git is told to ignore
+--- r: 5 files, git 1, reason 0
+.gitignore
+a.md
+gone.md
+other/d.md
+sub/b.md
+r: revision 1, that of HEAD
+# a file that is ignored, a new one and one that was removed
+--- r: 5 files, git 1, reason 0
+.gitignore
+a.md
+other/d.md
+sub/b.md
+sub/new.txt
+r: revision 0
+# a directory of it, with nothing changed below it
+--- r/other: 1 files, git 1, reason 0
+d.md
+r/other: revision 1, that of HEAD
+r/sub: revision 0
+# all committed again, and then a file edited
+r: revision 1, that of HEAD
+r: revision 0
+# line ends on disk that are not those of git
+r: revision 1, that of HEAD
+r: revision 0

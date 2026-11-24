@@ -6,7 +6,8 @@
 # It is compiled into an executable by a file that uses lib/std/io.aiw
 # and a file of hooks first: src/aildb.aiw for the one that is shipped.
 #
-# The three commands are build, search and check.
+# The commands are build, search and check, and index, which is
+# src/index.aiw.
 use "lib/std/bytes.aiw"
 use "lib/std/file.aiw"
 use "src/lib/crc.aiw"
@@ -24,6 +25,7 @@ const stinvalid 3       # an invalid snapshot or invalid input
 const stio 4            # an I/O failure
 const stbusy 5          # another build in progress for the destination
 const stunsure 6        # published, durability not confirmed
+const stprovider 7      # the embedding provider failed
 
 buf msg 24              # the line that is being put together
 buf snap 104            # the snapshot of the command
@@ -42,12 +44,15 @@ const pwrite 18
 const flock 73
 const getrandom 318
 buf sigact 32           # how a signal is to be taken: ignored
+# the command index, which names the constants and the buffers above
+use "src/index.aiw"
 
 # print the usage on stderr and end the program
 fn usage
 	call eprint "usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
        aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
        aildb check INDEX
+       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] -- COMMAND [ARGUMENT...]]
 "
 	sys exit_group stusage
 end
@@ -874,5 +879,9 @@ end
 call texteq cp cn "search" as is
 if is
 	call search
+end
+call texteq cp cn "index" as is
+if is
+	call index
 end
 call usage

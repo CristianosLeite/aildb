@@ -1,0 +1,506 @@
+# src/lib/tree.aiw -- the files of a directory that an index is made of,
+# as they are on disk: their paths, what the filesystem says of each,
+# and the revision of git that they are, if they are one.
+#
+# In a work tree of git the files are those git knows and those it does
+# not ignore ("git ls-files --cached --others --exclude-standard"), so
+# the rules of .gitignore are git's own; anywhere else they are all
+# files below the directory. In both, only regular files are taken: a
+# symbolic link is neither followed nor taken, and nothing in a
+# directory named ".aildb", where an index lives, or ".git" is.
+# docs/index.md says more.
+#
+# The functions return what they found and print nothing. Every name of
+# this file starts with "tree"; a program has no var of such a name.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "src/lib/text.aiw"
+use "src/lib/run.aiw"
+
+const treenewfstatat 262
+
+# why a directory could not be listed
+const treemem 1         # no memory
+const treeread 2        # a directory that cannot be read
+const treegit 3         # git ended with a status that is not 0
+
+# what treestat says a path is
+const treefile 1        # a regular file
+const treedir 2         # a directory
+const treelink 3        # a symbolic link
+const treeother 4       # anything else
+
+buf treeout 24          # what git printed
+buf treeerr 24          # and said
+buf treezs 24           # the arguments of git, a NUL byte after each
+buf treeav 24           # and their addresses
+buf treefull 24         # a path below the directory, with a NUL byte
+buf treenames 24        # the names of one directory
+buf treeq 24            # the directories still to be read, relative
+buf treerel 24          # a path relative to the directory
+buf treecand 24         # the files found, a NUL byte after each
+buf treeidx 24          # their addresses
+buf treetmp 24          # and room to sort them in
+var treeargs treeerrno
+
+# start the arguments of git for the directory treedp treedn
+fn treebegin treedp treedn
+	call bycut treezs 0
+	call byadd treezs "git\0-C\0"
+	call byadd treezs treedp treedn
+	call byaddb treezs 0
+	treeargs=3
+end
+
+# add the argument treep treen
+fn treearg treep treen
+	call byadd treezs treep treen
+	call byaddb treezs 0
+	treeargs+=1
+end
+
+# run git with the arguments so far: its status as runcmd gives it, with
+# what it printed in treeout
+fn treego
+	load treezs as treep
+	call runargv treeav treep treeargs as treea
+	ifz treea
+		ret runnone
+	end
+	tail runcmd treea 0 0 treeout treeerr 0
+end
+
+# What the filesystem says of the path treepp treepn below the directory
+# treedp treedn, or of the directory itself if treepn is 0, without
+# following a symbolic link: written to the 32 bytes at treest are what
+# it is (a constant above), its size, and the nanoseconds of its last
+# change of contents and of its last change of anything. 0, or the error
+# of the kernel.
+fn treestat treedp treedn treepp treepn treest
+	local trees 144
+	call bycut treefull 0
+	call byadd treefull treedp treedn
+	if treepn
+		call byaddb treefull 47
+		call byadd treefull treepp treepn
+	end
+	call byaddb treefull 0 as treeok
+	ifz treeok
+		ret -12
+	end
+	load treefull as treep
+	# AT_FDCWD and AT_SYMLINK_NOFOLLOW
+	sys treenewfstatat -100 treep trees 0x100 as treer
+	ifslt treer 0
+		ret treer
+	end
+	load4 trees+24 as treem
+	treem=treem&0xf000
+	treek=treeother
+	if treem==0x8000
+		treek=treefile
+	end
+	if treem==0x4000
+		treek=treedir
+	end
+	if treem==0xa000
+		treek=treelink
+	end
+	store treest treek
+	load trees+48 as treev
+	store treest+8 treev
+	load trees+88 as treev
+	load trees+96 as treew
+	store treest+16 treev*1000000000+treew
+	load trees+104 as treev
+	load trees+112 as treew
+	store treest+24 treev*1000000000+treew
+	ret 0
+end
+
+# 1 if the path of treen bytes at treep has a part that is ".aildb" or
+# ".git"
+fn treeskip treep treen
+	treei=0
+	while treei<treen
+		# the part from treei
+		treej=treei
+		label part
+		if treej<treen
+			loadb treep+treej as treec
+			if treec!=47
+				treej+=1
+				jmp part
+			end
+		end
+		call texteq treep+treei treej-treei ".aildb" as treea
+		call texteq treep+treei treej-treei ".git" as treeb
+		if treea|treeb
+			ret 1
+		end
+		treei=treej+1
+	end
+	ret 0
+end
+
+# add the path treep treen to the files found if it is a regular file
+# below treedp treedn and no part of it is to be passed over: 1, or 0
+# without memory
+fn treetake treedp treedn treep treen
+	local treest 32
+	call treeskip treep treen as treer
+	if treer
+		ret 1
+	end
+	call treestat treedp treedn treep treen treest as treer
+	if treer
+		# not there, as a file that git knows and that was removed
+		ret 1
+	end
+	load treest as treek
+	if treek!=treefile
+		ret 1
+	end
+	call byadd treecand treep treen
+	tail byaddb treecand 0
+end
+
+# the files of a directory that is no work tree of git, into the files
+# found: 0 or a reason
+fn treewalk treedp treedn
+	local treest 32
+	call bycut treeq 0
+	call byaddb treeq 0 as treeok
+	ifz treeok
+		ret treemem
+	end
+	treepos=0
+	label dir
+	load treeq as treep
+	load treeq+8 as treen
+	if treepos>=treen
+		ret 0
+	end
+	call strlen treep+treepos as treel
+	# the directory as a path relative to the root, with a slash after it
+	call bycut treerel 0
+	if treel
+		call byadd treerel treep+treepos treel
+		call byaddb treerel 47 as treeok
+		ifz treeok
+			ret treemem
+		end
+	end
+	treepos+=treel+1
+	load treerel+8 as treebase
+	call bycut treefull 0
+	call byadd treefull treedp treedn
+	if treebase
+		call byaddb treefull 47
+		load treerel as treep
+		call byadd treefull treep treebase-1
+	end
+	load treefull as treep
+	load treefull+8 as treen
+	call bycut treenames 0
+	call filenames treep treen treenames as treek
+	ifslt treek 0
+		treeerrno=treek
+		ret treeread
+	end
+	treeo=0
+	while treek
+		load treenames as treep
+		call strlen treep+treeo as treel
+		call texteq treep+treeo treel ".aildb" as treea
+		call texteq treep+treeo treel ".git" as treeb
+		ifz treea|treeb
+			store treerel+8 treebase
+			call byadd treerel treep+treeo treel as treeok
+			ifz treeok
+				ret treemem
+			end
+			load treerel as treep
+			load treerel+8 as treen
+			call treestat treedp treedn treep treen treest as treer
+			load treest as treekind
+			ifz treer
+				if treekind==treedir
+					call byadd treeq treep treen
+					call byaddb treeq 0 as treeok
+				end
+				if treekind==treefile
+					call byadd treecand treep treen
+					call byaddb treecand 0 as treeok
+				end
+				ifz treeok
+					ret treemem
+				end
+			end
+		end
+		treeo+=treel+1
+		treek-=1
+	end
+	jmp dir
+end
+
+# 1 if the string at treea, which ends with a NUL byte, stands before
+# the one at treeb in the order of their bytes, or is the same
+fn treele treea treeb
+	label more
+	loadb treea as treex
+	loadb treeb as treey
+	if treex<treey
+		ret 1
+	end
+	if treex>treey
+		ret 0
+	end
+	ifz treex
+		ret 1
+	end
+	treea+=1
+	treeb+=1
+	jmp more
+end
+
+# sort the treen addresses of strings at treea in the order of their
+# bytes, with the room of as many at treew: the address of the sorted
+# ones, which is treea or treew
+fn treesort treea treew treen
+	treerun=1
+	while treerun<treen
+		treei=0
+		while treei<treen
+			treel=treei
+			treem=treei+treerun
+			if treem>treen
+				treem=treen
+			end
+			treer=treem
+			treee=treei+treerun*2
+			if treee>treen
+				treee=treen
+			end
+			treeo=treei
+			while treeo<treee
+				treeleft=0
+				if treel<treem
+					treeleft=1
+					if treer<treee
+						load treea+treel*8 as treex
+						load treea+treer*8 as treey
+						call treele treex treey as treeleft
+					end
+				end
+				if treeleft
+					load treea+treel*8 as treex
+					treel+=1
+				else
+					load treea+treer*8 as treex
+					treer+=1
+				end
+				store treew+treeo*8 treex
+				treeo+=1
+			end
+			treei=treee
+		end
+		treex=treea
+		treea=treew
+		treew=treex
+		treerun*=2
+	end
+	ret treea
+end
+
+# The files of the directory treedp treedn that an index is made of:
+# their paths, relative to it, are added to the bytes buffer treeb in
+# the order of their bytes, each once and with a NUL byte after it. The
+# results are their number, 1 if the directory is in a work tree of git
+# and 0 if it is not, and 0; or 0, 0 and a reason, a constant above. A
+# directory in which git cannot be run, or of which git says nothing
+# good, is taken as one that is no work tree.
+fn treelist treedp treedn treeb
+	call bycut treecand 0
+	call treebegin treedp treedn
+	call treearg "rev-parse"
+	call treearg "--is-inside-work-tree"
+	call treego as treest
+	load treeout as treep
+	load treeout+8 as treen
+	call textprefix treep treen "true" as treeis
+	if (treest!=0)|(treeis==0)
+		treeis=0
+		call treewalk treedp treedn as treew
+		if treew
+			ret 0 0 treew
+		end
+	else
+		treeis=1
+		call treebegin treedp treedn
+		call treearg "ls-files"
+		call treearg "-z"
+		call treearg "--cached"
+		call treearg "--others"
+		call treearg "--exclude-standard"
+		call treego as treest
+		if treest
+			ret 0 0 treegit
+		end
+		load treeout as treep
+		load treeout+8 as treen
+		while treen
+			call strlen treep as treel
+			call treetake treedp treedn treep treel as treeok
+			ifz treeok
+				ret 0 0 treemem
+			end
+			treep+=treel+1
+			treen-=treel+1
+		end
+	end
+	# their addresses, sorted
+	load treecand as treep
+	load treecand+8 as treen
+	treek=0
+	treei=0
+	while treei<treen
+		loadb treep+treei as treec
+		ifz treec
+			treek+=1
+		end
+		treei+=1
+	end
+	call bycut treeidx 0
+	call bycut treetmp 0
+	call byneed treeidx treek*8+8 as treea
+	call byneed treetmp treek*8+8 as treeok
+	if (treea==0)|(treeok==0)
+		ret 0 0 treemem
+	end
+	load treeidx as treea
+	load treetmp as treew
+	treei=0
+	while treei<treek
+		store treea+treei*8 treep
+		call strlen treep as treel
+		treep+=treel+1
+		treei+=1
+	end
+	call treesort treea treew treek as treea
+	treecount=0
+	treelast=0
+	treei=0
+	while treei<treek
+		load treea+treei*8 as treep
+		treesame=0
+		if treelast
+			# the same path twice: git names a file once for each side of
+			# a merge that is not done
+			call treele treep treelast as treesame
+		end
+		ifz treesame
+			call strlen treep as treel
+			call byadd treeb treep treel+1 as treeok
+			ifz treeok
+				ret 0 0 treemem
+			end
+			treecount+=1
+			treelast=treep
+		end
+		treei+=1
+	end
+	ret treecount treeis 0
+end
+
+# the error of the kernel for the directory that treelist could not
+# read, after the reason treeread
+fn treewhy
+	ret treeerrno
+end
+
+# The revision of git that the files of the directory treedp treedn are,
+# added to the bytes buffer treeb, and 1; or 0, and nothing added, if
+# they are not one: the directory is in no work tree, git has no commit
+# yet, a file below the directory is changed, added, removed or not
+# known to git, or a file has other line ends on disk than in git. What
+# a filter of git makes of a file beyond its line ends is not seen.
+fn treerev treedp treedn treeb
+	call treebegin treedp treedn
+	call treearg "status"
+	call treearg "--porcelain"
+	call treearg "--"
+	call treearg "."
+	call treego as treest
+	load treeout+8 as treen
+	if (treest!=0)|(treen!=0)
+		ret 0
+	end
+	call treebegin treedp treedn
+	call treearg "ls-files"
+	call treearg "--eol"
+	call treearg "--"
+	call treearg "."
+	call treego as treest
+	if treest
+		ret 0
+	end
+	load treeout as treep
+	load treeout+8 as treen
+	while treen
+		call textline treep treen as treel treeok
+		# "i/" and what git has, blanks, "w/" and what the disk has
+		treei=0
+		label blank
+		if treei<treel
+			loadb treep+treei as treec
+			if (treec!=32)&(treec!=9)
+				treei+=1
+				jmp blank
+			end
+		end
+		treej=treei
+		label skip
+		if treej<treel
+			loadb treep+treej as treec
+			if (treec==32)|(treec==9)
+				treej+=1
+				jmp skip
+			end
+		end
+		treek=treej
+		label word
+		if treek<treel
+			loadb treep+treek as treec
+			if (treec!=32)&(treec!=9)
+				treek+=1
+				jmp word
+			end
+		end
+		if (treei<2)|(treek-treej<2)
+			ret 0
+		end
+		call texteq treep+2 treei-2 treep+treej+2 treek-treej-2 as treesame
+		ifz treesame
+			ret 0
+		end
+		treep+=treel+treeok
+		treen-=treel+treeok
+	end
+	call treebegin treedp treedn
+	call treearg "rev-parse"
+	call treearg "--verify"
+	call treearg "-q"
+	call treearg "HEAD^{commit}"
+	call treego as treest
+	load treeout as treep
+	load treeout+8 as treen
+	call textline treep treen as treel treeok
+	if (treest!=0)|(treel<40)
+		ret 0
+	end
+	call byadd treeb treep treel as treeok
+	ret treeok
+end

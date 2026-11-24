@@ -400,3 +400,22 @@ directory, its configuration, its manifest and its kept vectors are in
   run by hand on 2026-11-24 against llama.cpp `b12676` and Ollama
   0.40.17 (`docs/provider.md`). Indexing and a query through them are
   the tests of the items below.
+- [x] `aildb index [DIRECTORY]`: the index of a directory, the current
+  one if none is named, made in one run from the files as they are on
+  disk, uncommitted edits too, and published as `.aildb/index` by the
+  path of `build`, under its lock. The provider is named by options the
+  first time and read from `.aildb/config` after that. In a work tree
+  git lists the files, so its ignore rules hold; a directory without
+  git gives every file. `.aildb` and `.git` are left out at any depth,
+  a symbolic link is neither followed nor taken, and the chunker is the
+  one of text and PDF files (`src/lib/chunk.aiw`). The revision of git
+  is recorded only for a tree that is clean and has the line ends of
+  git. `src/index.aiw`, `src/lib/tree.aiw`, `src/lib/run.aiw`; status 7
+  for a provider that failed. Tests `cli_index` (new and edited files
+  without commits, a removal, an ignored path, a link), `cli_index_plain`
+  (a directory outside git) and `lib_tree`; `tools/index.sh` and
+  `make index` are unchanged for an index of a revision
+  (`tests/tools_index.out` is the same). Two runs against
+  nomic-embed-text on 2026-11-24, one with each adapter
+  (`docs/index.md`). This run makes the index anew each time; the item
+  below makes it incremental.

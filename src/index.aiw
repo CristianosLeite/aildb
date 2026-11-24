@@ -1,0 +1,484 @@
+# src/index.aiw -- the command index of aildb: the index of a directory
+# as it is on disk, in the directory .aildb of it. docs/index.md is what
+# it does and docs/usage.md its interface. It is a part of src/main.aiw,
+# which uses it, and like that file it prints and ends the program; it
+# calls fail, about, lock, publish and summary of that file.
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "src/lib/text.aiw"
+use "src/lib/sha.aiw"
+use "src/lib/chunk.aiw"
+use "src/lib/config.aiw"
+use "src/lib/provider.aiw"
+use "src/lib/tree.aiw"
+
+buf ixconf confsize     # the configuration of the provider
+buf ixpath 24           # a path in .aildb, with a NUL byte
+buf ixother 24          # and another, for a rename
+buf ixcfg 24            # the text of the configuration
+buf ixfiles 24          # the paths of the files, a NUL byte after each
+buf ixmeta 24           # the metadata of the chunks, as build takes it
+buf ixtext 24           # the chunks, a string of JSON on a line each
+buf ixnotes 24          # what the chunker says of the pages of a file
+buf ixvec 24            # the vectors, as the provider gave them
+buf ixerr 24            # what the provider said
+buf ixrev 24            # the revision of git
+# the directory that is indexed, and what a run did
+var ixdp ixdn ixcount ixasked ixtaken
+
+fn nomem
+	call bycut msg 0
+	call byadd msg "aildb: out of memory"
+	call fail stio
+end
+
+# the path of the q m in the directory .aildb of the directory that is
+# indexed, or of that directory itself if m is 0, in the buffer b, with
+# a NUL byte after it: its address and its length without that byte
+fn ixin b q m
+	call bycut b 0
+	call byadd b ixdp ixdn
+	call byadd b "/.aildb"
+	if m
+		call byaddb b 47
+		call byadd b q m
+	end
+	call byaddb b 0 as ok
+	ifz ok
+		call nomem
+	end
+	load b as p
+	load b+8 as n
+	ret p n-1
+end
+
+# end the program for a configuration that the options do not make: the
+# reason w of src/lib/config.aiw
+fn ixbadconf w
+	call bycut msg 0
+	call byadd msg "aildb: "
+	call confwhy msg w
+	if w==confmem
+		call fail stio
+	end
+	call fail stusage
+end
+
+# Read the options of index from the argument i on into ixconf: 1 if
+# there are any, which then are a whole configuration, and 0 if there is
+# none. Whatever is wrong with them ends the program.
+fn ixoptions i
+	call argc as c
+	if i>=c
+		ret 0
+	end
+	call confinit ixconf
+	seen=0
+	np=0
+	nn=0
+	label option
+	if i<c
+		call argv i as p n
+		call texteq p n "--" as r
+		if r
+			i+=1
+			ifz i<c
+				call usage
+			end
+			# the name of the provider, if none is given: the last part of
+			# the path of its program
+			call argv i as p n
+			ifz nn
+				np=p
+				nn=n
+				j=n
+				label part
+				if j
+					loadb p+j-1 as ch
+					if ch!=47
+						j-=1
+						jmp part
+					end
+				end
+				np=p+j
+				nn=n-j
+			end
+			while i<c
+				call argv i as p n
+				call confarg ixconf p n as w
+				if w
+					call ixbadconf w
+				end
+				i+=1
+			end
+			jmp done
+		end
+		if (n!=2)|(i+1>=c)
+			call usage
+		end
+		loadb p as x
+		loadb p+1 as y
+		if x!=45
+			call usage
+		end
+		call argv i+1 as q m
+		i+=2
+		if y==115
+			# NAME=VALUE
+			call textfind q m 61 as k ok
+			ifz ok
+				call usage
+			end
+			call confadd ixconf q k q+k+1 m-k-1 as w
+			if w
+				call ixbadconf w
+			end
+			jmp option
+		end
+		call textfind "idnrtb" y as k ok
+		ifz ok
+			call usage
+		end
+		if seen>>k&1
+			call usage
+		end
+		seen=seen|1<<k
+		if y==105
+			call confput ixconf confmodel q m as ok
+		end
+		if y==110
+			np=q
+			nn=m
+		end
+		if y==114
+			call confput ixconf confrev q m as ok
+		end
+		if (y==100)|(y==116)|(y==98)
+			call textnum q m as v ok
+			ifz ok
+				# what the check below refuses
+				v=0
+			end
+			ok=1
+			if y==100
+				store ixconf+confdim v
+			end
+			if y==116
+				store ixconf+conftime v
+			end
+			if y==98
+				store ixconf+confbatch v
+			end
+		end
+		ifz ok
+			call nomem
+		end
+		jmp option
+	end
+	label done
+	call confargs ixconf as p n
+	ifz n
+		# no command
+		call usage
+	end
+	call confput ixconf confname np nn as ok
+	ifz ok
+		call nomem
+	end
+	if seen&3!=3
+		# no model or no dimension
+		call usage
+	end
+	call confcheck ixconf as w
+	if w
+		call ixbadconf w
+	end
+	ret 1
+end
+
+# Make the configuration of the index ixconf: the one of the options, if
+# given says that there are any, which is then written to .aildb/config
+# in the place of what was there; else the one that file has.
+fn ixconfig given
+	call ixin ixpath "config" as p n
+	if given
+		call bycut ixcfg 0
+		call confwrite ixcfg ixconf as ok
+		ifz ok
+			call nomem
+		end
+		call ixin ixother "config.new" as q m
+		load ixcfg as a
+		load ixcfg+8 as an
+		call filewrite q m a an as r
+		ifz r
+			sys rename q p as r
+		end
+		if r
+			call about p n
+			call byadd msg "cannot write: "
+			call oserr r
+			call fail stio
+		end
+		ret 0
+	end
+	call bycut ixcfg 0
+	call fileread p n ixcfg as r
+	if r==-2
+		call about ixdp ixdn
+		call byadd msg "no index is configured here; the first index of a directory names its provider: aildb index DIRECTORY -i MODEL -d DIMENSION -- COMMAND"
+		call fail stusage
+	end
+	ifslt r 0
+		call about p n
+		call byadd msg "cannot read: "
+		call oserr r
+		call fail stio
+	end
+	load ixcfg as a
+	load ixcfg+8 as an
+	call confparse ixconf a an as w line
+	if w
+		call about p n
+		if line
+			call byadd msg "line "
+			call byaddn msg line
+			call byadd msg ": "
+		end
+		call confwhy msg w
+		if w==confmem
+			call fail stio
+		end
+		call fail stinvalid
+	end
+end
+
+# Make the directory .aildb of the directory that is indexed, with a file
+# that tells git to ignore everything in it, make dst and lck the paths
+# of the snapshot and of its lock, and take the lock.
+fn ixplace
+	local st 32
+	call treestat ixdp ixdn "" st as r
+	load st as kind
+	ifz r
+		if kind!=treedir
+			r=-20
+		end
+	end
+	if r
+		call about ixdp ixdn
+		call byadd msg "cannot index: "
+		call oserr r
+		call fail stio
+	end
+	call ixin ixpath "" as p n
+	call filemkdir p n 493 as r
+	if (r!=0)&(r!=-17)
+		call about p n
+		call byadd msg "cannot create: "
+		call oserr r
+		call fail stio
+	end
+	call ixin dst "index" as p n
+	call ixin lck "index.lock" as p n
+	call lock
+	call ixin ixpath ".gitignore" as p n
+	call fileopen p n 0 0 as fd
+	ifsge fd 0
+		sys close fd
+	else
+		call filewrite p n "*\n" as r
+		ifslt r 0
+			call about p n
+			call byadd msg "cannot write: "
+			call oserr r
+			call fail stio
+		end
+	end
+end
+
+# say on stderr that the file at the path p l is passed over, for the
+# reason q m
+fn ixover q m p l
+	call bycut msg 0
+	call byadd msg "aildb: passed over, "
+	call byadd msg q m
+	call byadd msg ": "
+	call byadd msg p l
+	call byaddb msg 10
+	load msg as a
+	load msg+8 as n
+	call eprint a n
+end
+
+# cut the file at the path p l: its chunks are added to ixmeta and
+# ixtext, and their number is the result; a file that gives none for a
+# reason has a line on stderr
+fn ixcut p l
+	call bycut ixnotes 0
+	call chunkfile ixdp ixdn p l ixmeta ixtext ixnotes as k why
+	load ixnotes as q
+	load ixnotes+8 as m
+	while m
+		call textline q m as e ok
+		call ixover q e p l
+		q+=e+ok
+		m-=e+ok
+	end
+	if why==chunkmem
+		call nomem
+	end
+	ifz why
+		ixtaken+=1
+		ret k
+	end
+	if why!=chunkquiet
+		call bycut ixnotes 0
+		call chunkwhy ixnotes why
+		load ixnotes as q
+		load ixnotes+8 as m
+		call ixover q m p l
+	end
+	ret 0
+end
+
+# end the program for the reason w of the provider, with st what its
+# command ended with
+fn ixnoprov w st
+	call about ixdp ixdn
+	load ixerr as q
+	load ixerr+8 as m
+	call provtell msg w st q m
+	if w==provmem
+		call fail stio
+	end
+	call fail stprovider
+end
+
+# Make the snapshot of the directory anew: every file cut, the vector of
+# every chunk asked of the provider, and the snapshot published in the
+# place of the one that was there. The lock is held.
+fn ixrefresh
+	call bycut ixfiles 0
+	call treelist ixdp ixdn ixfiles as files git why
+	if why
+		call about ixdp ixdn
+		call byadd msg "cannot list the files: "
+		if why==treeread
+			call treewhy as r
+			call oserr r
+		end
+		if why==treegit
+			call byadd msg "git failed"
+		end
+		if why==treemem
+			call byadd msg "out of memory"
+		end
+		call fail stio
+	end
+	call bycut ixmeta 0
+	call bycut ixtext 0
+	ixcount=0
+	ixtaken=0
+	load ixfiles as p
+	while files
+		call strlen p as l
+		call ixcut p l as k
+		ixcount+=k
+		# the buffer of the paths has not moved: nothing is added to it
+		p+=l+1
+		files-=1
+	end
+	call bycut ixvec 0
+	ixasked=0
+	if ixcount
+		load ixtext as p
+		load ixtext+8 as n
+		call provdocs ixconf p n ixcount ixvec ixerr as w st
+		if w
+			call ixnoprov w st
+		end
+		ixasked=ixcount
+	end
+	# the strings of the snapshot start with the model and the revision
+	call bycut strs 0
+	call bycut recs 0
+	call confstr ixconf confmodel as mp mn
+	call byadd strs mp mn as ok
+	ifz ok
+		call nomem
+	end
+	call bycut ixrev 0
+	rn=0
+	if git
+		call treerev ixdp ixdn ixrev as ok
+		load ixrev as rp
+		load ixrev+8 as rn
+		call byadd strs rp rn as ok
+		ifz ok
+			call nomem
+		end
+	end
+	load ixmeta as p
+	load ixmeta+8 as n
+	call metaparse p n recs strs as count why
+	if why
+		call about ixdp ixdn
+		call byadd msg "the chunk "
+		call byaddn msg count
+		call byadd msg ": "
+		call metawhy msg why
+		call fail stio
+	end
+	load ixconf+confdim as dim
+	call bycut block 0
+	ro=0
+	if rn
+		ro=mn
+	end
+	call packmeta block dim recs strs 0 mn ro rn as ok
+	ifz ok
+		call nomem
+	end
+	load ixvec as vec
+	call publish vec count dim "the provider"
+end
+
+# aildb index [DIRECTORY] [-i MODEL -d DIMENSION ... -- COMMAND ...]
+fn index
+	call argc as c
+	set "." as ixdp
+	ixdn=1
+	i=2
+	if c>2
+		call argv 2 as p n
+		loadb p as x
+		if (n>0)&(x!=45)
+			ixdp=p
+			ixdn=n
+			i=3
+		end
+	end
+	call ixoptions i as given
+	call ixplace
+	call ixconfig given
+	call ixrefresh
+	call summary
+	# the line of build, and what this run did
+	load msg+8 as n
+	store msg+8 n-2
+	call byadd msg ",\"files\":"
+	call byaddn msg ixtaken
+	call byadd msg ",\"embedded\":"
+	call byaddn msg ixasked
+	call byadd msg "}\n"
+	load msg as p
+	load msg+8 as n
+	call print p n as ok
+	ifz ok
+		call about ixdp ixdn
+		call byadd msg "indexed, but the line about it could not be written to the output"
+		call fail stio
+	end
+	sys exit_group 0
+end

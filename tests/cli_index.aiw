@@ -1,0 +1,79 @@
+# aildb index, the index of a directory as it is on disk, in a work tree
+# of git that the test makes, with build/provider-fake as the provider:
+# a directory that was never indexed asks for its provider; the first
+# index writes .aildb with the configuration and the snapshot, of the
+# revision that git names HEAD, and leaves the tree clean to git; a new
+# file and an edited one that are not committed are in the next index,
+# which names no revision; a removed file is gone from it; a path that
+# git ignores, a symbolic link and .aildb itself are never in it; a file
+# that is not text has a line; and all committed again, the revision is
+# back. Then other options, which take the place of the configuration,
+# and what is wrong: options that are no configuration, a configuration
+# that cannot be read, a directory that is none, and a provider that
+# fails, after which the snapshot is the one that was there.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "tests/lib/cmd.aiw"
+use "tests/lib/dir.aiw"
+call print "# two sections, a file of Python and one that is not text, committed\n"
+call dirsh "git init -q r\nmkdir r/sub\nprintf '# One\\nfirst\\n\\n# Two\\nsecond\\n' > r/a.md\nprintf 'x = 1\\n' > r/sub/b.py\nprintf 'a\\0b' > r/bin.py\nprintf '*.log\\n' > r/.gitignore\ngit -C r add .\ngit -C r commit -q -m one\n"
+call dirrun "index r"
+call dirrun "index r -i m1 -d 3 -s document_prefix=d: -- FAKE"
+call dirasked
+call dirsh "git -C r rev-parse HEAD\ngit -C r status --porcelain\nls -A r/.aildb\ngrep -v '^arg' r/.aildb/config\ncat r/.aildb/.gitignore\n"
+call dirhits "r"
+
+call print "# a new file, an edited one, an ignored one and a link, none committed\n"
+call dirsh "printf 'new text\\n' > r/new.txt\nprintf 'x = 2\\ny = 3\\n' > r/sub/b.py\nprintf 'noise\\n' > r/x.log\nprintf '# Out\\n' > out.md\nln -s ../out.md r/link.md\n"
+call dirrun "index r"
+call dirasked
+call dirhits "r"
+
+call print "# a file removed\n"
+call dirsh "rm r/a.md\n"
+call dirrun "index r"
+call dirasked
+call dirhits "r"
+
+call print "# all committed: the revision again, and from the directory itself\n"
+call dirsh "git -C r add -A\ngit -C r commit -q -m two\ngit -C r rev-parse HEAD\n"
+call dirrunin "index" "r"
+call dirasked
+call dirrun "check r/.aildb/index"
+
+call print "# other options take the place of the configuration\n"
+call dirrun "index r -d 2 -i m2 -n other -r rev9 -t 5000 -b 1 -- FAKE"
+call dirasked
+call dirsh "grep -v '^arg' r/.aildb/config\n"
+
+call print "# wrong usage\n"
+call dirrun "index r -i m1 -- FAKE"
+call dirrun "index r -d 3 -- FAKE"
+call dirrun "index r -i m1 -d 3"
+call dirrun "index r -i m1 -d 3 --"
+call dirrun "index r -i m1 -i m2 -d 3 -- FAKE"
+call dirrun "index r -i m1 -d 3 -x 1 -- FAKE"
+call dirrun "index r -i m1 -d 3 -s novalue -- FAKE"
+call dirrun "index r -i m1 -d"
+call dirrun "index r more"
+call dirrun "index r -i m1 -d 0 -- FAKE"
+call dirrun "index r -i m1 -d 3 -t 0 -- FAKE"
+call dirrun "index r -i m1 -d 3 -b 2000 -- FAKE"
+call dirrun "index r -i m1 -d 3 -s a=1 -s a=2 -- FAKE"
+
+call print "# a directory that is none, and a configuration that is none\n"
+call dirrun "index none -i m1 -d 3 -- FAKE"
+call dirrun "index r/bin.py -i m1 -d 3 -- FAKE"
+call dirsh "cp r/.aildb/config config.kept\nprintf 'aildb\\t1\\nprovider\\tx\\nfrob\\n' > r/.aildb/config\n"
+call dirrun "index r"
+call dirsh "cp config.kept r/.aildb/config\n"
+
+call print "# a provider that fails: the snapshot stays\n"
+call dirrun "check r/.aildb/index"
+call dirrun "index r -i m3 -d 3 -- FAKE exit3"
+call dirrun "index r -i m3 -d 3 -- /nonexistent/provider"
+call dirrun "index r -i m3 -d 3 -- FAKE count"
+call dirrun "check r/.aildb/index"
+call dirsh "ls -A r/.aildb\n"

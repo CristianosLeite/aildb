@@ -1,0 +1,141 @@
+# treelist of src/lib/tree.aiw lists the files of a directory that an
+# index is made of, in the order of their bytes: in a work tree of git
+# the files git knows and those it does not ignore, a new one too, and
+# none of a directory that git ignores; never a symbolic link or what it
+# leads to, a file that was removed, or anything in .aildb and .git.
+# treestat says what a path is without following a link, and treerev
+# gives the revision of git that the files are, only when they are one.
+# A directory that is in no work tree is listed by tests/cli_index_plain,
+# which can tell git where to stop looking for one.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "src/lib/tree.aiw"
+use "tests/lib/cmd.aiw"
+buf b 24
+buf st 32
+# run the lines p n with sh; they say nothing unless they fail
+fn sh p n
+	call filewrite "step.sh" p n
+	call cmdargs "/bin/sh -e step.sh" as av
+	call cmdrun av -1 cmdso cmdse as s
+	load cmdse as q
+	load cmdse+8 as m
+	call print q m
+	if s
+		call print "a step failed\n"
+	end
+end
+fn list p n
+	call bycut b 0
+	call treelist p n b as count git why
+	call print "--- "
+	call print p n
+	call print ": "
+	call putn count
+	call print " files, git "
+	call putn git
+	call print ", reason "
+	call putn why
+	call print "\n"
+	load b as q
+	load b+8 as m
+	while m
+		call strlen q as l
+		call print q l
+		call print "\n"
+		q+=l+1
+		m-=l+1
+	end
+end
+fn stat p n q m
+	call treestat p n q m st as r
+	call print q m
+	call print ": "
+	ifslt r 0
+		call print "error "
+		call putn 0-r
+	else
+		load st as k
+		load st+8 as size
+		call print "kind "
+		call putn k
+		if k==treefile
+			call print ", "
+			call putn size
+			call print " bytes"
+		end
+	end
+	call print "\n"
+end
+# print whether the directory p n has a revision, and whether it is the
+# one that git names HEAD
+fn rev p n
+	call bycut b 0
+	call treerev p n b as ok
+	call print p n
+	call print ": revision "
+	call putn ok
+	if ok
+		call byaddb b 10
+		call filewrite "rev.txt" "" 
+		load b as q
+		load b+8 as m
+		call filewrite "rev.txt" q m
+		call bycut b 0
+		call byadd b "test \"$(cat rev.txt)\" = \"$(git -C "
+		call byadd b p n
+		call byadd b " rev-parse HEAD)\" && echo ', that of HEAD'\n"
+		load b as q
+		load b+8 as m
+		call sh q m
+		load cmdso as q
+		load cmdso+8 as m
+		call print q m
+	else
+		call print "\n"
+	end
+end
+call filewrite "git.sh" "export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1\nexport GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@example.com\nexport GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@example.com\nexport GIT_AUTHOR_DATE=2026-01-01T00:00:00Z GIT_COMMITTER_DATE=2026-01-01T00:00:00Z\n"
+call print "# a directory that git ignores, with links and a pipe in it\n"
+call sh ". ./git.sh\ngit init -q o\nprintf 'p/\\n' > o/.gitignore\ncd o\nmkdir -p p/sub/deep p/.hidden p/.aildb p/.git p/empty p/sub/.aildb\nprintf a > p/a.txt\nprintf bb > p/B.txt\nprintf c > p/sub/b.txt\nprintf d > p/sub/deep/c.txt\nprintf e > p/.hidden/d.txt\nprintf x > p/.aildb/index\nprintf x > p/.git/config\nprintf x > p/sub/.aildb/index\nprintf out > out.txt\nln -s ../out.txt p/link.txt\nln -s sub p/dir\nmkfifo p/pipe\n"
+call list "o"
+call list "o/p"
+call stat "o/p" ""
+call stat "o/p" "B.txt"
+call stat "o/p" "sub"
+call stat "o/p" "link.txt"
+call stat "o/p" "dir"
+call stat "o/p" "pipe"
+call stat "o/p" "none"
+call rev "o/p"
+call list "none"
+call print "# a work tree of git\n"
+call sh ". ./git.sh\ngit init -q r\nmkdir r/sub r/other\nprintf '*.log\\n' > r/.gitignore\nprintf a > r/a.md\nprintf b > r/sub/b.md\nprintf c > r/gone.md\nprintf d > r/other/d.md\nln -s a.md r/link.md\ngit -C r add .\n"
+call rev "r"
+call sh ". ./git.sh\ngit -C r commit -q -m one\n"
+call list "r"
+call rev "r"
+call print "# an index in it, which git is told to ignore\n"
+call sh "mkdir r/.aildb\nprintf x > r/.aildb/index\nprintf '*\\n' > r/.aildb/.gitignore\n"
+call list "r"
+call rev "r"
+call print "# a file that is ignored, a new one and one that was removed\n"
+call sh "printf x > r/x.log\nprintf n > r/sub/new.txt\nrm r/gone.md\n"
+call list "r"
+call rev "r"
+call print "# a directory of it, with nothing changed below it\n"
+call list "r/other"
+call rev "r/other"
+call rev "r/sub"
+call print "# all committed again, and then a file edited\n"
+call sh ". ./git.sh\ngit -C r add -A\ngit -C r commit -q -m two\n"
+call rev "r"
+call sh "printf more >> r/a.md\n"
+call rev "r"
+call print "# line ends on disk that are not those of git\n"
+call sh ". ./git.sh\ngit -C r checkout -q a.md\nprintf '*.txt text eol=crlf\\n' > r/.gitattributes\nprintf 'one\\ntwo\\n' > r/e.txt\ngit -C r add -A 2>/dev/null\ngit -C r commit -q -m three\n"
+call rev "r"
+call sh ". ./git.sh\nrm r/e.txt\ngit -C r checkout -q e.txt\ngit -C r status --porcelain\n"
+call rev "r"

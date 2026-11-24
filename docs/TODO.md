@@ -81,15 +81,6 @@ no daemon or filesystem watcher, and wants to choose an embedding provider
 independently of the LLM that asks the questions. The commands and data
 layouts below are implementation suggestions.
 
-- [ ] Propose `aildb index [DIRECTORY]` as the command to create or refresh
-  an index in one invocation, with the current directory as the default.
-  Read the working tree, including uncommitted edits, and support ordinary
-  directories without Git. Reuse the text and PDF chunker. Define file
-  selection, including Git ignore rules where applicable, exclusions for
-  the index and its cache, and how symlinks are handled. Record a Git
-  revision only when it describes the indexed bytes. Test new and edited
-  files without commits, removals, ignored paths and a directory outside
-  Git. Keep the existing revision-based workflow for reproducible indexes.
 - [ ] Refresh indexes incrementally. Consider a per-file content manifest
   to skip unchanged files and a disposable vector cache keyed by the exact
   embedding input and provider identity. Rechunk new or edited files,

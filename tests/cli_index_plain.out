@@ -1,0 +1,51 @@
+$ aildb index p -i m1 -d 3 -- FAKE
+--- stdout
+{"records":6,"dimension":3,"model":"m1","source_revision":null,"files":6,"embedded":6}
+--- stderr
+--- status 0
+--- provider.log
+documents 6 m1
+$ aildb search p/.aildb/index -k 100 -q dir.q
+--- stdout
+{"source_revision":null,"model":"m1"}
+{"rank":1,"score":0.583068,"score_bits":"3fe2a87ec10dd7f5","path":"B.txt","start_line":1,"end_line":1}
+{"rank":2,"score":0.583040,"score_bits":"3fe2a843fb0a3972","path":"sub/b.txt","start_line":1,"end_line":1}
+{"rank":3,"score":0.583007,"score_bits":"3fe2a7ff32a0c6c1","path":"a.txt","start_line":1,"end_line":1}
+{"rank":4,"score":0.583003,"score_bits":"3fe2a7f69cd851fb","path":".hidden/d.txt","start_line":1,"end_line":1}
+{"rank":5,"score":0.582964,"score_bits":"3fe2a7a4ba7606ee","path":"sub/deep/c.txt","start_line":1,"end_line":1}
+{"rank":6,"score":0.582799,"score_bits":"3fe2a64a36b7766e","path":".dot","start_line":1,"end_line":1}
+--- stderr
+--- status 0
+.gitignore
+config
+index
+index.lock
+# an edit, a new file and a removal
+$ cd p; aildb index
+--- stdout
+{"records":6,"dimension":3,"model":"m1","source_revision":null,"files":6,"embedded":6}
+--- stderr
+--- status 0
+$ aildb search p/.aildb/index -k 100 -q dir.q
+--- stdout
+{"source_revision":null,"model":"m1"}
+{"rank":1,"score":0.583374,"score_bits":"3fe2ab001fad28e9","path":"a.txt","start_line":1,"end_line":2}
+{"rank":2,"score":0.583040,"score_bits":"3fe2a843fb0a3972","path":"sub/b.txt","start_line":1,"end_line":1}
+{"rank":3,"score":0.583003,"score_bits":"3fe2a7f69cd851fb","path":".hidden/d.txt","start_line":1,"end_line":1}
+{"rank":4,"score":0.582964,"score_bits":"3fe2a7a4ba7606ee","path":"sub/deep/c.txt","start_line":1,"end_line":1}
+{"rank":5,"score":0.582799,"score_bits":"3fe2a64a36b7766e","path":".dot","start_line":1,"end_line":1}
+{"rank":6,"score":0.582705,"score_bits":"3fe2a58559f26c9b","path":"sub/new.txt","start_line":1,"end_line":1}
+--- stderr
+--- status 0
+# a directory with no file
+$ aildb index e -i m1 -d 3 -- FAKE
+--- stdout
+{"records":0,"dimension":3,"model":"m1","source_revision":null,"files":0,"embedded":0}
+--- stderr
+--- status 0
+--- provider.log
+$ aildb check e/.aildb/index
+--- stdout
+{"records":0,"dimension":3,"model":"m1","source_revision":null}
+--- stderr
+--- status 0

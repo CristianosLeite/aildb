@@ -1,0 +1,155 @@
+# tests/lib/dir.aiw -- what the tests of an indexed directory share: the
+# command aildb run where git finds no work tree above the directory of
+# the test, with build/provider-fake as the provider, the steps of a
+# shell, and the records of an index. A test uses tests/lib/cmd.aiw
+# first.
+#
+# Every name of this file starts with "dir"; a test has no var of such a
+# name.
+
+buf dirline 24
+buf dirstep 24
+buf dirlog 24
+data dirprog "aildb\0aildb-stops\0"
+var dirstops
+
+# Add the dirn bytes at dirp to dirline, with the path of
+# build/provider-fake in the place of each "FAKE".
+fn dirfake dirp dirn
+	diri=0
+	while diri<dirn
+		dirk=0
+		if diri+4<=dirn
+			load4 dirp+diri as dirw
+			# "FAKE" as the four bytes are read
+			dirk=dirw==0x454b4146
+		end
+		if dirk
+			call byadd dirline cmdhome cmdhomen
+			call byadd dirline "/build/provider-fake"
+			diri+=4
+		else
+			call byaddb dirline 0
+			load dirline as dirq
+			load dirline+8 as dirm
+			loadb dirp+diri as dirc
+			storeb dirq+dirm-1 dirc
+			diri+=1
+		end
+	end
+end
+
+# The arguments of aildb, or of aildb-stops after dirhooks 1, with the
+# line dirp dirn after it, as cmdargs gives them: the command is run
+# through env, which tells git not to look for a work tree above the
+# directory of the test, and in the directory dird dirdn of it if dirdn
+# is not 0.
+fn dirargs dirp dirn dird dirdn
+	call bycut dirline 0
+	call byadd dirline "/usr/bin/env "
+	if dirdn
+		call byadd dirline "-C "
+		call byadd dirline dird dirdn
+		call byaddb dirline 32
+	end
+	call byadd dirline "GIT_CEILING_DIRECTORIES="
+	call strlen cmdtmp as dirl
+	call byadd dirline cmdtmp dirl
+	call byaddb dirline 32
+	call byadd dirline cmdhome cmdhomen
+	if dirstops
+		call byadd dirline "/build/aildb-stops "
+	else
+		call byadd dirline "/build/aildb "
+	end
+	call dirfake dirp dirn
+	load dirline as dirq
+	load dirline+8 as dirm
+	tail cmdargs dirq dirm
+end
+
+# the commands after this are those of build/aildb-stops if dirv is 1,
+# and of build/aildb if it is 0
+fn dirhooks dirv
+	dirstops=dirv
+end
+
+# Run aildb with the line dirp dirn after it and print the line, what it
+# wrote to stdout and to stderr and how it ended, as cmdshow does; the
+# result is that of cmdrun.
+fn dirrun dirp dirn
+	tail dirrunin dirp dirn ""
+end
+
+# the same in the directory dird dirdn of the directory of the test
+fn dirrunin dirp dirn dird dirdn
+	call print "$ "
+	if dirdn
+		call print "cd "
+		call print dird dirdn
+		call print "; "
+	end
+	if dirstops
+		call print "aildb-stops "
+	else
+		call print "aildb "
+	end
+	call print dirp dirn
+	call print "\n"
+	dirs=-2000
+	call dirargs dirp dirn dird dirdn as dirav
+	if dirav
+		call cmdrun dirav -1 cmdso cmdse as dirs
+	end
+	tail cmdtold dirs
+end
+
+# run the lines dirp dirn with sh, after the settings of git that make a
+# commit the same wherever the test runs; they say nothing unless they
+# fail
+fn dirsh dirp dirn
+	call bycut dirstep 0
+	call byadd dirstep "export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1\nexport GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@example.com\nexport GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@example.com\nexport GIT_AUTHOR_DATE=2026-01-01T00:00:00Z GIT_COMMITTER_DATE=2026-01-01T00:00:00Z\n"
+	call byadd dirstep dirp dirn
+	load dirstep as dirq
+	load dirstep+8 as dirm
+	call filewrite "step.sh" dirq dirm
+	call cmdargs "/bin/sh -e step.sh" as dirav
+	call cmdrun dirav -1 cmdso cmdse as dirs
+	load cmdso as dirq
+	load cmdso+8 as dirm
+	call print dirq dirm
+	load cmdse as dirq
+	load cmdse+8 as dirm
+	call print dirq dirm
+	if dirs
+		call print "a step failed\n"
+	end
+end
+
+# print the records of the index of the directory dirp dirn, each with
+# its path and lines: what a search with a query of three ones gives for
+# the 100 best. The index has vectors of 3 elements.
+fn dirhits dirp dirn
+	# 1.0 three times, as binary32
+	call filewrite "dir.q" "\x00\x00\x80\x3f\x00\x00\x80\x3f\x00\x00\x80\x3f"
+	call bycut dirstep 0
+	call byadd dirstep "aildb search "
+	call byadd dirstep dirp dirn
+	call byadd dirstep "/.aildb/index -k 100 -q dir.q"
+	load dirstep as dirq
+	load dirstep+8 as dirm
+	tail cmdshow dirq dirm
+end
+
+# print what the provider was asked since the last call, the lines of
+# provider.log in the directory of the test, and empty the file
+fn dirasked
+	call bycut dirlog 0
+	call fileread "provider.log" dirlog
+	call print "--- provider.log\n"
+	load dirlog as dirq
+	load dirlog+8 as dirm
+	call print dirq dirm
+	call fileunlink "provider.log"
+end
