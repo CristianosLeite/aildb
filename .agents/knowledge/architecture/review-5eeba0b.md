@@ -115,3 +115,25 @@ was chosen by the agent and is for the user to review.
   that was swapped for a link are refused one by one. `chunkcorpus`, the `-c` of
   `build/chunk` for the corpora of the example, reads by name as it did: its files are
   an archive of a revision that the scripts unpack.
+
+## A provider left running after a timeout (P2)
+
+- **Finding.** `aildb-mcp` waits for `aildb` with `procwait`, which kills that process
+  when the time is over and nothing below it. The provider that `aildb` had started
+  went on, a model loaded, until it was done or for ever.
+- **Decision (agent, 2026-11-24).** The provider, and git, are started so that the
+  kernel kills them when `aildb` ends (`PR_SET_PDEATHSIG`). That has to be done in the
+  child between `fork` and `exec`, which `procstart` of AIL leaves no room for, and it is
+  of use to any program, so it is `procheld` in `lib/std/proc.aiw` of AIL (its pull
+  request 34), after the user's word that such things belong there. `aildb-llama`
+  already held `llama-embedding` this way with code of its own, so the chain from the
+  server to the model ends.
+- **Rejected.** A process group for the call that the server kills: the command would
+  have to leave the group of its terminal when a person runs it, or be told by an
+  option that it runs under the server.
+- **Not done.** `aildb-mcp` does not hold `aildb` itself: its tool runs on a task, and
+  the kernel ties the child to the thread that started it, so a thread of the pool that
+  ended would take a search with it. A server that is killed leaves the command to
+  finish its call, within the time of the provider.
+- **A consequence.** This branch needs two things of AIL that are in no version: the
+  pull requests 33 (SHA-256) and 34. It is tested with a command built from both.

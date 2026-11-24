@@ -557,3 +557,13 @@ each chose.
   through a link to a directory) and `tests/cli_index.aiw` (a tracked
   directory moved out and linked back: its file is not taken and the
   provider not asked).
+- [x] `aildb-mcp` kills the command when the time of a call is over,
+  and `procwait` of AIL kills that one process: the embedding provider
+  the command had started went on running. `src/lib/run.aiw` starts the
+  provider, and git, with `procheld`, written in AIL for this (its pull
+  request 34): the kernel kills the child when its parent ends. Tests
+  `tests/kill_index.aiw` (a run killed while its provider hangs: the
+  provider is gone; with `procstart` in its place the test says that it
+  still runs) and `mcp/tests/directory.aiw` (a call of 500 ms against a
+  provider that hangs fails, the provider is gone, the next call is
+  served).

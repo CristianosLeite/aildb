@@ -108,3 +108,15 @@ status 2, stdout 0 bytes: usage: aildb-mcp -d DIRECTORY [-a AILDB] [-t MS]
 > {"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"search","arguments":{"query":"new","k":1}}}
 < {"jsonrpc":"2.0","id":3,"result":{"content":[{"type":"text","text":"{\"model\":\"m1\",\"source_revision\":null,\"hits\":[{\"rank\":1,\"score\":1.000000,\"score_bits\":\"3feffffffb5dd97c\",\"path\":\"n.txt\",\"start_line\":1,\"end_line\":1}]}"}],"structuredContent":{"model":"m1","source_revision":null,"hits":[{"rank":1,"score":1.000000,"score_bits":"3feffffffb5dd97c","path":"n.txt","start_line":1,"end_line":1}]},"isError":false}}
 the server ended with status 0
+
+# a provider that does not answer in the time of a call: the command is
+# killed, and the provider it started ends with it
+> {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"test","version":"0"}}}
+< {"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{"tools":{}},"serverInfo":{"name":"aildb-mcp","version":"0.1.1"},"instructions":"Semantic search over an index of source files: the tool search returns paths and line ranges, at the revision it names, for a query in words."}}
+> {"jsonrpc":"2.0","method":"notifications/initialized"}
+> {"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"search","arguments":{"query":"new","k":1}}}
+< {"jsonrpc":"2.0","id":2,"result":{"content":[{"type":"text","text":"the search took longer than it may"}],"isError":true}}
+the provider is gone
+> {"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"search","arguments":{"query":"new","k":1}}}
+< {"jsonrpc":"2.0","id":3,"result":{"content":[{"type":"text","text":"{\"model\":\"m1\",\"source_revision\":null,\"hits\":[{\"rank\":1,\"score\":1.000000,\"score_bits\":\"3feffffffb5dd97c\",\"path\":\"n.txt\",\"start_line\":1,\"end_line\":1}]}"}],"structuredContent":{"model":"m1","source_revision":null,"hits":[{"rank":1,"score":1.000000,"score_bits":"3feffffffb5dd97c","path":"n.txt","start_line":1,"end_line":1}]},"isError":false}}
+the server ended with status 0

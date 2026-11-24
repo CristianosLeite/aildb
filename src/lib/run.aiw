@@ -43,7 +43,9 @@ end
 # with the runn bytes at runp as its stdin, for runms milliseconds at
 # most, or without a limit if runms is 0: what procwait gives, an exit
 # status, a signal negated or runlate for a program that was killed when
-# its time was over; or runnone if it could not be started. What it
+# its time was over; or runnone if it could not be started. The program
+# is started with procheld, so the kernel kills it when this process
+# ends before it. What it
 # printed is then the bytes buffer runout and what it said the bytes
 # buffer runerr, both emptied first. A program that is not there is the
 # status 127.
@@ -55,7 +57,9 @@ fn runcmd runav runp runn runout runerr runms
 	call runfile 0 0 as rune
 	runst=runnone
 	ifsge runin|runo|rune 0
-		call procstart runav runin runo rune as runpid
+		# held: a caller that is killed, as a command is whose time is
+		# over, takes the program with it
+		call procheld runav runin runo rune as runpid
 		ifsge runpid 0
 			call procwait runpid runms as runst
 		end

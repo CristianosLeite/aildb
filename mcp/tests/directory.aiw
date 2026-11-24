@@ -9,7 +9,9 @@
 # finds the edit, and asks for the changed text and the query. Then the
 # filters, a provider that fails, whose line is the failure of the call
 # as it is that of the command, arguments that are wrong, a directory
-# that was never indexed, and starts that are wrong.
+# that was never indexed, and starts that are wrong. Then a call whose
+# values have no room together, and a provider that does not answer in
+# the time of a call, which is gone when the call has failed.
 use "lib/std/io.aiw"
 use "lib/std/bytes.aiw"
 use "lib/std/file.aiw"
@@ -235,5 +237,14 @@ load big+8 as m
 load4 pend+4 as wr
 call fdwrite wr q m
 call hear
+call ask "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"new\",\"k\":1}}}"
+call finish pid
+call print "\n# a provider that does not answer in the time of a call: the command is\n# killed, and the provider it started ends with it\n"
+call sh "printf hang > provider.fault\n"
+call start "-d p -t 500" as pid
+call ask "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-11-25\",\"capabilities\":{},\"clientInfo\":{\"name\":\"test\",\"version\":\"0\"}}}"
+call say "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}"
+call ask "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"new\",\"k\":1}}}"
+call sh "pid=$(cat provider.pid)\nrm provider.pid provider.fault\ni=0\nwhile [ $i -lt 200 ]\ndo\n\ts=$(cut -d' ' -f3 /proc/$pid/stat 2>/dev/null) || s=\n\tcase \"$s\" in ''|Z) echo the provider is gone; exit 0;; esac\n\tsleep 0.01\n\ti=$((i+1))\ndone\necho the provider still runs\nkill -9 $pid\n"
 call ask "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"new\",\"k\":1}}}"
 call finish pid

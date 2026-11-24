@@ -39,8 +39,10 @@ by the `aildb index` that indexed the directory first.
 - `-t MS`: the milliseconds a call may take, the refresh of the index
   with it; 600000 if it is not given. The first call after many files
   changed embeds them, which is where the time goes. A call that takes
-  longer is a failure, and the command is killed; the next call goes on
-  from the vectors that were kept.
+  longer is a failure, and the command is killed, and with it the
+  embedding provider it was waiting for
+  ([provider.md](provider.md#how-a-provider-is-run)); the next call goes
+  on from the vectors that were kept.
 
 Nothing is checked when the server starts but its arguments, status 2 if
 they are wrong. A directory that has no index, a provider that fails and

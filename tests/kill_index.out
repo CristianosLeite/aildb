@@ -116,3 +116,14 @@ $ aildb index p
 --- status 0
 --- provider.log
 0
+# a run killed while the provider works: the provider ends with it
+the provider was started 1
+ended by signal 9
+the provider is gone
+$ aildb index p
+--- stdout
+{"records":6,"dimension":3,"model":"m1","source_revision":null,"files":6,"embedded":1,"published":true}
+--- stderr
+--- status 0
+--- provider.log
+documents 1 m1

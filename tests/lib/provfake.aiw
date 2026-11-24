@@ -26,7 +26,8 @@
 # other, "dim" leaves the last element of each vector out, "nan" makes
 # the first element 1e999, "zero" makes every element 0, "garbage"
 # prints a line that is no JSON, "exit3" prints nothing, says two lines
-# and ends with the status 3, "hang" never ends, and "after1" answers
+# and ends with the status 3, "hang" writes the number of its process
+# to the file provider.pid and never ends, and "after1" answers
 # well if provider.log is not there and does what "exit3" does if it is:
 # a provider that fails from its second request on. The words of the
 # file provider.fault of the current directory, with a blank or a line
@@ -116,6 +117,12 @@ end
 call fileread "provider.fault" flt
 call is "hang" as r
 if r
+	sys getpid as pid
+	call byaddn log pid
+	call byaddb log 10
+	load log as p
+	load log+8 as n
+	call filewrite "provider.pid" p n
 	label sleep
 	store ts 3600
 	store ts+8 0

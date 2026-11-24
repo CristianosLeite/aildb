@@ -175,3 +175,11 @@ fn dirspawn dirp dirn
 	sys close diri
 	ret dirpid
 end
+
+# Say whether the provider with the fault "hang" still runs, whose
+# number is in the file provider.pid: it is looked for two seconds at
+# most, and gone when the kernel has no such process or has it only as
+# one that ended and was not yet taken. The file is removed.
+fn dirgone
+	tail dirsh "pid=$(cat provider.pid)\nrm provider.pid\ni=0\nwhile [ $i -lt 200 ]\ndo\n\ts=$(cut -d' ' -f3 /proc/$pid/stat 2>/dev/null) || s=\n\tcase \"$s\" in ''|Z) echo the provider is gone; exit 0;; esac\n\tsleep 0.01\n\ti=$((i+1))\ndone\necho the provider still runs\nkill -9 $pid\n"
+end

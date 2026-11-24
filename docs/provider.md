@@ -186,6 +186,12 @@ aildb.
   configuration does not say. After that the process is killed (SIGKILL)
   and the request has failed. A provider that starts a program of its
   own is to make that program end with it, as `aildb-llama` does.
+- **A provider ends with aildb.** The kernel is told to kill the
+  provider when the `aildb` that started it ends (`procheld` of AIL), so
+  a command that is itself killed, by `aildb-mcp` when the time of a
+  call is over or by anyone, leaves no provider running. With a
+  provider that holds its own program the same way, the whole chain
+  ends.
 - **What it reads and writes are files in memory**, not pipes: the
   request is there whole before the provider starts, and the provider
   never waits for aildb to read what it prints.
