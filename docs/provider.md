@@ -527,7 +527,7 @@ file, which is not run, and a program of the directory that is given to
 the adapter alone, which is not run either, and named to both is run
 until its bytes change;
 `tests/kill_index.aiw` kills a run whose provider hangs and finds the
-provider gone. `make dist-check` on the archive of `b262fef`
+provider gone. `make dist-check` on the archive of `b4b52aa`
 (2026-11-24, in `debian:stable-slim`, where `HOME` is `/root`) indexed
 and searched a directory by text with the rule in force.
 
@@ -546,4 +546,8 @@ started by `aildb-llama` was gone after the adapter was killed. After
 files was indexed with `-x llama-embedding -- aildb-llama -m FILE -x
 llama-embedding` and that program in `PATH`, and then searched from
 another directory with a `PATH` that names no directory: the search
-answered, with the program that the configuration has by its path.
+answered, with the program that the configuration has by its path. With
+the adapter of `b4b52aa`, the same day, the program given to the adapter
+alone by its path from the root ended `aildb index` with status 7 and
+the line above, and the command with both `-x` indexed the directory
+and was searched as before.
