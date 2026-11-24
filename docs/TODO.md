@@ -78,11 +78,8 @@ The server is written (`BACKLOG.md`, [mcp.md](mcp.md)).
 
 The user wants indexing to run only when the aildb CLI is invoked, with
 no daemon or filesystem watcher, and wants to choose an embedding provider
-independently of the LLM that asks the questions. The commands and data
-layouts below are implementation suggestions.
+independently of the LLM that asks the questions. It is written
+([install.md](install.md), [index.md](index.md), [provider.md](provider.md)).
 
-- [ ] Document and verify a fresh-install workflow with directory indexing,
-  text search and automatic refresh from the CLI using the local adapter.
-  Include the one-time provider setup, where the index and cache live,
-  how to switch models, and optional MCP setup. Make the managed workflow
-  available in the installed CLI and verify it from the packaged artifact.
+Nothing is left of this step (`BACKLOG.md`); its choices wait for the
+user's review (`.agents/knowledge/status/open-items.md`).

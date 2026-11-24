@@ -84,6 +84,18 @@ but for the place of the index.
   decides which of two records is first. Found when the test of the edit had the wrong
   file first; the engine was right, by Python. With `spread` the elements are far
   apart, and the text that is the query is first.
+- **The archive of a release has the providers and the MCP server** (the seventh item of
+  the step: "make the managed workflow available in the installed CLI"; agent,
+  2026-11-24). `tools/dist.sh` packs four executables for a revision that has
+  `adapters/` and `aildb` alone for an older one, so the archives of 0.1.0 and 0.1.1
+  are what they were. Rejected: an archive of its own for `aildb-mcp`, a second thing
+  to fetch for one workflow.
+- **`make dist-check` tries the workflow with a provider that is a script**, written in
+  the container: it has no model, and the check is of the commands and of the protocol
+  from the packaged files, not of llama.cpp. A check with llama.cpp in a container was
+  planned as a target and left out: the `llama-embedding` built on the user's machine
+  needs libraries the image has not got. The run with it was made on the machine, with
+  the executables of the archive (`docs/install.md`).
 
 ## Checked
 - `tests/cli_index.aiw`, `tests/cli_index_plain.aiw`, `tests/lib_tree.aiw`

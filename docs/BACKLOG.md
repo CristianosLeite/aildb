@@ -461,3 +461,18 @@ directory, its configuration, its manifest and its kept vectors are in
   first search and a search after an edit through the server, with the
   results and the failure of a provider those of the command; a run by
   hand against the model on 2026-11-24 (`docs/mcp.md`).
+- [x] The workflow of a fresh installation, documented and verified:
+  `docs/install.md` goes from the archive to a directory searched in
+  words with the local adapter, with the provider set up once
+  (`llama-embedding` built from llama.cpp, a model file), where the
+  index and the kept vectors are, how the model is changed, and the MCP
+  server as an option. The managed workflow is in the installed
+  command: `tools/dist.sh` packs `aildb`, `aildb-llama`,
+  `aildb-ollama` and `aildb-mcp`, and `tools/dist-check.sh` indexes a
+  directory, searches it by text, writes a file and searches again,
+  also through `aildb-mcp`, in a container without AIL, git and
+  network, with a script as the provider. Both were run on 2026-11-24
+  on the archive of `c32fb1b`, whose executables then indexed and
+  searched the directory `docs` of a clone with `aildb-llama` and
+  llama.cpp `b12676` (`docs/install.md`). Not run: the steps with an
+  archive of a release, which no release has yet.
