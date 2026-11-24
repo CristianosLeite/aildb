@@ -107,6 +107,13 @@ fn keyfile
 	load hex as p
 	load hex+8 as n
 	call filewrite "key.txt" p n
+	# and those of the identity of the configuration, which the key is of
+	call confident c k2
+	call bycut hex 0
+	call shahex hex k2
+	load hex as p
+	load hex+8 as n
+	call filewrite "id.txt" p n
 end
 call confinit c
 call filewrite "step.sh" "mkdir -p d/sub e out\nln -s d/sub named\nprintf '#!/bin/sh\\n' > out/prog\ncp out/prog out/other\ncp out/prog out/plain\nchmod +x out/prog out/other\n"
@@ -116,7 +123,7 @@ call trustkey "d/sub" c k as ok
 call putn ok
 call print " for a key\n"
 call keyfile
-call filewrite "step.sh" "d=$(cd d/sub && pwd -P)\np=$(pwd -P)/out/prog\nprintf 'aildb-trust 3\\n%s:%s\\n3\\n%s:%s\\n2:-m\\n3:a b\\n%s:%s\\n-\\n0\\n' ${#d} \"$d\" ${#p} \"$p\" ${#p} \"$p\" | sha256sum | cut -c1-64 | tr -d '\\n' > sum.txt\ncmp key.txt sum.txt && echo the key is the sum of the text\n"
+call filewrite "step.sh" "d=$(cd d/sub && pwd -P)\np=$(pwd -P)/out/prog\nprintf 'aildb-trust 4\\n%s\\n%s:%s\\n3\\n%s:%s\\n2:-m\\n3:a b\\n%s:%s\\n-\\n0\\n' $(cat id.txt) ${#d} \"$d\" ${#p} \"$p\" ${#p} \"$p\" | sha256sum | cut -c1-64 | tr -d '\\n' > sum.txt\ncmp key.txt sum.txt && echo the key is the sum of the text\n"
 call cmdshow "/bin/sh -e step.sh"
 call print "# the same directory by other names\n"
 call same "named"
@@ -164,7 +171,7 @@ call trustkey "d/sub" c k as ok
 call putn ok
 call print " for a key\n"
 call keyfile
-call filewrite "step.sh" "d=$(cd d/sub && pwd -P)\np=$d/tool\nh=$(sha256sum < d/sub/tool | cut -c1-64)\nprintf 'aildb-trust 3\\n%s:%s\\n1\\n%s:%s\\n%s:%s\\nfile %s\\n0\\n' ${#d} \"$d\" ${#p} \"$p\" ${#p} \"$p\" $h | sha256sum | cut -c1-64 | tr -d '\\n' > sum.txt\ncmp key.txt sum.txt && echo the key is the sum of the text\nprintf '#!/bin/sh\\necho other\\n' > d/sub/tool\n"
+call filewrite "step.sh" "d=$(cd d/sub && pwd -P)\np=$d/tool\nh=$(sha256sum < d/sub/tool | cut -c1-64)\nprintf 'aildb-trust 4\\n%s\\n%s:%s\\n1\\n%s:%s\\n%s:%s\\nfile %s\\n0\\n' $(cat id.txt) ${#d} \"$d\" ${#p} \"$p\" ${#p} \"$p\" $h | sha256sum | cut -c1-64 | tr -d '\\n' > sum.txt\ncmp key.txt sum.txt && echo the key is the sum of the text\nprintf '#!/bin/sh\\necho other\\n' > d/sub/tool\n"
 call cmdshow "/bin/sh -e step.sh"
 call same "d/sub"
 call print "# and one that the directory reaches by a link of its own\n"
@@ -228,7 +235,7 @@ call trustkey "d/sub" c k as ok
 call putn ok
 call print " for a key\n"
 call keyfile
-call filewrite "step.sh" "d=$(cd d/sub && pwd -P)\np=$(pwd -P)/out/prog\nm=$(pwd -P)/out/model\ne=$d/embed.py\nh=$(sha256sum < d/sub/embed.py | cut -c1-64)\nprintf 'aildb-trust 3\\n%s:%s\\n1\\n%s:%s\\n%s:%s\\n-\\n2\\n%s:%s\\n%s:%s\\n-\\n%s:%s\\n%s:%s\\nfile %s\\n' ${#d} \"$d\" ${#p} \"$p\" ${#p} \"$p\" ${#m} \"$m\" ${#m} \"$m\" ${#e} \"$e\" ${#e} \"$e\" $h | sha256sum | cut -c1-64 | tr -d '\\n' > sum.txt\ncmp key.txt sum.txt && echo the key is the sum of the text\nprintf 'other model\\n' > out/model\n"
+call filewrite "step.sh" "d=$(cd d/sub && pwd -P)\np=$(pwd -P)/out/prog\nm=$(pwd -P)/out/model\ne=$d/embed.py\nh=$(sha256sum < d/sub/embed.py | cut -c1-64)\nprintf 'aildb-trust 4\\n%s\\n%s:%s\\n1\\n%s:%s\\n%s:%s\\n-\\n2\\n%s:%s\\n%s:%s\\n-\\n%s:%s\\n%s:%s\\nfile %s\\n' $(cat id.txt) ${#d} \"$d\" ${#p} \"$p\" ${#p} \"$p\" ${#m} \"$m\" ${#m} \"$m\" ${#e} \"$e\" ${#e} \"$e\" $h | sha256sum | cut -c1-64 | tr -d '\\n' > sum.txt\ncmp key.txt sum.txt && echo the key is the sum of the text\nprintf 'other model\\n' > out/model\n"
 call cmdshow "/bin/sh -e step.sh"
 call print "# the file outside changed: the same key; the file in the directory changed: another\n"
 call same "d/sub"

@@ -1,0 +1,58 @@
+# A provider that lies in the indexed directory and whose bytes change
+# is refused, and is still refused after a run that was to allow it
+# again was killed before it published: the line that the run noted is
+# of the configuration it was writing, whose fingerprint is of the new
+# bytes, and not of the one that is there, whose vectors are of the old
+# ones. The run itself, when it is made again, uses the vectors the
+# killed one got and publishes them.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "tests/lib/cmd.aiw"
+use "tests/lib/dir.aiw"
+buf w 8
+# start aildb-stops with the line p n, stop it at the stop point s and
+# kill it there
+fn killed p n s
+	storeb w 48+s
+	call filewrite "aildb.hook" "stop "
+	call fileopen "aildb.hook" 0x401 0 as fd
+	sys write fd w 1
+	sys close fd
+	call dirhooks 1
+	call dirspawn p n as pid
+	call cmdawait "aildb.stopped" 5000 as r
+	call fileunlink "aildb.hook"
+	call dirhooks 0
+	call print "stop "
+	call putn s
+	call print ": reached "
+	call putn r
+	call print "\n"
+	sys kill pid 9
+	call procwait pid 0 as x
+	call fileunlink "aildb.stopped"
+	call print "ended by signal "
+	call putn 0-x
+	call print "\n"
+	call dirasked
+end
+call print "# a provider in the directory\n"
+call dirsh "mkdir q\nprintf 'alpha\\n' > q/a.txt\nprintf 'last\\n' > q/b.txt\nprintf '#!/bin/sh\\nexec %s\\n' $FAKE > q/embed.sh\nchmod +x q/embed.sh\n"
+call dirrun "index q -i m1 -d 8 -- q/embed.sh"
+call dirrun "search q --text last -k 1"
+call dirasked
+call print "# its bytes change, and with them its vectors: it is not run\n"
+call dirsh "printf '#!/bin/sh\\nexec %s spread\\n' $FAKE > q/embed.sh\ncp q/.aildb/config config.kept\ncp q/.aildb/index index.kept\n"
+call dirsh "export XDG_CONFIG_HOME=\"$PWD/xdg\" GIT_CEILING_DIRECTORIES=\"$PWD\"\nst=0\n\"$AILDB\" search q --text last -k 1 > search.out 2> search.err || st=$?\necho status $st\ncat search.out\nsed \"s|$PWD|TMP|g\" search.err\n"
+call print "# the run that allows it again is killed before it publishes: still not run\n"
+call killed "index q -i m1 -d 8 -- q/embed.sh" 4
+call dirsh "cmp config.kept q/.aildb/config && cmp index.kept q/.aildb/index && echo the configuration and the snapshot are what they were\n"
+call dirsh "export XDG_CONFIG_HOME=\"$PWD/xdg\" GIT_CEILING_DIRECTORIES=\"$PWD\"\nst=0\n\"$AILDB\" search q --text last -k 1 > search.out 2> search.err || st=$?\necho status $st\ncat search.out\nsed \"s|$PWD|TMP|g\" search.err\n"
+call dirasked
+call dirsh "ls q/.aildb\n"
+call print "# the run itself\n"
+call dirrun "index q -i m1 -d 8 -- q/embed.sh"
+call dirrun "search q --text last -k 1"
+call dirasked

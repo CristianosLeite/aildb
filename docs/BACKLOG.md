@@ -760,3 +760,19 @@ chose.
   program of the old provider removed, and the search asks the new one
   for its query alone, with the snapshot the file the killed run
   published; on the code before the fix it ended with status 2.
+- [x] The line that allows a command was of its arguments and of the
+  bytes its files have now, and the vectors of an index are of the
+  fingerprint that `.aildb/config` kept. A run with options notes its
+  line before it publishes, so a run that was to allow a changed
+  program of the directory again, and was killed before its snapshot
+  had its name, left a line that allowed the old configuration with
+  the new bytes: the next search ran the new program against the old
+  vectors (the review: a text as its own query at 0.809026). The key,
+  `aildb-trust 4`, now starts with the identity of the configuration
+  (`confident`), which has the fingerprint: a line allows the
+  configuration it was noted for and no other with the same command.
+  Tests `tests/cli_index_reapprove.aiw` (a script of the directory
+  changed, refused; the run with options killed at stop 4; still
+  refused, with `config` and `index` the bytes they were; on the code
+  before the fix the search answered) and `tests/lib_trust.aiw` (the
+  text of a key against `sha256sum`).

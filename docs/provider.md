@@ -33,9 +33,10 @@ the provider's, from the settings of the configuration it is sent.
 
 The provider of an index is configured once, when the index is made, in
 the file `.aildb/config` of the indexed directory. It is text, one line
-for each thing, a word, a tab and a value, and may be edited by hand,
-all but its command, which is run only as you named it
-([below](#which-commands-are-run)):
+for each thing, a word, a tab and a value. The time and the number of
+texts of a request may be edited by hand; the command and what the
+identity of the configuration is made of are used only as you gave them
+with the options ([below](#which-commands-are-run)):
 
 ```
 aildb	1
@@ -199,7 +200,8 @@ A line of the file is the SHA-256, in 64 digits, of this text, with
 directory, for whoever reads the file:
 
 ```
-aildb-trust 3
+aildb-trust 4
+DIGITS                 the identity of the configuration, above
 <directory>
 number of arguments
 <argument>             one line for each, the program first
@@ -217,7 +219,13 @@ whatever name it was given. `<file>` is what the kernel gives the same
 way for the program, or for a file the command depends on: the file
 that would be run or read now. The line after it is `file` and the
 SHA-256 of the bytes of that file if it lies below the directory, and
-`-` if it does not. Before a configuration that was read
+`-` if it does not. The identity is the first line, so a line allows
+one configuration and not only one command: a program of the directory
+whose bytes changed is allowed again by the options, and the line that
+is noted then has the fingerprint of the new bytes in its identity. It
+does not allow the configuration that is still in `.aildb/config`
+while the run goes on, or after it was killed, whose vectors are of the
+old bytes. Before a configuration that was read
 from the file is used, by `aildb index` without options and by `aildb
 search --text`, the line is looked for. If it is not there, nothing of
 the configuration is run and the command ends with status 2 and one line
@@ -238,9 +246,10 @@ aildb: c: the configuration of this index names a provider that was not set up b
   for a program or a file that lies in the indexed directory, any change
   of its bytes, as a checkout of another branch makes. A file of the
   directory that is named is read whole for every search, so a model
-  file of gigabytes is better kept outside it. The model, the settings, the time and the number of texts may
-  be edited: they are given to the command you allowed and choose no
-  program.
+  file of gigabytes is better kept outside it. And any line of the
+  configuration that is a part of its identity: the name, the model,
+  its revision, the fingerprint, the dimension or a setting changed by
+  hand. The time and the number of texts of a request may be edited.
 - **What it does not see**: the bytes of a program or a file outside
   the directory, which are yours or your system's, and a file that the
   command reads and you did not name: `-- python3 embed.py` without `-f

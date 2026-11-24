@@ -397,7 +397,8 @@ end
 # trustdp trustdn, 32 bytes written at trustout: 1, or 0 if the
 # directory has no name (trustdir), if the program of the command or a
 # file it depends on is no path from the root or cannot be opened, or
-# without memory. It is the SHA-256 of "aildb-trust 3", the directory,
+# without memory. It is the SHA-256 of "aildb-trust 4", the digits of
+# the identity of the configuration (confident) on a line, the directory,
 # the number of arguments and every argument, the program first, each
 # on a line and each string with its length before it, as the identity
 # of a configuration is written; then of the program what trustof adds,
@@ -405,15 +406,26 @@ end
 # number of the files the command depends on, and for each its path and
 # what trustof adds of it. So the key is of the files that would be run
 # and read now: one that a link on the way was turned to is another, and
-# so is a file of the directory itself whose bytes changed.
+# so is a file of the directory itself whose bytes changed. And it is of
+# one configuration: the identity has the fingerprint that was taken of
+# the command when its vectors were asked for, so a command that is
+# allowed as it is now does not allow a configuration that was written
+# for the bytes it had before, whose vectors are of those.
 fn trustkey trustdp trustdn trustc trustout
+	local trustid 32
 	call bycut trustroot 0
 	call trustdir trustdp trustdn trustroot as trustok
 	ifz trustok
 		ret 0
 	end
+	call confident trustc trustid as trustok
+	ifz trustok
+		ret 0
+	end
 	call bycut trusttext 0
-	call byadd trusttext "aildb-trust 3\n"
+	call byadd trusttext "aildb-trust 4\n"
+	call shahex trusttext trustid
+	call byaddb trusttext 10
 	load trustroot as trustp
 	load trustroot+8 as trustn
 	call trustpart trusttext trustp trustn
