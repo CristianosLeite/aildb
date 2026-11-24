@@ -28,13 +28,9 @@ Nothing is left of this step (`BACKLOG.md`).
 
 ## 11. Release
 
-Versions 0.1.0 and 0.1.1 are tagged (`BACKLOG.md`).
-
-- [ ] Attach the archive of `make dist` and its `.sha256` to a release
-  (user, 2026-11-22: the archive is for `v0.1.0`, whose release is a
-  draft without files; `v0.1.1` has no release yet). The archive of
-  `v0.1.0` is made and tried (`BACKLOG.md`); it is done at the user's
-  word.
+Versions 0.1.0 and 0.1.1 are tagged, and each release has its archive
+(`BACKLOG.md`). The release of `v0.1.0` is a draft: to publish it is the
+user's.
 
 ## 13. The measurements in a repository of their own
 
