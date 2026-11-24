@@ -1,6 +1,6 @@
 # chunk -- cut the files of a repository into chunks for an index.
 #
-#   chunk [-c] ROOT META TEXT < LIST
+#   chunk [-c] [-n LINES] [-b BYTES] [-o LINES] [-p] ROOT META TEXT < LIST
 #
 # LIST, on stdin, is paths relative to the directory ROOT, one a line, as
 # "git ls-tree -r --name-only" prints them. Every file that is text is
@@ -39,6 +39,14 @@
 # ".aiw" and ".md", whatever bytes they hold and however long they and
 # their lines are; a path of them that build would not take is the
 # status 3.
+#
+# The other options are for the evaluation that compares ways to cut
+# (docs/evaluation.md), and without them a file is cut as that page
+# says: -n and -b are the most lines and the most bytes of a chunk, 40
+# and 1500 without them; -o is the number of lines that a chunk which
+# the limits ended has in common with the next one, none without it; and
+# with -p the text of a chunk in TEXT begins with the path of its file
+# and a line feed, while its line in META is the same.
 #
 # The status is 0 and stdout has the number of files cut and of chunks,
 # or 2 for wrong usage, 3 for that path under -c and 4 for a file that
@@ -120,14 +128,61 @@ fn one o p l
 	end
 end
 
-call argc as c
-call argv 1 as p n
-call texteq p n "-c" as o
-if c!=4+o
-	call eprint "usage: chunk [-c] ROOT META TEXT < LIST\n"
+fn usage
+	call eprint "usage: chunk [-c] [-n LINES] [-b BYTES] [-o LINES] [-p] ROOT META TEXT < LIST\n"
 	sys exit_group 2
 end
-call argv 1+o as p n
+
+# the options, each before the three paths
+call argc as c
+o=0
+lines=0
+bytes=0
+back=0
+named=0
+i=1
+label option
+call argv i as p n
+loadb p as x
+if (i<c)&(n==2)&(x==45)
+	loadb p+1 as y
+	i+=1
+	if y==99
+		o=1
+		jmp option
+	end
+	if y==112
+		named=1
+		jmp option
+	end
+	call argv i as q m
+	call textnum q m as v ok
+	if (i>=c)|(ok==0)
+		call usage
+	end
+	i+=1
+	if y==110
+		lines=v
+		jmp option
+	end
+	if y==98
+		bytes=v
+		jmp option
+	end
+	if y==111
+		back=v
+		jmp option
+	end
+	call usage
+end
+if (c!=i+3)|((lines==0)&(bytes==0)&(back==0)&(named==0)&(o==0)&(i!=1))
+	call usage
+end
+if (lines>100000)|(bytes>1000000)|(back>100000)
+	call usage
+end
+call chunkset lines bytes back named
+call argv i as p n
 rootp=p
 rootn=n
 call filereadfd 0 list as r
@@ -144,14 +199,14 @@ while n
 	p+=l+ok
 	n-=l+ok
 end
-call argv 2+o as p n
+call argv i+1 as p n
 load meta as q
 load meta+8 as m
 call filewrite p n q m as r
 ifslt r 0
 	call fail 4 "cannot write " p n
 end
-call argv 3+o as p n
+call argv i+2 as p n
 load text as q
 load text+8 as m
 call filewrite p n q m as r

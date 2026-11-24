@@ -71,6 +71,18 @@ eval:
 	$(AIL) build embed
 	tools/eval.sh $(AIL) $(CORPORA)
 
+# The same evaluation for several ways to cut and to embed
+# (docs/evaluation.md): smaller and larger chunks, lines in common, the
+# path before the text, and the model mxbai-embed-large, which Ollama
+# must have too. build/eval/variants.txt has a line for each variant
+# and corpus.
+eval-variants:
+	$(AIL) build
+	$(AIL) build chunk
+	$(AIL) build example-eval
+	$(AIL) build embed
+	tools/eval-variants.sh $(AIL) $(CORPORA)
+
 # The index of a repository, which the MCP server is given to search
 # (docs/mcp.md): the files that the git repository in the directory REPO
 # has at the revision AT, cut and embedded as the example does it, in
@@ -116,4 +128,4 @@ dist-check:
 clean:
 	$(AIL) clean
 
-.PHONY: all test example eval index mcp-test dist dist-check clean
+.PHONY: all test example eval eval-variants index mcp-test dist dist-check clean

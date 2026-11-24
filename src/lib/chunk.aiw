@@ -11,6 +11,12 @@
 # caller, return a reason for a file that gave nothing, and print
 # nothing; chunkwhy has the words of a reason.
 #
+# chunkset changes how files are cut from then on, for the evaluation
+# that compares such changes (docs/evaluation.md): the limits of a
+# chunk, lines that a chunk repeats of the one before it, and the path
+# of the file before the text of a chunk. Without it they are cut as
+# docs/example.md says.
+#
 # One file is cut at a time: the file holds what it reads in buffers of
 # its own. Every name of this file starts with "chunk"; a program has no
 # var of such a name.
@@ -22,7 +28,8 @@ use "src/lib/fmt.aiw"
 use "ail-extensions:pdf/src/pdf.aiw"
 
 # a chunk has at most this many lines and, if it has more than one line,
-# at most this many bytes; tools/eval.sh reads the numbers here
+# at most this many bytes, unless chunkset says other numbers;
+# tools/eval.sh reads the numbers here
 const chunkmaxlines 40
 const chunkmaxbytes 1500
 # a file of more bytes than this is passed over; tools/index.sh reads the
@@ -83,6 +90,39 @@ buf chunkleaf 24
 # is added; chunkfail says that memory ran out, and chunkcount is the
 # chunks of the file so far
 var chunkmeta chunktext chunknotes chunkpage chunkbase chunkover chunkfail chunkcount
+# what chunkset said: the lines and the bytes of a chunk at most, 0 for
+# those of the constants; the lines a chunk repeats; and 1 if the path
+# stands before the text of a chunk
+var chunkml chunkmb chunkrepeat chunknamed
+buf chunkjoin 24
+
+# How files are cut from now on: a chunk has at most chunkl lines and,
+# if it has more than one line, at most chunkb bytes, each 0 for the
+# number of the constant above; a chunk that the limits ended, and no
+# unit, is followed by one that begins chunko lines before the place
+# where it ended, lines that both then have; and with chunkp not 0 the
+# text of a chunk, as the model is given it, begins with the path of
+# its file and a line feed. The metadata of a chunk is not changed by
+# the last: its lines are those of the file.
+fn chunkset chunkl chunkb chunko chunkp
+	chunkml=chunkl
+	chunkmb=chunkb
+	chunkrepeat=chunko
+	chunknamed=chunkp
+end
+
+# the most lines and the most bytes of a chunk
+fn chunklimits
+	chunkl=chunkml
+	chunkb=chunkmb
+	ifz chunkl
+		chunkl=chunkmaxlines
+	end
+	ifz chunkb
+		chunkb=chunkmaxbytes
+	end
+	ret chunkl chunkb
+end
 
 # 1 if the chunkn bytes at chunkp have a byte that is not a space, a tab
 # or a carriage return
@@ -166,6 +206,19 @@ fn chunkemit chunkpp chunkpn chunkfirst chunklast chunklp chunkln chunkp chunkn
 	call byaddb chunkmeta 9
 	call byadd chunkmeta chunklp chunkln
 	call byaddb chunkmeta 10 as chunka
+	if chunknamed
+		# the path, a line feed and the chunk as one text
+		call bycut chunkjoin 0
+		call byadd chunkjoin chunkpp chunkpn
+		call byaddb chunkjoin 10
+		call byadd chunkjoin chunkp chunkn as chunkb
+		ifz chunkb
+			chunkfail=1
+			ret 0
+		end
+		load chunkjoin as chunkp
+		load chunkjoin+8 as chunkn
+	end
 	call fmtjson chunktext chunkp chunkn as chunkb
 	call byaddb chunktext 10 as chunkc
 	if (chunka==0)|(chunkb==0)|(chunkc==0)
@@ -189,10 +242,11 @@ end
 # chunks of chunkmaxbytes at most, each of which ends where a character
 # of UTF-8 ends, and all at that one line
 fn chunkpieces chunkpp chunkpn chunkline chunklp chunkln chunkq chunkl
+	call chunklimits as chunka chunkmost
 	while chunkl
 		chunkm=chunkl
-		if chunkm>chunkmaxbytes
-			chunkm=chunkmaxbytes
+		if chunkm>chunkmost
+			chunkm=chunkmost
 			# a byte 10xxxxxx goes on with the character before it
 			label back
 			loadb chunkq+chunkm as chunkc
@@ -215,6 +269,9 @@ end
 # Markdown and 2 for a file that has no units, and chunksplit says that a
 # line longer than a chunk is cut
 fn chunkcut chunkpp chunkpn chunkp chunkn chunkkind chunklp chunkln chunksplit
+	call chunklimits as chunkmostl chunkmostb
+	chunkold=0
+	chunkoldl=0
 	chunkline=1
 	# the chunk that is open: its first line and where that starts, its
 	# last line with ink and where that ends; chunkfirst is 0 if there is
@@ -246,22 +303,62 @@ fn chunkcut chunkpp chunkpn chunkp chunkn chunkkind chunklp chunkln chunksplit
 		end
 		call chunkinked chunkq chunkl as chunkink
 		if chunkink
-			if chunksplit&(chunkl>chunkmaxbytes)
+			if chunksplit&(chunkl>chunkmostb)
 				if chunkfirst
 					call chunkemit chunkpp chunkpn chunkfirst chunklast chunklp chunkln chunkp+chunkstart chunkstop-chunkstart
 					chunkfirst=0
 				end
 				call chunkpieces chunkpp chunkpn chunkline chunklp chunkln chunkq chunkl
 			else
+				chunkback=0
 				if chunkfirst
-					if chunknew|(chunkline-chunkfirst>=chunkmaxlines)|(chunkpos+chunkl-chunkstart>chunkmaxbytes)
+					if chunknew|(chunkline-chunkfirst>=chunkmostl)|(chunkpos+chunkl-chunkstart>chunkmostb)
 						call chunkemit chunkpp chunkpn chunkfirst chunklast chunklp chunkln chunkp+chunkstart chunkstop-chunkstart
+						# a chunk that the limits ended is repeated in part
+						ifz chunknew
+							chunkback=chunkrepeat
+						end
+						chunkold=chunkstart
+						chunkoldl=chunkfirst
 						chunkfirst=0
 					end
 				end
 				ifz chunkfirst
 					chunkfirst=chunkline
 					chunkstart=chunkpos
+					# Go back over lines of the chunk before, never to its
+					# first one, so that every chunk has a line the one
+					# before it has not, and only as far as this line and
+					# they are a chunk within the limits.
+					label back
+					if (chunkback!=0)&(chunkfirst-1>chunkoldl)
+						chunkx=chunkstart-1
+						label bol
+						if chunkx>chunkold
+							loadb chunkp+chunkx-1 as chunkc
+							if chunkc!=10
+								chunkx-=1
+								jmp bol
+							end
+						end
+						if (chunkpos+chunkl-chunkx<=chunkmostb)&(chunkline-chunkfirst+1<chunkmostl)
+							chunkstart=chunkx
+							chunkfirst-=1
+							chunkback-=1
+							jmp back
+						end
+					end
+					# and not to a line with no ink at its start
+					label ink
+					if chunkstart<chunkpos
+						call textline chunkp+chunkstart chunkn-chunkstart as chunkx chunkok
+						call chunkinked chunkp+chunkstart chunkx as chunkc
+						ifz chunkc
+							chunkstart+=chunkx+1
+							chunkfirst+=1
+							jmp ink
+						end
+					end
 				end
 				chunklast=chunkline
 				chunkstop=chunkpos+chunkl

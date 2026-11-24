@@ -78,6 +78,44 @@ then `build/example-eval`. `CORPORA="ail"` names the corpora to run.
 of aildb, the version of Ollama and the digest of the model (`embed
 model` asks Ollama for them) and the limits of a chunk.
 
+## Variants
+
+What a query finds depends on how the files are cut and on the model, and
+both can be changed for a run. `build/chunk` and `build/embed` take the
+changes as options ([example.md](example.md)), and `tools/eval.sh` takes
+them from the environment:
+
+| Variable | Changes |
+|---|---|
+| `EVAL_LINES`, `EVAL_BYTES` | the most lines and the most bytes of a chunk |
+| `EVAL_OVERLAP` | the lines that a chunk which the limits ended has in common with the next |
+| `EVAL_PATH=1` | the path of a file before the text of each of its chunks, as the model is given it |
+| `EVAL_MODEL`, `EVAL_DIM` | the model that Ollama is asked for, and the elements of its vectors |
+| `EVAL_DOCPREFIX`, `EVAL_QUERYPREFIX` | what stands before a chunk and before a query; both are set, and either may be empty |
+| `EVAL_OUT` | the directory of the run, in the place of `build/eval` |
+
+```
+make eval-variants
+```
+
+runs `tools/eval-variants.sh`: the evaluation as it is and five variants
+of it, each in `build/eval/<variant>/`, and then
+`build/eval/variants.txt`, a line for each variant and corpus with the
+number of chunks, the queries found among the first 1, 5 and 10 results
+and the mean reciprocal rank.
+
+| Variant | Is |
+|---|---|
+| `base` | 40 lines and 1500 bytes, no overlap, nomic-embed-text |
+| `small` | 20 lines and 750 bytes |
+| `large` | 80 lines and 3000 bytes |
+| `overlap` | 10 lines in common |
+| `path` | the path before the text |
+| `mxbai` | the model mxbai-embed-large, 1024 dimensions, with nothing before a chunk and `Represent this sentence for searching relevant passages: ` before a query |
+
+Each variant changes one thing against `base`. The queries are the same
+in all of them and are not changed for any.
+
 ## Results
 
 `make AIL=../ail-packages/build/ail eval` printed this on 2026-11-22, for

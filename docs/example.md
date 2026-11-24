@@ -15,7 +15,7 @@ by `make test`, cuts the files. The cutting itself is the library
 program is the command:
 
 ```
-build/chunk [-c] ROOT META TEXT < LIST
+build/chunk [-c] [-n LINES] [-b BYTES] [-o LINES] [-p] ROOT META TEXT < LIST
 ```
 
 `LIST` is paths relative to the directory `ROOT`, one a line, as `git
@@ -65,6 +65,16 @@ Without `-c`, every file of the list that is text is cut:
   most, each of which ends where a character ends, and each has that
   one line as its first and its last: several records then name the
   same place.
+
+The other options are for [the evaluation](evaluation.md#variants), which
+compares ways to cut, and a file is cut as this page says without them:
+`-n` and `-b` are the most lines and the most bytes of a chunk, 40 and
+1500; `-o` is a number of lines that a chunk which the limits ended has in
+common with the next one, so that what stands at a cut is whole in one of
+the two, never more than leaves the next chunk a line of its own and
+never across a unit; and with `-p` the text of a chunk, as the model is
+given it, begins with the path of its file and a line feed, while its
+line of metadata is the same.
 
 The status is 0, with the number of files cut and of chunks on standard
 output; 2 for wrong usage; 4 for a file of the list that cannot be read,
@@ -190,10 +200,17 @@ and the numbers are the libraries of AIL (`ail build embed` makes it, and
 `make example` does):
 
 ```
-build/embed document TEXT VECTORS
-build/embed query QUERIES VECTORS
-build/embed model
+build/embed [OPTIONS] document TEXT VECTORS
+build/embed [OPTIONS] query QUERIES VECTORS
+build/embed [OPTIONS] model
 ```
+
+`OPTIONS` are for [the evaluation](evaluation.md#variants), which compares
+models, and may be left out: `-m MODEL` is the model Ollama is asked for,
+`-d DIMENSION` the elements of its vectors, and `-D PREFIX` and `-Q
+PREFIX` what stands before a chunk and before a query, either of which may
+be empty. Without them they are nomic-embed-text, 768, `search_document: `
+and `search_query: `.
 
 `TEXT` is the file of that name of `build/chunk`; `QUERIES` has a query
 on each line, up to the first tab, and an empty line is passed over.
