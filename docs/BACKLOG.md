@@ -656,3 +656,23 @@ each chose.
   what it printed; that the program ends with the adapter was checked
   by hand, a script that sleeps gone after `kill -9` of the adapter.
 
+### Fixes after the review of `cb9285a`
+
+A third review, of the fixes above at `cb9285a` and of the pull
+requests 33 and 34 of AIL (user, 2026-11-24, again a file `REVIEW.md`
+that is no part of the repository), had four findings besides the
+version of AIL; each fix is one commit.
+`.agents/knowledge/architecture/review-cb9285a.md` has what each
+chose.
+
+- [x] The directory `.aildb/cache` was looked at and then closed, and
+  the file of kept vectors was reached by a path through its name: a
+  process that put a link at that name while a run went on led what
+  the run wrote and removed to another directory. The directory is now
+  opened once, from `.aildb` with no link followed, and kept open
+  (`ixcachedir` of `src/index.aiw`); the file of kept vectors and the
+  files that are removed at the end of a run are reached through that
+  descriptor. Test `tests/cli_index_cache.aiw`: a provider that makes
+  the change when it is asked; on the code before the fix the vectors
+  were written into the directory outside and a file of it was
+  removed.

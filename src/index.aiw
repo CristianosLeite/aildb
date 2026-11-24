@@ -52,6 +52,7 @@ buf ixtkey 32           # and the key of the command of this index
 buf ixprog 24           # the program of the command, as a path from the root
 buf ixbase 24           # the path of the open directory .aildb, in /proc
 buf ixseen 24           # the names in .aildb, and in its directory cache
+buf ixcbase 24          # the path of the open directory .aildb/cache, in /proc
 const ixclock 228
 const ixopenat 257
 const ixmkdirat 258
@@ -74,6 +75,8 @@ var ixstaged
 # the descriptor of the directory .aildb plus 1, or 0 while it is not
 # open: every file of the index is then reached through it
 var ixroot
+# the same of its directory cache, the kept vectors
+var ixcroot
 # 1 once this process holds the lock of the index
 var ixlocked
 
@@ -112,13 +115,36 @@ fn ixin b q m
 	ret p n-1
 end
 
+# 1 if the path p n is the path q m or one below it
+fn ixunder p n q m
+	call textprefix p n q m as is
+	ifz is
+		ret 0
+	end
+	if n==m
+		ret 1
+	end
+	loadb p+m as c
+	ret c==47
+end
+
 # add the path p n to msg as it is said to the user: one that starts at
 # the descriptor of .aildb with the name of that directory in its place
 fn ixshow p n
+	if ixcroot
+		load ixcbase as q
+		load ixcbase+8 as m
+		call ixunder p n q m as is
+		if is
+			call byadd msg ixdp ixdn
+			call byadd msg "/.aildb/cache"
+			tail byadd msg p+m n-m
+		end
+	end
 	if ixroot
 		load ixbase as q
 		load ixbase+8 as m
-		call textprefix p n q m as is
+		call ixunder p n q m as is
 		if is
 			call byadd msg ixdp ixdn
 			call byadd msg "/.aildb"
@@ -240,15 +266,72 @@ fn ixstate make
 	call ixin ixpath "" as p n
 	call ixnames f p n 0 as cache
 	if cache
-		# O_PATH, O_NOFOLLOW, O_DIRECTORY and O_CLOEXEC
-		sys ixopenat f ixcname 0x2b0000 0 as c
-		ifslt c 0
-			call ixalien "cache" 0
-		end
-		call ixin ixpath "cache" as p n
-		call ixnames c p n 1
-		sys close c
+		call ixcachedir 0
 	end
+end
+
+# Open the directory cache of .aildb, which is made first if make says
+# so, and look at what is in it. Like .aildb it is opened from the
+# directory above it with no link followed at its name, and kept open
+# until the program ends: the file of the kept vectors is read, written
+# and removed through the descriptor, in the directory that was looked
+# at, whatever another process puts at the name cache meanwhile.
+fn ixcachedir make
+	if ixcroot
+		ret 0
+	end
+	f=ixroot-1
+	r=0
+	if make
+		sys ixmkdirat f ixcname 493 as r
+	end
+	if (r!=0)&(r!=-17)
+		call ixin ixpath "cache" as p n
+		call about p n
+		call byadd msg "cannot create: "
+		call oserr r
+		call fail stio
+	end
+	# O_PATH, O_NOFOLLOW, O_DIRECTORY and O_CLOEXEC
+	sys ixopenat f ixcname 0x2b0000 0 as c
+	if (c==-40)|(c==-20)
+		call ixalien "cache" 0
+	end
+	ifslt c 0
+		call ixin ixpath "cache" as p n
+		call about p n
+		call byadd msg "cannot open: "
+		call oserr c
+		call fail stio
+	end
+	call bycut ixcbase 0
+	call byadd ixcbase "/proc/self/fd/"
+	call byaddn ixcbase c as ok
+	ifz ok
+		call nomem
+	end
+	ixcroot=c+1
+	load ixcbase as p
+	load ixcbase+8 as n
+	call ixnames c p n 1
+end
+
+# the path of the file q m in the open directory cache, in the buffer b,
+# with a NUL byte after it: its address and its length without that byte
+fn ixincache b q m
+	call bycut b 0
+	load ixcbase as p
+	load ixcbase+8 as n
+	call byadd b p n
+	call byaddb b 47
+	call byadd b q m
+	call byaddb b 0 as ok
+	ifz ok
+		call nomem
+	end
+	load b as p
+	load b+8 as n
+	ret p n-1
 end
 
 # Make the file at the path p n hold the an bytes at a: what is at the
@@ -1260,20 +1343,8 @@ fn ixbegin
 	ixstarted=a*1000000000+b
 	call ixident
 	load ixconf+confdim as dim
-	call ixin ixpath "cache" as p n
-	call filemkdir p n 493 as r
-	if (r!=0)&(r!=-17)
-		call about p n
-		call byadd msg "cannot create: "
-		call oserr r
-		call fail stio
-	end
-	call bycut ixother 0
-	call byadd ixother "cache/"
-	call byadd ixother ixidhex 64
-	load ixother as q
-	load ixother+8 as m
-	call ixin ixpath q m as p n
+	call ixcachedir 1
+	call ixincache ixpath ixidhex 64 as p n
 	call cacheopen ixcache p n dim as r
 	if r
 		call about p n
@@ -1439,7 +1510,8 @@ end
 # remove from .aildb/cache every file but the one of this identity: the
 # vectors of another provider or model, and a file that a run left
 fn ixsweep
-	call ixin ixpath "cache" as p n
+	load ixcbase as p
+	load ixcbase+8 as n
 	call bycut ixbody 0
 	call filenames p n ixbody as k
 	o=0
@@ -1448,12 +1520,7 @@ fn ixsweep
 		call strlen b+o as l
 		call texteq b+o l ixidhex 64 as same
 		ifz same
-			call bycut ixother 0
-			call byadd ixother "cache/"
-			call byadd ixother b+o l
-			load ixother as q
-			load ixother+8 as m
-			call ixin ixpath q m as p n
+			call ixincache ixpath b+o l as p n
 			call fileunlink p n
 		end
 		o+=l+1

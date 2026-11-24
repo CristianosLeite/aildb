@@ -44,7 +44,12 @@ would lead what an index writes to another place, with your rights. So
 `.aildb` is opened from the indexed directory with no link followed at
 its name and kept open, and every file of the index is reached through
 that descriptor (a path in `/proc/self/fd`); before anything is written
-or read, each name in it is looked at. What is there is to be regular
+or read, each name in it is looked at. The directory `cache` is opened
+the same way, from `.aildb` with no link followed, when it is looked at
+or made, and kept open until the command ends: the file of kept vectors
+is read, written and removed through that descriptor, so a process that
+puts a link at the name `cache` while a run goes on changes nothing of
+where the run writes. What is there is to be regular
 files, and a directory `cache` with regular files in it. Anything else,
 a symbolic link, a directory at the name of a file, a pipe, ends `aildb
 index` and `aildb search --text` with status 4 and a line that names it,
@@ -59,8 +64,11 @@ The files that take the place of another when they are whole
 temporary file of the snapshot) are made new, with whatever is at their
 name removed first and never opened, and the lock, `.gitignore` and the
 file of kept vectors are opened with no link followed. The look at the
-names and the writing are two moments: what is put into `.aildb` between
-them by a program that runs at that time is not what this is about. The
+names and the writing are two moments, and both go through the two open
+directories: a name that another process changes between them leads to
+no other directory, and a link that it puts at the name of a file is not
+written through, because that file is made new or opened with no link
+followed. The
 indexed directory itself is opened by the name you give it, through
 whatever links that has. A system without `/proc` has no index of a
 directory.
@@ -348,7 +356,12 @@ the provider is not asked, and the file and the directory outside that
 the links lead to are as they were (before the fix the configuration
 and the manifest were written into the file outside); a search by text
 of a directory whose `.aildb` is a link to the index of another is
-refused the same way.
+refused the same way. `tests/cli_index_cache.aiw` has a provider that,
+when it is asked for vectors, moves `.aildb/cache` away and puts a link
+to a directory outside at its name: the vectors of the run are in the
+directory that was moved, the file of the directory outside is as it
+was, and the next run refuses the link (before the fix the vectors were
+written into the directory outside and its file was removed).
 
 `tests/cli_index_refresh.aiw` counts what the provider is asked, from the
 log of `build/provider-fake`: nothing for files that did not change, with
