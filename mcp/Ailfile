@@ -4,7 +4,7 @@
 # module mcp of the package ail-extensions, named by its address and a
 # version; Ailfile.lock has the revision of that version.
 name aildb-mcp
-version 0.1.1
+version 0.1.2
 ail 0.1.2
 
 bin aildb-mcp src/main.aiw

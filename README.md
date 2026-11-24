@@ -13,16 +13,16 @@ aildb index ~/src/project -i nomic-embed-text -d 768 -s 'document_prefix=search_
 aildb search ~/src/project --text "what happens when a build is interrupted" -k 5
 ```
 
-A search looks at the files first and indexes what changed, committed or not. [docs/install.md](docs/install.md) is the whole way from nothing, [docs/index.md](docs/index.md) what the index of a directory is, and [docs/provider.md](docs/provider.md) the providers. These commands are in the sources and in no release yet.
+A search looks at the files first and indexes what changed, committed or not. [docs/install.md](docs/install.md) is the whole way from nothing, [docs/index.md](docs/index.md) what the index of a directory is, and [docs/provider.md](docs/provider.md) the providers. These commands are in aildb since its version 0.1.2.
 
 ## Install
 
 It needs x86-64 Linux and nothing else. Take the archive of a [release](https://github.com/CristianosLeite/aildb/releases):
 
 ```
-sha256sum -c aildb-0.1.1-x86_64-linux.tar.gz.sha256
-tar -xzf aildb-0.1.1-x86_64-linux.tar.gz
-aildb-0.1.1-x86_64-linux/aildb check an.idx
+sha256sum -c aildb-0.1.2-x86_64-linux.tar.gz.sha256
+tar -xzf aildb-0.1.2-x86_64-linux.tar.gz
+aildb-0.1.2-x86_64-linux/aildb check an.idx
 ```
 
 Or build it from the sources, with [AIL](https://github.com/CristianosLeite/ail) 0.1.2 or later installed:

@@ -9,7 +9,7 @@ part is and why is in [index.md](index.md) and [provider.md](provider.md).
 ## 1. aildb
 
 Take the archive of a [release](https://github.com/CristianosLeite/aildb/releases)
-that has `aildb-llama` in it, the first after 0.1.1:
+that has `aildb-llama` in it, 0.1.2 or later:
 
 ```
 sha256sum -c aildb-<version>-x86_64-linux.tar.gz.sha256

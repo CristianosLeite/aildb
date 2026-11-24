@@ -1,6 +1,6 @@
 ---
 title: aildb as a package
-last-verified: 2026-11-22
+last-verified: 2026-11-24
 sources: [conversation 2026-11-22, Ailfile, Makefile, src/lib/search.aiw, example/consumer, docs/packages.md and docs/cli.md of AIL at 9b94a9b]
 status: current
 ---
@@ -89,3 +89,14 @@ cloned AIL and the two test scripts are gone.
   of the repository it is in before that version is tagged, as it was with 0.1.0, where
   the consumer named the directory first and the address afterwards. The change after the
   tag names 0.1.1, the revision `355920b`.
+
+## 0.1.2 (user, 2026-11-24)
+- The user had the pull requests 18 to 25 merged and asked for a new version to be
+  published, without a number. The agent took 0.1.2: it is the next one, and the one of
+  the AIL that `Ailfile` asks for and of ail-extensions, as the family had one number at
+  0.1.1. Rejected: 0.2.0, which the size of step 17 could justify, because nothing that
+  0.1.1 had was changed or taken away. The number is the user's to change before anything
+  depends on it.
+- `Ailfile`, `mcp/Ailfile` and the name `aildb-mcp` gives a client say 0.1.2.
+  `example/consumer` stays at 0.1.1: its test is of a released library, and nothing of
+  `src/lib/search.aiw` changed for it.
