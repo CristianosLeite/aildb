@@ -3,13 +3,18 @@
 # stdout, with vectors that are computed from the texts and from nothing
 # else, so that a test knows them.
 #
-#   provider-fake [FAULT]
+#   provider-fake [spread] [FAULT]
 #
 # The vector of a text has the dimension of the request: the number of
 # its bytes, the sum of its bytes, and 0.1 for every element after them;
 # with the dimension 1 it is the number of bytes alone. A text of no
 # bytes is given one byte of the value 1, so that no vector is all
 # zeros. A document and a query of the same bytes have the same vector.
+# Those vectors all point nearly the same way, which is no matter where
+# only what was asked is looked at. With "spread" every element is a
+# whole number from 1 to 1000 that the bytes and the place of the
+# element make, so that two texts have vectors far apart and a search
+# finds the text that is the query first.
 #
 # Each request adds a line to the file provider.log of the current
 # directory: the operation, the number of texts, the model, and the
@@ -35,21 +40,28 @@ buf log 24
 buf txt 24
 buf ts 16
 
+# 1 if an argument is the n bytes at p
 fn is p n
-	call argv 1 as q m
-	if n!=m
-		ret 0
-	end
-	i=0
-	while i<n
-		loadb p+i as a
-		loadb q+i as b
-		if a!=b
-			ret 0
+	call argc as c
+	k=1
+	while k<c
+		call argv k as q m
+		same=n==m
+		i=0
+		while same&(i<n)
+			loadb p+i as a
+			loadb q+i as b
+			if a!=b
+				same=0
+			end
+			i+=1
 		end
-		i+=1
+		if same
+			ret 1
+		end
+		k+=1
 	end
-	ret 1
+	ret 0
 end
 
 fn bad p n
@@ -120,6 +132,7 @@ call is "order" as forder
 call is "dim" as fdim
 call is "nan" as fnan
 call is "zero" as fzero
+call is "spread" as spread
 call byadd out "{\"aildb\":1,\"embeddings\":["
 q=t+1
 k=0
@@ -169,18 +182,22 @@ if ek
 		if fzero
 			call byadd out "0"
 		else
-			if i==0
-				if fnan
-					call byadd out "1e999"
-				else
-					call byaddn out xn
+			if spread
+				call byaddn out ((sum+1)*(i+2)*2654435761+xn*40503*(i+1)>>7)%1000+1
+			else
+				if i==0
+					if fnan
+						call byadd out "1e999"
+					else
+						call byaddn out xn
+					end
 				end
-			end
-			if i==1
-				call byaddn out sum
-			end
-			if i>1
-				call byadd out "0.1"
+				if i==1
+					call byaddn out sum
+				end
+				if i>1
+					call byadd out "0.1"
+				end
 			end
 		end
 		i+=1

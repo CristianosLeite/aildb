@@ -648,16 +648,8 @@ fn ixtidy
 	end
 end
 
-# Begin a run: the identity of the configuration, the vectors that are
-# kept for it, and the manifest, which counts if it is of this identity
-# and of the snapshot that is there.
-fn ixbegin
-	local ts 16
-	call ixtidy
-	sys clock_gettime 0 ts
-	load ts as a
-	load ts+8 as b
-	ixstarted=a*1000000000+b
+# make ixid the identity of the configuration, and ixidhex its digits
+fn ixident
 	call confident ixconf ixid as ok
 	call bycut ixhex 0
 	call shahex ixhex ixid as a
@@ -666,29 +658,15 @@ fn ixbegin
 	end
 	load ixhex as p
 	call bycopy ixidhex p 64
-	load ixconf+confdim as dim
-	call ixin ixpath "cache" as p n
-	call filemkdir p n 493 as r
-	if (r!=0)&(r!=-17)
-		call about p n
-		call byadd msg "cannot create: "
-		call oserr r
-		call fail stio
-	end
-	call bycut ixother 0
-	call byadd ixother "cache/"
-	call byadd ixother ixidhex 64
-	load ixother as q
-	load ixother+8 as m
-	call ixin ixpath q m as p n
-	call cacheopen ixcache p n dim as r
-	if r
-		call about p n
-		call byadd msg "cannot read: "
-		call oserr r
-		call fail stio
-	end
+end
+
+# Read the manifest and open the snapshot: ixmanok is 1 if the manifest
+# is of the identity of the configuration and of the snapshot that is
+# there, by its size and its two sums, and snap is then that snapshot,
+# open. If it is not, snap is no snapshot.
+fn ixmanifest
 	call ixin ixpath "manifest" as p n
+	call manfree ixman
 	call manopen ixman p n as r
 	if r
 		call about p n
@@ -697,6 +675,9 @@ fn ixbegin
 		call fail stio
 	end
 	ixmanok=0
+	if ixopen
+		call snapclose snap
+	end
 	ixopen=0
 	call manvalid ixman as ok
 	ifz ok
@@ -727,6 +708,136 @@ fn ixbegin
 	ixopen=1
 	ixmanok=1
 	load ixman+96 as ixoldstart
+end
+
+# 1 if the snapshot is of the files as they are now, without reading
+# one: the manifest is of the snapshot and the configuration, and has
+# every file of the directory with the size and the times it has now,
+# older than the run that wrote it, and no file besides. snap is then
+# the snapshot, open. The revision of git is not asked for.
+fn ixfresh
+	call ixident
+	call ixmanifest
+	ifz ixmanok
+		ret 0
+	end
+	call bycut ixfiles 0
+	call treelist ixdp ixdn ixfiles as files git why
+	if why
+		ret 0
+	end
+	seen=0
+	o=0
+	while files
+		load ixfiles as p
+		p+=o
+		call strlen p as l
+		call textvalid p l as ok
+		if ok
+			call treestat ixdp ixdn p l ixst as r
+			ifz r
+				call manfind ixman p l as a e
+				ifz a
+					ret 0
+				end
+				call manentry a e ixinfo as ok
+				load ixst+8 as size
+				load ixst+16 as mtime
+				load ixst+24 as ctime
+				load ixinfo+manfsize as x
+				load ixinfo+manfmtime as y
+				load ixinfo+manfctime as z
+				if (x!=size)|(y!=mtime)|(z!=ctime)|(mtime>=ixoldstart)
+					ret 0
+				end
+				seen+=1
+			end
+		end
+		o+=l+1
+		files-=1
+	end
+	load ixman+112 as x
+	ret seen==x
+end
+
+# Take the lock of the index as lock of src/main.aiw does, but wait for
+# a run that holds it, ms milliseconds at most, looking every 50; after
+# that the program ends with the status of a build in progress.
+fn ixlockwait ms
+	local ts 16
+	load lck as p
+	load lck+8 as n
+	n-=1
+	call fileopen p n 0x41 420 as fd
+	ifslt fd 0
+		call about p n
+		call byadd msg "cannot create: "
+		call oserr fd
+		call fail stio
+	end
+	label again
+	# LOCK_EX and LOCK_NB
+	sys flock fd 6 as r
+	if r==-11
+		if ms
+			store ts 0
+			store ts+8 50000000
+			sys nanosleep ts 0
+			if ms>50
+				ms-=50
+			else
+				ms=0
+			end
+			jmp again
+		end
+		load dst as p
+		load dst+8 as n
+		call about p n-1
+		call byadd msg "another build is in progress"
+		call fail stbusy
+	end
+	if r
+		call about p n
+		call byadd msg "cannot lock: "
+		call oserr r
+		call fail stio
+	end
+end
+
+# Begin a run: the identity of the configuration, the vectors that are
+# kept for it, and the manifest, which counts if it is of this identity
+# and of the snapshot that is there.
+fn ixbegin
+	local ts 16
+	call ixtidy
+	sys clock_gettime 0 ts
+	load ts as a
+	load ts+8 as b
+	ixstarted=a*1000000000+b
+	call ixident
+	load ixconf+confdim as dim
+	call ixin ixpath "cache" as p n
+	call filemkdir p n 493 as r
+	if (r!=0)&(r!=-17)
+		call about p n
+		call byadd msg "cannot create: "
+		call oserr r
+		call fail stio
+	end
+	call bycut ixother 0
+	call byadd ixother "cache/"
+	call byadd ixother ixidhex 64
+	load ixother as q
+	load ixother+8 as m
+	call ixin ixpath q m as p n
+	call cacheopen ixcache p n dim as r
+	if r
+		call about p n
+		call byadd msg "cannot read: "
+		call oserr r
+		call fail stio
+	end
+	call ixmanifest
 end
 
 # one request for the k texts of ixpend: their vectors are kept
@@ -1076,5 +1187,143 @@ fn index
 		call byadd msg "indexed, but the line about it could not be written to the output"
 		call fail stio
 	end
+	sys exit_group 0
+end
+
+# aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
+#
+# The search of the index of a directory for a query in words: the
+# index is made what the files are now if it is not, the provider of
+# the index is asked for the vector of the query, and the records are
+# ranked and printed as search prints them.
+fn textsearch
+	call argc as c
+	set "." as ixdp
+	ixdn=1
+	i=2
+	call argv 2 as p n
+	loadb p as x
+	if (n>0)&(x!=45)
+		ixdp=p
+		ixdn=n
+		i=3
+	end
+	tp=0
+	tn=0
+	kp=0
+	kn=0
+	pp=0
+	pn=0
+	lp=0
+	ln=0
+	wp=0
+	wn=0
+	while i<c
+		call argv i as p n
+		if i+1>=c
+			call usage
+		end
+		call argv i+1 as q m
+		i+=2
+		call texteq p n "--text" as is
+		if is
+			if tp
+				call usage
+			end
+			tp=q
+			tn=m
+		else
+			loadb p as x
+			loadb p+1 as y
+			if (n!=2)|(x!=45)
+				call usage
+			end
+			if y==107
+				if kp
+					call usage
+				end
+				kp=q
+				kn=m
+			end
+			if y==112
+				if pp
+					call usage
+				end
+				pp=q
+				pn=m
+			end
+			if y==108
+				if lp
+					call usage
+				end
+				lp=q
+				ln=m
+			end
+			if y==119
+				if wp
+					call usage
+				end
+				wp=q
+				wn=m
+			end
+			if (y!=107)&(y!=112)&(y!=108)&(y!=119)
+				call usage
+			end
+		end
+	end
+	if (tp==0)|(tn==0)|(kp==0)
+		call usage
+	end
+	call textnum kp kn as k ok
+	if (ok==0)|(k-1>0xfffffffe)
+		call usage
+	end
+	call ixconfig 0
+	load ixconf+conftime as wait
+	if wp
+		call textnum wp wn as wait ok
+		if (ok==0)|(wait>3600000)
+			call usage
+		end
+	end
+	call ixin dst "index" as p n
+	call ixin lck "index.lock" as p n
+	call ixfresh as fresh
+	ifz fresh
+		call ixlockwait wait
+		call ixrefresh
+	end
+	call hookmark 2
+	# snap is the snapshot now; the query
+	call bycut ixvec 0
+	call provquerytext ixconf tp tn ixvec ixerr as w st
+	if w==provtext
+		call about ixdp ixdn
+		call byadd msg "the query is not well-formed UTF-8"
+		call fail stinvalid
+	end
+	if w
+		call ixnoprov w st
+	end
+	load snap+24 as dim
+	load ixconf+confdim as x
+	alloc dim*8 as q
+	if (q==0)|(x!=dim)
+		call nomem
+	end
+	load ixvec as p
+	call searchquery snap p q as r
+	if r
+		call about ixdp ixdn
+		call byadd msg "the vector of the query is not one that can be searched with"
+		call fail stprovider
+	end
+	qvec=q
+	load dst as ip
+	load dst+8 as in
+	call scan k pp pn lp ln ip in-1
+	call hookmark 3
+	call results
+	call hookmark 4
 	sys exit_group 0
 end

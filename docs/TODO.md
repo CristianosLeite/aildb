@@ -81,14 +81,6 @@ no daemon or filesystem watcher, and wants to choose an embedding provider
 independently of the LLM that asks the questions. The commands and data
 layouts below are implementation suggestions.
 
-- [ ] Propose `aildb search [DIRECTORY] --text QUERY` as the text search
-  entry point. Resolve the directory's index and provider settings, create
-  or refresh the snapshot if needed, embed the query with the same provider
-  configuration, and return the usual ranked paths and lines or PDF pages.
-  An up-to-date index makes only the query embedding call. Preserve the
-  existing vector-input `search`, `build` and `check` commands. Add an
-  end-to-end test for the first search, a repeat search without document
-  embedding calls, and a search immediately after an uncommitted edit.
 - [ ] Make MCP an optional stdio adapter for the same text search command.
   The MCP client starts it and supplies the directory in its configuration.
   Each search request forwards the query, limit and filters to the CLI,

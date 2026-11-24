@@ -146,6 +146,39 @@ was written.
 - **A file that is passed over** has its line on standard error when it
   is read, not in every run: the manifest remembers that it gave nothing.
 
+## Searching by text
+
+`aildb search DIRECTORY --text QUERY -k LIMIT` ([usage.md](usage.md#search---text))
+is the search of a directory: it makes the index what the files are now,
+asks the provider of the index for the vector of the query, and ranks.
+Nothing has to be run before it but the first `aildb index`, which names
+the provider.
+
+Whether the index is up to date is found without reading a file and
+without the lock: the manifest must be of the configuration and of the
+snapshot that is there, and must have every file of the directory with the
+size and the two times it has now, older than the run that wrote the
+manifest, and no file besides. Then the search maps the snapshot and asks
+the provider for the query alone. The listing is the one of a run, so in a
+work tree it is two commands of git.
+
+If it is not up to date, the search takes the lock and does what a run of
+`aildb index` does, and then searches the snapshot that run left. If
+another run holds the lock, it waits for it, looking every 50 ms, for the
+time `-w` gives or the time of a request of the provider, and then looks
+at the files itself; a run that is still going after that is status 5.
+Waiting is what makes a search after an edit see the edit, and a first
+search has no older snapshot to fall back on.
+
+- **The revision is not asked of git for an index that is up to date.**
+  A snapshot whose files did not change still has the revision it was
+  given, or none: a commit of files that were indexed uncommitted does
+  not give the snapshot its revision until `aildb index` runs, which
+  always asks.
+- **A search may write**: the snapshot, the manifest and the kept
+  vectors, when the files changed. A directory that cannot be written is
+  status 4 once its index is out of date.
+
 ## The manifest
 
 `.aildb/manifest` is text. Five lines say of what it is the manifest, and
@@ -248,6 +281,33 @@ and the snapshot in turn. `tests/kill_index.aiw` kills a run of
 between the snapshot and its manifest and before the directory is flushed,
 and runs a second `index` of the directory while the first is stopped.
 `tests/lib_cache.aiw` and `tests/lib_manifest.aiw` are the two files alone.
+
+`tests/cli_search_text.aiw` searches a directory by text from end to end:
+the first search of a directory with a configuration and no snapshot asks
+the provider for the documents and then for the query; the search after it
+for the query alone; the search right after an edit that is not committed
+for the one changed text and the query, and the edited file is the first
+result; then a new and a removed file, the filters, the current directory,
+wrong usage, a directory never indexed, a query that is not UTF-8, a
+provider that fails for the query and for the documents, and an index held
+by a run that is stopped.
+
+On 2026-11-24, with the two indexes of the clones above, `aildb search .
+--text "compute the CRC-32 of a run of bytes" -k 3` printed from both
+
+```
+{"rank":1,"score":0.826291,"score_bits":"3fea70fa2af74f23","path":"src/lib/crc.aiw","start_line":44,"end_line":82}
+{"rank":2,"score":0.782079,"score_bits":"3fe906c996b4c515","path":"src/lib/crc.aiw","start_line":1,"end_line":10}
+{"rank":3,"score":0.762721,"score_bits":"3fe86835304a5326","path":"tests/lib_crc.aiw","start_line":11,"end_line":50}
+```
+
+with the scores of the index made through `aildb-ollama`; those of the
+one made through `aildb-llama` were 0.826321, 0.782175 and 0.762959 for
+the same three records, the two programs running the same model file. A
+function of four lines added to `src/lib/text.aiw` of the second clone,
+not committed, was the first result of the next search for what its
+comment says, at the lines 235 to 238, and that snapshot named no
+revision.
 
 On 2026-11-24, on an Intel Core i7-12700H with Linux 7.0.0, with the
 command `ail` of AIL at `d9e069e`, a clone of this repository at `0abc708`

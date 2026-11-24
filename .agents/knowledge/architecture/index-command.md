@@ -62,6 +62,28 @@ but for the place of the index.
   printed.
 - **A file that cannot be cut is passed over with a line and does not fail the run**,
   as in `build/chunk` without `-c`; also one that was listed and cannot be read then.
+- **`aildb search [DIRECTORY] --text QUERY`** (the fifth item of the step; agent,
+  2026-11-24): `--text` anywhere among the arguments makes the first one a directory.
+  The step proposes this form; the search of a snapshot is `search INDEX`, and a
+  directory and a file cannot be told apart by their names, so the option says which.
+  `-q` and `-i` are wrong usage with it. The parser of the other options is not used:
+  it takes a letter and a value, and `--text` is neither.
+- **Up to date is decided without the lock and without reading a file**, by the sizes
+  and times of the manifest; a search of an index that is up to date writes nothing
+  and asks the provider once. The revision is not asked of git then (three more
+  commands of git a search): a snapshot keeps the revision it has while its files do
+  not change, which is still true of it, and `index` asks every time.
+- **A search waits for a run that holds the lock** (`-w`, or the time of a request of
+  the provider), looking every 50 ms, and is status 5 after that. Rejected: searching
+  the snapshot that is there while another run refreshes, which answers at once and
+  from files that the user has just changed; and failing at once, which makes two
+  searches of one directory at one time fail for no reason.
+- **The vector of a query is not kept**: one request a search.
+- **`build/provider-fake` has `spread`**: its first vectors, the number and the sum of
+  the bytes with 0.1 after them, all point nearly one way, so the rounding to binary32
+  decides which of two records is first. Found when the test of the edit had the wrong
+  file first; the engine was right, by Python. With `spread` the elements are far
+  apart, and the text that is the query is first.
 
 ## Checked
 - `tests/cli_index.aiw`, `tests/cli_index_plain.aiw`, `tests/lib_tree.aiw`

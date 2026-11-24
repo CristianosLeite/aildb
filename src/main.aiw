@@ -6,8 +6,8 @@
 # It is compiled into an executable by a file that uses lib/std/io.aiw
 # and a file of hooks first: src/aildb.aiw for the one that is shipped.
 #
-# The commands are build, search and check, and index, which is
-# src/index.aiw.
+# The commands are build, search and check, and index and the search
+# of a directory by text, which are src/index.aiw.
 use "lib/std/bytes.aiw"
 use "lib/std/file.aiw"
 use "src/lib/crc.aiw"
@@ -51,6 +51,7 @@ use "src/index.aiw"
 fn usage
 	call eprint "usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
        aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
+       aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
        aildb check INDEX
        aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] -- COMMAND [ARGUMENT...]]
 "
@@ -818,6 +819,16 @@ fn search
 	call argc as n
 	if n<3
 		call usage
+	end
+	# with --text it is the search of a directory, of src/index.aiw
+	i=2
+	while i<n
+		call argv i as p m
+		call texteq p m "--text" as is
+		if is
+			call textsearch
+		end
+		i+=1
 	end
 	call options 3 "kqpli"
 	call opt 107 as kp kn

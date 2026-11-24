@@ -1,0 +1,211 @@
+# no configuration
+$ aildb search p --text 'alpha beta' -k 2
+--- stdout
+--- stderr
+aildb: p: no index is configured here; the first index of a directory names its provider: aildb index DIRECTORY -i MODEL -d DIMENSION -- COMMAND
+--- status 2
+# a configuration and no snapshot: the first search makes it
+$ aildb index p -i m1 -d 8 -- FAKE spread exit3
+--- stdout
+--- stderr
+aildb: p: the provider ended with the status 3: provider-fake: the model is not there
+--- status 7
+cache
+config
+index.lock
+--- provider.log
+$ aildb search p --text 'alpha beta' -k 2
+--- stdout
+{"source_revision":null,"model":"m1"}
+{"rank":1,"score":1.000000,"score_bits":"3fefffffffd6db62","path":"a.txt","start_line":1,"end_line":1}
+{"rank":2,"score":0.860621,"score_bits":"3feb8a3570c42bd6","path":"c.md","start_line":4,"end_line":5}
+--- stderr
+--- status 0
+--- provider.log
+documents 4 m1
+query 1 m1
+# again: the query alone
+$ aildb search p --text 'alpha beta' -k 2
+--- stdout
+{"source_revision":null,"model":"m1"}
+{"rank":1,"score":1.000000,"score_bits":"3fefffffffd6db62","path":"a.txt","start_line":1,"end_line":1}
+{"rank":2,"score":0.860621,"score_bits":"3feb8a3570c42bd6","path":"c.md","start_line":4,"end_line":5}
+--- stderr
+--- status 0
+--- provider.log
+query 1 m1
+# an edit that is not committed, and the search at once
+$ aildb search p --text 'a text that was not there' -k 1
+--- stdout
+{"source_revision":null,"model":"m1"}
+{"rank":1,"score":1.000000,"score_bits":"3ff00000032df5c4","path":"sub/b.py","start_line":1,"end_line":1}
+--- stderr
+--- status 0
+--- provider.log
+documents 1 m1
+query 1 m1
+# a new file and a removed one
+$ aildb search p --text 'delta' -k 10
+--- stdout
+{"source_revision":null,"model":"m1"}
+{"rank":1,"score":1.000000,"score_bits":"3feffffffb004603","path":"d.txt","start_line":1,"end_line":1}
+{"rank":2,"score":0.781239,"score_bits":"3fe8ffe8f34ba7ec","path":"c.md","start_line":4,"end_line":5}
+{"rank":3,"score":0.773023,"score_bits":"3fe8bc9afb73a354","path":"sub/b.py","start_line":1,"end_line":1}
+{"rank":4,"score":0.658941,"score_bits":"3fe5160b0bad9b78","path":"c.md","start_line":1,"end_line":2}
+--- stderr
+--- status 0
+--- provider.log
+documents 1 m1
+query 1 m1
+# the filters, and the directory this one
+$ aildb search p --text 'delta' -k 10 -p sub/
+--- stdout
+{"source_revision":null,"model":"m1"}
+{"rank":1,"score":0.773023,"score_bits":"3fe8bc9afb73a354","path":"sub/b.py","start_line":1,"end_line":1}
+--- stderr
+--- status 0
+$ aildb search p --text 'delta' -l markdown -k 10
+--- stdout
+{"source_revision":null,"model":"m1"}
+{"rank":1,"score":0.781239,"score_bits":"3fe8ffe8f34ba7ec","path":"c.md","start_line":4,"end_line":5}
+{"rank":2,"score":0.658941,"score_bits":"3fe5160b0bad9b78","path":"c.md","start_line":1,"end_line":2}
+--- stderr
+--- status 0
+$ cd p; aildb search --text 'second' -k 1
+--- stdout
+{"source_revision":null,"model":"m1"}
+{"rank":1,"score":0.881747,"score_bits":"3fec37452533ac3a","path":"d.txt","start_line":1,"end_line":1}
+--- stderr
+--- status 0
+query 1 m1
+--- provider.log
+query 1 m1
+query 1 m1
+# wrong usage
+$ aildb search p --text 'delta'
+--- stdout
+--- stderr
+usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
+       aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
+       aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
+       aildb check INDEX
+       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] -- COMMAND [ARGUMENT...]]
+--- status 2
+$ aildb search p --text '' -k 1
+--- stdout
+--- stderr
+usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
+       aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
+       aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
+       aildb check INDEX
+       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] -- COMMAND [ARGUMENT...]]
+--- status 2
+$ aildb search p --text 'delta' -k 0
+--- stdout
+--- stderr
+usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
+       aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
+       aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
+       aildb check INDEX
+       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] -- COMMAND [ARGUMENT...]]
+--- status 2
+$ aildb search p --text 'delta' -k 1 -q q.bin
+--- stdout
+--- stderr
+usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
+       aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
+       aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
+       aildb check INDEX
+       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] -- COMMAND [ARGUMENT...]]
+--- status 2
+$ aildb search p --text 'delta' -k 1 -i m1
+--- stdout
+--- stderr
+usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
+       aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
+       aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
+       aildb check INDEX
+       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] -- COMMAND [ARGUMENT...]]
+--- status 2
+$ aildb search p --text 'delta' -k 1 -k 2
+--- stdout
+--- stderr
+usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
+       aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
+       aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
+       aildb check INDEX
+       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] -- COMMAND [ARGUMENT...]]
+--- status 2
+$ aildb search p --text 'delta' -k 1 --text again
+--- stdout
+--- stderr
+usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
+       aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
+       aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
+       aildb check INDEX
+       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] -- COMMAND [ARGUMENT...]]
+--- status 2
+$ aildb search p --text 'delta' -k 1 -w x
+--- stdout
+--- stderr
+usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
+       aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
+       aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
+       aildb check INDEX
+       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] -- COMMAND [ARGUMENT...]]
+--- status 2
+$ aildb search p --text 'delta' -k
+--- stdout
+--- stderr
+usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
+       aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
+       aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
+       aildb check INDEX
+       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] -- COMMAND [ARGUMENT...]]
+--- status 2
+# a directory that is none, and one that was never indexed
+$ aildb search none --text 'delta' -k 1
+--- stdout
+--- stderr
+aildb: none: no index is configured here; the first index of a directory names its provider: aildb index DIRECTORY -i MODEL -d DIMENSION -- COMMAND
+--- status 2
+$ aildb search e --text 'delta' -k 1
+--- stdout
+--- stderr
+aildb: e: no index is configured here; the first index of a directory names its provider: aildb index DIRECTORY -i MODEL -d DIMENSION -- COMMAND
+--- status 2
+# a query that is no text
+$ aildb search p --text 'aÿb' -k 1
+--- stdout
+--- stderr
+aildb: p: the query is not well-formed UTF-8
+--- status 3
+# a provider that fails for the query, and one for the documents
+$ aildb search p --text 'delta' -k 1
+--- stdout
+--- stderr
+aildb: p: the provider ended with the status 3: provider-fake: the model is not there
+--- status 7
+--- provider.log
+documents 1 m1
+$ aildb search p --text 'delta' -k 1
+--- stdout
+--- stderr
+aildb: p: the provider ended with the status 3: provider-fake: the model is not there
+--- status 7
+# an index that another run holds
+$ aildb search p --text 'delta' -k 1 -w 120
+--- stdout
+--- stderr
+aildb: p/.aildb/index: another build is in progress
+--- status 5
+--- provider.log
+documents 2 m1
+$ aildb search p --text 'last' -k 1
+--- stdout
+{"source_revision":null,"model":"m1"}
+{"rank":1,"score":1.000000,"score_bits":"3feffffffca0b060","path":"g.txt","start_line":1,"end_line":1}
+--- stderr
+--- status 0
+--- provider.log
+query 1 m1

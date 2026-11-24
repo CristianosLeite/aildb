@@ -6,11 +6,13 @@ elsewhere; `search` ranks the records of a snapshot against a query vector;
 `check` validates a snapshot. `index` makes the index of a directory by
 itself: it cuts the files, asks an embedding provider for their vectors and
 publishes the snapshot in the directory `.aildb` of it
-([index.md](index.md)). [format.md](format.md) is the format of the file.
+([index.md](index.md)); `search` with `--text` searches such a directory
+for a query in words, and makes its index what the files are now first. [format.md](format.md) is the format of the file.
 
 ```
 aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
 aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
+aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
 aildb check INDEX
 aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] -- COMMAND [ARGUMENT...]]
 ```
@@ -31,7 +33,7 @@ prints the usage above on standard error and ends with status 2.
 | 4 | an I/O failure: a file that cannot be opened, read, written, synced, mapped or renamed, output that cannot be written, and no memory |
 | 5 | another build is in progress for the same destination |
 | 6 | the snapshot was published, but its durability is not confirmed |
-| 7 | the embedding provider of `index` failed: it could not be started, ended with a status other than 0, was ended by a signal, took too long, or gave an answer that is refused ([provider.md](provider.md)) |
+| 7 | the embedding provider of `index` or of `search --text` failed: it could not be started, ended with a status other than 0, was ended by a signal, took too long, or gave an answer that is refused ([provider.md](provider.md)) |
 
 Status 1 is not used. With any status but 0 there is one line on standard
 error, `aildb: ` and what was wrong, with the file and, for metadata, the
@@ -272,3 +274,46 @@ before the rename, leaves the snapshot that was there. The statuses are
 those above: 2 for wrong usage, 3 for a file `.aildb/config` that is no
 configuration, 4 for a directory or a file that cannot be read or written,
 5, 6, and 7 for a provider that failed.
+
+## `search --text`
+
+```
+aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
+```
+
+Searches the index of `DIRECTORY`, or of the current directory if none is
+named, for the query `QUERY`, a text in words, and prints what `search`
+prints: the line of the snapshot and a line for each result, with the path
+relative to `DIRECTORY` and the lines, or the page of a PDF file. With
+`--text` the first argument is a directory, not a snapshot, and the
+command has no `-q` and no `-i`: the vector of the query comes from the
+embedding provider of the index, the one of `DIRECTORY/.aildb/config`,
+asked with the operation `query` ([provider.md](provider.md)).
+
+The directory was indexed once, by `aildb index` with its options. After
+that a search needs nothing but the directory:
+
+1. If the index is not what the files are now, it is made so first, as
+   `aildb index` without options does it ([index.md](index.md#what-a-run-does)):
+   a new, an edited and a removed file are in the results of the very
+   search that follows them, committed or not.
+2. The provider is asked for the vector of the query, one request.
+3. The records are ranked as `search` ranks them.
+
+An index that is up to date costs the one request for the query and no
+other: whether it is up to date is found without reading a file, from the
+sizes and the times in the manifest ([index.md](index.md#searching-by-text)).
+
+| Option | Is |
+|---|---|
+| `--text QUERY` | the query, well-formed UTF-8, not empty. Required |
+| `-k LIMIT` | the most results, as for `search`. Required |
+| `-p PREFIX`, `-l LANGUAGE` | the filters of `search` |
+| `-w MILLISECONDS` | how long to wait for another run that is refreshing the index, 0 to 3600000; without it, the time the configuration gives a request of the provider |
+
+The statuses: 2 for wrong usage and for a directory that was never
+indexed; 3 for a query that is not well-formed UTF-8 and a configuration
+that is none; 4; 5 if another run still holds the index after the wait; 6;
+and 7 if the provider failed, for the documents or for the query. What a
+refresh says of a file it passes over is on standard error; standard
+output has the results alone.

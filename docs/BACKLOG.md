@@ -438,3 +438,16 @@ directory, its configuration, its manifest and its kept vectors are in
   fails) and `kill_index` (runs killed at four points, and two at
   once), `lib_cache`, `lib_manifest`. `docs/index.md`,
   `docs/durability.md`.
+- [x] `aildb search [DIRECTORY] --text QUERY`: the text search of a
+  directory. It reads the configuration of the index, makes or
+  refreshes the snapshot if the files are not what the manifest has,
+  asks the same provider for the vector of the query with the
+  operation `query`, and prints the ranked paths with their lines, or
+  the page of a PDF file, as `search` does. An index that is up to
+  date, which is found from sizes and times alone, costs the one
+  request for the query. `search INDEX`, `build` and `check` are as
+  they were (`tests/cli_search*.out` changed in the line of the usage
+  alone). Test `cli_search_text`: the first search, a second one with
+  no request for documents, and a search right after an edit that is
+  not committed; two runs against nomic-embed-text on 2026-11-24
+  (`docs/index.md`).
