@@ -211,6 +211,17 @@ mapped pages contribute to reported peak resident memory.
   `search` of the unpacked executable in a Docker container without AIL.
   The archive is for `v0.1.0` (user, 2026-11-22). Attaching it to the
   release is left in `TODO.md`.
+- [x] The archives attached to their releases (user, 2026-11-24: every
+  open item). The release of `v0.1.1` had its two files already,
+  `aildb-0.1.1-x86_64-linux.tar.gz` and its `.sha256`: downloaded on
+  2026-11-24, the checksum holds, and `BUILD` names aildb `355920b` and
+  AIL `cae2e92`. For `v0.1.0`, `make dist REV=v0.1.0` with the command
+  of AIL built at its tag `v0.1.0` (`9b94a9b`) made
+  `aildb-0.1.0-x86_64-linux.tar.gz` with the checksum
+  `618f98babd39b9c4f8f884d0b01a471ddca0313ee58712a882ebafe264d8f49a`,
+  the one of the archive made on 2026-11-22; `make dist-check` passed
+  on it, and the archive and its `.sha256` were uploaded to the release
+  of `v0.1.0`, which is still a draft.
 - [x] The version 0.1.1 (user, 2026-11-22: every package of the family
   to 0.1.1, with AIL): `Ailfile`, `mcp/Ailfile` and
   `example/consumer/Ailfile` say it and ask for AIL 0.1.1, the server
