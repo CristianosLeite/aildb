@@ -79,7 +79,7 @@ var ixroot
 # the same of its directory cache, the kept vectors
 var ixcroot
 # 1 once this process holds the lock of the index
-var ixlocked
+var ixlocked ixlockfd
 # 1 while a run of index publishes its snapshot, and 1 once the manifest
 # of that snapshot is written to .aildb/manifest.new
 var ixrun ixmanstaged
@@ -692,6 +692,22 @@ fn ixconfig given
 		end
 		ixstaged=1
 		ret 0
+	end
+	if (ixlocked==0)&(ixroot!=0)
+		# A run that ended early may have left the snapshot of another
+		# configuration than .aildb/config has: what it left is ended
+		# under the lock before anything is said of the configuration, so
+		# that the one that is read, checked and run is the one of the
+		# snapshot. A run that is at work holds the lock, and then the
+		# configuration is the one of the snapshot that is there.
+		call ixpending as r
+		if r
+			call ixlock 0 1 as r
+			if r
+				call ixunlock
+			end
+			call ixin ixpath "config" as p n
+		end
 	end
 	call bycut ixcfg 0
 	call fileread p n ixcfg as r
@@ -1414,9 +1430,15 @@ end
 # the lock, a change of the configuration that a run left half done is
 # ended (ixrecover). A process that has the lock already returns.
 fn ixlockwait ms
+	tail ixlock ms 0
+end
+
+# The same, and with soft a run that still holds the lock after ms
+# milliseconds does not end the program: 1 with the lock, 0 without.
+fn ixlock ms soft
 	local ts 16
 	if ixlocked
-		ret 0
+		ret 1
 	end
 	load lck as p
 	load lck+8 as n
@@ -1444,6 +1466,10 @@ fn ixlockwait ms
 			end
 			jmp again
 		end
+		if soft
+			sys close fd
+			ret 0
+		end
 		load dst as p
 		load dst+8 as n
 		call about p n-1
@@ -1457,8 +1483,37 @@ fn ixlockwait ms
 		call fail stio
 	end
 	ixlocked=1
+	ixlockfd=fd
 	# what a run that ended early left of a change of the configuration
 	call ixrecover
+	ret 1
+end
+
+# Give the lock back: only a process that has done nothing under it but
+# what ixlock does.
+fn ixunlock
+	if ixlocked
+		sys close ixlockfd
+		ixlocked=0
+	end
+end
+
+# 1 if .aildb has a file that a run writes before its snapshot has its
+# name and gives its own name after: such a run is at work, or ended
+# early
+fn ixpending
+	call ixin ixother "config.new" as q m
+	# O_PATH and O_NOFOLLOW: the name alone is looked at
+	call fileopen q m 0x220000 0 as fd
+	ifslt fd 0
+		call ixin ixother "manifest.new" as q m
+		call fileopen q m 0x220000 0 as fd
+	end
+	ifslt fd 0
+		ret 0
+	end
+	sys close fd
+	ret 1
 end
 
 # Begin a run: the identity of the configuration, the vectors that are

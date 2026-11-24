@@ -205,6 +205,11 @@ asks the provider of the index for the vector of the query, and ranks.
 Nothing has to be run before it but the first `aildb index`, which names
 the provider.
 
+First, a search that finds what a run left half done, `config.new` or
+`manifest.new`, ends it under the lock
+([below](#runs-that-fail-overlap-or-are-killed)), so that the
+configuration it then reads is the one of the snapshot.
+
 Whether the index is up to date is found without reading a file and
 without the lock: the manifest must be of the configuration and of the
 snapshot that is there, and must have every file of the directory with the
@@ -336,8 +341,19 @@ vectors that no chunk used, when a run ends that had such.
     the old snapshot. No manifest of the snapshot that is there names
     the identity of `config.new`, so the next run that takes the lock
     removes them: the index is what it was before the run, and the
-    options are to be given again. A search by text that finds the
-    index fresh takes no lock and leaves them there until a run does.
+    options are to be given again.
+
+  A search by text that finds `config.new` or `manifest.new` does this
+  before it looks at the configuration: it takes the lock if no run
+  holds it, ends what was begun, gives the lock back, and only then
+  reads `config`, checks that its command is allowed and runs it. So in
+  the second case the provider that is asked is the one of the snapshot
+  that is there, and a program of the old provider that is gone, or no
+  longer allowed, does not end the search with status 2 while the
+  configuration of the snapshot waits in `config.new`. If a run holds
+  the lock, the two files are its own, and the search goes on with
+  `config` as it is. The temporary file of a killed run stays until a
+  run of index or a search that is not up to date takes the lock.
 
   `aildb check` of `.aildb/index` in the second case reports the new
   model while `config` still names the old one, until that next run.
@@ -386,6 +402,9 @@ and the snapshot in turn. `tests/kill_index.aiw` kills a run of
 between the snapshot and its manifest and before the directory is flushed,
 and runs a second `index` of the directory while the first is stopped.
 `tests/lib_cache.aiw` and `tests/lib_manifest.aiw` are the two files alone.
+`tests/cli_search_pending.aiw` kills a change of the provider between its
+snapshot and its configuration, removes the program of the old provider,
+and searches: the search ends the change first and asks the new provider.
 
 `tests/cli_search_text.aiw` searches a directory by text from end to end:
 the first search of a directory with a configuration and no snapshot asks

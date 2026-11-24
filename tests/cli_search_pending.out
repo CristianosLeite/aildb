@@ -1,0 +1,48 @@
+# a provider, and a change of it killed between its snapshot and its configuration
+$ aildb index p -i m1 -d 8 -- out/old spread
+--- stdout
+{"records":2,"dimension":8,"model":"m1","source_revision":null,"files":2,"embedded":2,"published":true}
+--- stderr
+--- status 0
+--- provider.log
+documents 2 m1
+stop 5: reached 1
+ended by signal 9
+--- provider.log
+documents 2 m2
+cache
+config
+config.new
+index
+index.lock
+manifest
+manifest.new
+p/.aildb/config:model	m1
+p/.aildb/config.new:model	m2
+$ aildb check p/.aildb/index
+--- stdout
+{"records":2,"dimension":8,"model":"m2","source_revision":null}
+--- stderr
+--- status 0
+# the program of the old provider is gone: the search ends the change and asks the new one
+$ aildb search p --text last -k 1
+--- stdout
+{"source_revision":null,"model":"m2"}
+{"rank":1,"score":1.000000,"score_bits":"3feffffffca0b060","path":"b.txt","start_line":1,"end_line":1}
+--- stderr
+--- status 0
+--- provider.log
+query 1 m2
+cache
+config
+index
+index.lock
+manifest
+model	m2
+the snapshot is the file that the run published
+$ aildb index p
+--- stdout
+{"records":2,"dimension":8,"model":"m2","source_revision":null,"files":2,"embedded":0,"published":false}
+--- stderr
+--- status 0
+--- provider.log

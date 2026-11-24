@@ -735,3 +735,28 @@ chose.
   program with a byte more at its path, and a script named with `-f`
   with a line more: every text asked for and a snapshot published;
   under a name, nothing asked) and `tests/lib_config.aiw`.
+
+### Fixes after the review of `b515e72`
+
+A fourth review, of the fixes above at `b515e72` (user, 2026-11-24,
+again a file `REVIEW.md` that is no part of the repository), had three
+findings; each fix is one commit.
+`.agents/knowledge/architecture/review-b515e72.md` has what each
+chose.
+
+- [x] A search by text read `.aildb/config` and checked that its
+  command was allowed before it took the lock, and only a run with the
+  lock ended what a killed run had left. A change of the provider that
+  was killed after its snapshot had its name left the old `config`
+  beside the snapshot of the new one, and when the old program was
+  gone since, the search ended with status 2 and never got to the
+  `config.new` that named the provider of the snapshot (the review: a
+  plain `aildb index` then ended the change, and the next search
+  answered). A search that finds `config.new` or `manifest.new` now
+  takes the lock first, if no run holds it, ends what was begun
+  (`ixrecover`), gives the lock back and then reads the configuration
+  (`ixpending`, `ixlock`, `ixunlock` of `src/index.aiw`). Test
+  `tests/cli_search_pending.aiw`: a change killed at stop 5, the
+  program of the old provider removed, and the search asks the new one
+  for its query alone, with the snapshot the file the killed run
+  published; on the code before the fix it ended with status 2.
