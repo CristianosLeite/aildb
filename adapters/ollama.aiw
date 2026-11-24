@@ -1,0 +1,202 @@
+# aildb-ollama -- an embedding provider of aildb that asks Ollama.
+#
+#   aildb-ollama [-e ENDPOINT]
+#
+# It reads one request of the protocol of docs/provider.md on stdin and
+# prints the answer on stdout. The texts are sent to the model of the
+# request at /api/embed of Ollama, each after the value of the setting
+# "document_prefix" for the operation documents or of "query_prefix" for
+# the operation query, if the request has that setting; Ollama is told to
+# cut a text that is longer than the model reads. The vectors are passed
+# on as Ollama wrote their numbers.
+#
+# ENDPOINT is where Ollama listens: "http://" or not, an IPv4 address or
+# localhost, and a port or not. Without -e it is the environment variable
+# OLLAMA_HOST, or http://127.0.0.1:11434.
+#
+# The status is 0, or 2 for wrong usage and 1 for a request that is none
+# or a model that cannot be asked, with a line on stderr.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "lib/std/num.aiw"
+use "lib/std/json.aiw"
+use "lib/async/task.aiw"
+use "lib/async/time.aiw"
+use "lib/async/io.aiw"
+use "lib/net/http.aiw"
+use "adapters/lib/ollama.aiw"
+
+buf in 24       # the request
+buf body 24     # what Ollama is sent
+buf resp 24     # and what it answered
+buf out 24      # the answer
+buf line 24
+
+fn fail p n q m
+	call eprint "aildb-ollama: "
+	call eprint p n
+	call eprint q m
+	call eprint "\n"
+	sys exit_group 1
+end
+
+call argc as c
+ep=0
+en=0
+if c==3
+	call argv 1 as p n
+	call httpis p n "-e" as ok
+	ifz ok
+		c=0
+	end
+	call argv 2 as ep en
+end
+if (c!=1)&(c!=3)
+	call eprint "usage: aildb-ollama [-e ENDPOINT]\n"
+	sys exit_group 2
+end
+call ollwhere ep en as ip port ok p n
+ifz ok
+	call fail "the address of Ollama is to be an IPv4 address or localhost, with a port or not: " p n
+end
+call filereadfd 0 in as r
+ifslt r 0
+	call fail "cannot read the request" ""
+end
+load in as p
+load in+8 as n
+call jsonvalue p n as a an kind
+if kind!=7
+	call fail "the request is no object of JSON" ""
+end
+call jsonget a an "aildb" as v vn vk
+call numint v vn as ver ok
+if (vk!=4)|(ok==0)|(ver!=1)
+	call fail "the request is not of version 1 of the protocol" ""
+end
+call jsonget a an "op" as v vn vk
+call jsoneq v vn "documents" as isdoc
+call jsoneq v vn "query" as isquery
+if (vk!=5)|((isdoc|isquery)==0)
+	call fail "the request has no operation that is known" ""
+end
+call jsonget a an "model" as mp mn mk
+if mk!=5
+	call fail "the request has no model" ""
+end
+# the prefix of the operation, a string with its quotes, or none
+call jsonget a an "settings" as s sn sk
+pp=0
+pn=0
+pk=0
+if sk==7
+	if isdoc
+		call jsonget s sn "document_prefix" as pp pn pk
+	else
+		call jsonget s sn "query_prefix" as pp pn pk
+	end
+end
+call jsonget a an "texts" as t tn tk
+if tk!=6
+	call fail "the request has no texts" ""
+end
+call byadd body "{\"model\":"
+call byadd body mp mn
+call byadd body ",\"truncate\":true,\"input\":["
+q=t+1
+k=0
+label text
+call jsonelem q t+tn as e el ek q
+if ek
+	if ek!=5
+		call fail "a text of the request is no string" ""
+	end
+	call bycut line 0
+	if pk==5
+		call jsonstr line pp pn
+	end
+	call jsonstr line e el as ok
+	ifz ok
+		call fail "no memory" ""
+	end
+	if k
+		call byaddb body 44
+	end
+	load line as x
+	load line+8 as xn
+	call jsonadds body x xn
+	k+=1
+	jmp text
+end
+call byadd body "]}" as ok
+ifz ok
+	call fail "no memory" ""
+end
+load body as bp
+load body+8 as bn
+call ollask ip port "/api/embed" bp bn resp 600000 as st q m
+ifslt st 0
+	call bycut line 0
+	call byadd line "error "
+	call byaddn line 0-st
+	load line as q
+	load line+8 as m
+	call fail "Ollama cannot be asked: " q m
+end
+if st!=200
+	call bycut line 0
+	call byadd line "status "
+	call byaddn line st
+	call byaddb line 32
+	if m>300
+		m=300
+	end
+	# one line of it
+	i=0
+	while i<m
+		loadb q+i as ch
+		if ch<32
+			ch=32
+		end
+		call byaddb line ch
+		i+=1
+	end
+	load line as q
+	load line+8 as m
+	call fail "Ollama refused: " q m
+end
+call jsonvalue q m as a an kind
+call jsonget a an "embeddings" as v vn vk
+if vk!=6
+	call fail "the answer of Ollama has no embeddings" ""
+end
+call byadd out "{\"aildb\":1,\"embeddings\":["
+q=v+1
+k=0
+label vector
+call jsonelem q v+vn as e el ek q
+if ek
+	if k
+		call byaddb out 44
+	end
+	call byadd out "{\"index\":"
+	call byaddn out k
+	call byadd out ",\"vector\":"
+	call byadd out e el
+	call byaddb out 125
+	k+=1
+	jmp vector
+end
+call byadd out "]}\n" as ok
+ifz ok
+	call fail "no memory" ""
+end
+load out as p
+load out+8 as n
+call fdwrite 1 p n as ok
+ifz ok
+	call fail "cannot write the answer" ""
+end
+sys exit_group 0

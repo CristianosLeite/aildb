@@ -1,0 +1,2115 @@
+# src/index.aiw -- the command index of aildb: the index of a directory
+# as it is on disk, in the directory .aildb of it. docs/index.md is what
+# it does and docs/usage.md its interface. It is a part of src/main.aiw,
+# which uses it, and like that file it prints and ends the program; it
+# calls fail, about, lock, publish and summary of that file.
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "src/lib/text.aiw"
+use "src/lib/below.aiw"
+use "lib/std/sha.aiw"
+use "src/lib/chunk.aiw"
+use "src/lib/config.aiw"
+use "src/lib/provider.aiw"
+use "src/lib/tree.aiw"
+use "src/lib/cache.aiw"
+use "src/lib/manifest.aiw"
+use "src/lib/trust.aiw"
+
+buf ixconf confsize     # the configuration of the provider
+buf ixconf2 confsize    # and the one that a run left to take its place
+buf ixpath 24           # a path in .aildb, with a NUL byte
+buf ixother 24          # and another, for a rename
+buf ixcfg 24            # the text of the configuration
+buf ixfiles 24          # the paths of the files, a NUL byte after each
+buf ixmeta 24           # the metadata of the chunks, as build takes it
+buf ixtext 24           # the chunks, a string of JSON on a line each
+buf ixnotes 24          # what the chunker says of the pages of a file
+buf ixvec 24            # the vectors, as the provider gave them
+buf ixerr 24            # what the provider said
+buf ixrev 24            # the revision of git
+buf ixcache cachesize   # the vectors that are kept
+buf ixman mansize       # the manifest of the snapshot that is there
+buf ixnew 24            # the lines of the files of the new manifest
+buf ixkeys 24           # for each chunk the 32 bytes of the key of its vector
+buf ixtoff 24           # and where its text is in ixtext, from 1, or 0 for a chunk that was not cut again
+buf ixid 32             # the identity of the configuration
+buf ixidhex 64          # and its digits
+buf ixstate shasize     # the sum of what the snapshot is made of
+buf ixstatehex 64
+buf ixsha 32
+buf ixfsha 64           # the digits of the SHA-256 of the file that is looked at
+buf ixhex 24
+buf ixbody 24           # a file as it is read for its sum
+buf ixpend 24           # the texts of a request that is being put together
+buf ixpk 24             # and their keys
+buf ixinfo maninfo      # what the manifest says of the file that is looked at
+buf ixst 32             # and what the filesystem says of it
+buf ixkey 32
+buf ixone 8
+buf ixtrust 24          # the path of the file of the commands the user allowed
+buf ixtkey 32           # and the key of the command of this index
+buf ixprog 24           # the program of the command, as a path from the root
+buf ixgiven 24          # the files of -f and -x as they were written, a NUL byte after each
+buf ixbase 24           # the path of the open directory .aildb, in /proc
+buf ixseen 24           # the names in .aildb, and in its directory cache
+buf ixcbase 24          # the path of the open directory .aildb/cache, in /proc
+const ixclock 228
+const ixopenat 257
+const ixmkdirat 258
+const ixfstatat 262
+data ixname ".aildb\0"
+data ixcname "cache\0"
+# the directory that is indexed, and what a run did: the chunks, the
+# texts the provider was asked for, the files that were cut, and 1 if a
+# snapshot was published
+var ixdp ixdn ixcount ixasked ixtaken ixpublished
+# ixmanok says that the manifest is of the snapshot and the provider
+# that are there, ixoldstart when the run that wrote it began and
+# ixstarted when this one did; ixshap is the digits of the sum of the
+# file that is looked at, or 0 if it was not read; ixopen says that
+# snap is the snapshot that is there
+var ixmanok ixoldstart ixstarted ixshap ixopen
+# 1 while the configuration of the options is not yet the one of the
+# index, .aildb/config
+var ixstaged
+# the descriptor of the directory .aildb plus 1, or 0 while it is not
+# open: every file of the index is then reached through it
+var ixroot
+# the same of its directory cache, the kept vectors
+var ixcroot
+# 1 once this process holds the lock of the index
+var ixlocked ixlockfd
+# 1 while a run of index publishes its snapshot, and 1 once the manifest
+# of that snapshot is written to .aildb/manifest.new
+var ixrun ixmanstaged
+
+fn nomem
+	call bycut msg 0
+	call byadd msg "aildb: out of memory"
+	call fail stio
+end
+
+# the path of the q m in the directory .aildb of the directory that is
+# indexed, or of that directory itself if m is 0, in the buffer b, with
+# a NUL byte after it: its address and its length without that byte.
+# Once .aildb is open (ixstate) the path starts at its descriptor, in
+# /proc, and so leads into the directory that was looked at whatever is
+# at its name by then.
+fn ixin b q m
+	call bycut b 0
+	if ixroot
+		load ixbase as p
+		load ixbase+8 as n
+		call byadd b p n
+	else
+		call byadd b ixdp ixdn
+		call byadd b "/.aildb"
+	end
+	if m
+		call byaddb b 47
+		call byadd b q m
+	end
+	call byaddb b 0 as ok
+	ifz ok
+		call nomem
+	end
+	load b as p
+	load b+8 as n
+	ret p n-1
+end
+
+# 1 if the path p n is the path q m or one below it
+fn ixunder p n q m
+	call textprefix p n q m as is
+	ifz is
+		ret 0
+	end
+	if n==m
+		ret 1
+	end
+	loadb p+m as c
+	ret c==47
+end
+
+# add the path p n to msg as it is said to the user: one that starts at
+# the descriptor of .aildb with the name of that directory in its place
+fn ixshow p n
+	if ixcroot
+		load ixcbase as q
+		load ixcbase+8 as m
+		call ixunder p n q m as is
+		if is
+			call byadd msg ixdp ixdn
+			call byadd msg "/.aildb/cache"
+			tail byadd msg p+m n-m
+		end
+	end
+	if ixroot
+		load ixbase as q
+		load ixbase+8 as m
+		call ixunder p n q m as is
+		if is
+			call byadd msg ixdp ixdn
+			call byadd msg "/.aildb"
+			tail byadd msg p+m n-m
+		end
+	end
+	tail byadd msg p n
+end
+
+# end the program because what is at the name q m in .aildb, or in its
+# directory cache if deep is 1, is no file of an index
+fn ixalien q m deep
+	call bycut msg 0
+	call byadd msg "aildb: "
+	call byadd msg ixdp ixdn
+	call byadd msg "/.aildb"
+	if deep
+		call byadd msg "/cache"
+	end
+	if m
+		call byaddb msg 47
+		call byadd msg q m
+	end
+	call byadd msg ": not a file of an index: a symbolic link, or something else that an index does not make, is at this name, and nothing was written; remove it"
+	call fail stio
+end
+
+# Look at every name in the directory of the descriptor fd, whose path
+# is p n: each is to be a regular file, or, if deep is 0, the directory
+# "cache". Anything else ends the program. 1 if there is a directory
+# cache.
+fn ixnames fd p n deep
+	local st 144
+	call bycut ixseen 0
+	call filenames p n ixseen as k
+	ifslt k 0
+		call about p n
+		call byadd msg "cannot read: "
+		call oserr k
+		call fail stio
+	end
+	cache=0
+	o=0
+	while k>0
+		load ixseen as b
+		call strlen b+o as l
+		# AT_SYMLINK_NOFOLLOW
+		sys ixfstatat fd b+o st 0x100 as r
+		load4 st+24 as mode
+		mode=mode&0xf000
+		call texteq b+o l "cache" as is
+		if (r==0)&(mode==0x4000)&is&(deep==0)
+			cache=1
+		else
+			if (r!=0)|(mode!=0x8000)
+				call ixalien b+o l deep
+			end
+		end
+		o+=l+1
+		k-=1
+	end
+	ret cache
+end
+
+# Open the directory .aildb of the directory that is indexed, which is
+# made first if make says so, and look at what is in it. It is opened
+# from the directory, with no link followed at its name, and kept open:
+# every path of ixin starts at it from here on. What is in it is the
+# files of an index and the directory cache with files in it; a
+# symbolic link among them, which a checkout can bring, would lead what
+# is written to another place, and ends the program before anything is.
+# Without make, a directory that has no .aildb is left as it is.
+fn ixstate make
+	# O_PATH, O_DIRECTORY, and O_CLOEXEC by fileopen
+	call fileopen ixdp ixdn 0x210000 0 as d
+	ifslt d 0
+		if (make==0)&(d==-2)
+			ret 0
+		end
+		call about ixdp ixdn
+		call byadd msg "cannot open: "
+		call oserr d
+		call fail stio
+	end
+	r=0
+	if make
+		sys ixmkdirat d ixname 493 as r
+	end
+	if (r!=0)&(r!=-17)
+		call ixin ixpath "" as p n
+		call about p n
+		call byadd msg "cannot create: "
+		call oserr r
+		call fail stio
+	end
+	# O_PATH, O_NOFOLLOW, O_DIRECTORY and O_CLOEXEC
+	sys ixopenat d ixname 0x2b0000 0 as f
+	sys close d
+	if (make==0)&(f==-2)
+		ret 0
+	end
+	if (f==-40)|(f==-20)
+		call ixalien "" 0
+	end
+	ifslt f 0
+		call ixin ixpath "" as p n
+		call about p n
+		call byadd msg "cannot open: "
+		call oserr f
+		call fail stio
+	end
+	call bycut ixbase 0
+	call byadd ixbase "/proc/self/fd/"
+	call byaddn ixbase f as ok
+	ifz ok
+		call nomem
+	end
+	ixroot=f+1
+	call ixin ixpath "" as p n
+	call ixnames f p n 0 as cache
+	if cache
+		call ixcachedir 0
+	end
+end
+
+# Open the directory cache of .aildb, which is made first if make says
+# so, and look at what is in it. Like .aildb it is opened from the
+# directory above it with no link followed at its name, and kept open
+# until the program ends: the file of the kept vectors is read, written
+# and removed through the descriptor, in the directory that was looked
+# at, whatever another process puts at the name cache meanwhile.
+fn ixcachedir make
+	if ixcroot
+		ret 0
+	end
+	f=ixroot-1
+	r=0
+	if make
+		sys ixmkdirat f ixcname 493 as r
+	end
+	if (r!=0)&(r!=-17)
+		call ixin ixpath "cache" as p n
+		call about p n
+		call byadd msg "cannot create: "
+		call oserr r
+		call fail stio
+	end
+	# O_PATH, O_NOFOLLOW, O_DIRECTORY and O_CLOEXEC
+	sys ixopenat f ixcname 0x2b0000 0 as c
+	if (c==-40)|(c==-20)
+		call ixalien "cache" 0
+	end
+	ifslt c 0
+		call ixin ixpath "cache" as p n
+		call about p n
+		call byadd msg "cannot open: "
+		call oserr c
+		call fail stio
+	end
+	call bycut ixcbase 0
+	call byadd ixcbase "/proc/self/fd/"
+	call byaddn ixcbase c as ok
+	ifz ok
+		call nomem
+	end
+	ixcroot=c+1
+	load ixcbase as p
+	load ixcbase+8 as n
+	call ixnames c p n 1
+end
+
+# the path of the file q m in the open directory cache, in the buffer b,
+# with a NUL byte after it: its address and its length without that byte
+fn ixincache b q m
+	call bycut b 0
+	load ixcbase as p
+	load ixcbase+8 as n
+	call byadd b p n
+	call byaddb b 47
+	call byadd b q m
+	call byaddb b 0 as ok
+	ifz ok
+		call nomem
+	end
+	load b as p
+	load b+8 as n
+	ret p n-1
+end
+
+# Make the file at the path p n hold the an bytes at a: what is at the
+# name is removed first and the file is made new (O_EXCL), so nothing
+# that is there is opened and written to, a link least of all. 0, or
+# the error of the kernel.
+fn ixsave p n a an
+	call fileunlink p n
+	# O_WRONLY, O_CREAT, O_EXCL and O_NOFOLLOW
+	call fileopen p n 0x200c1 420 as fd
+	ifslt fd 0
+		ret fd
+	end
+	call writeall fd a an as r
+	sys close fd as e
+	if r
+		ret r
+	end
+	ret e
+end
+
+# The argument p n of the command as the configuration gets it: if it
+# is, byte for byte, what -f or -x was given, the path from the root of
+# that file, and else itself.
+fn ixdeclared p n
+	load ixgiven as g
+	load ixgiven+8 as gn
+	call conffiles ixconf as f k
+	o=0
+	while o<gn
+		call strlen g+o as l
+		call strlen f as fl
+		call texteq p n g+o l as is
+		if is
+			ret f fl
+		end
+		o+=l+1
+		f+=fl+1
+	end
+	ret p n
+end
+
+# end the program for a configuration that the options do not make: the
+# reason w of src/lib/config.aiw
+fn ixbadconf w
+	call bycut msg 0
+	call byadd msg "aildb: "
+	call confwhy msg w
+	if w==confmem
+		call fail stio
+	end
+	call fail stusage
+end
+
+# Read the options of index from the argument i on into ixconf: 1 if
+# there are any, which then are a whole configuration, and 0 if there is
+# none. Whatever is wrong with them ends the program.
+fn ixoptions i
+	call argc as c
+	if i>=c
+		ret 0
+	end
+	call confinit ixconf
+	call bycut ixgiven 0
+	seen=0
+	np=0
+	nn=0
+	named=0
+	label option
+	if i<c
+		call argv i as p n
+		call texteq p n "--" as r
+		if r
+			i+=1
+			ifz i<c
+				call usage
+			end
+			call argv i as p n
+			# the program as a path from the root: the one that is run
+			# later, whatever directory and PATH a search is started with
+			call bycut ixprog 0
+			call trustprog p n ixprog as ok
+			ifz ok
+				call about p n
+				call byadd msg "the program of the provider is not a file that can be run"
+				call fail stusage
+			end
+			# the name of the provider, if none is given: the path of its
+			# program, so that another program is another provider
+			ifz nn
+				load ixprog as np
+				load ixprog+8 as nn
+			end
+			first=i
+			while i<c
+				call argv i as p n
+				if i==first
+					load ixprog as p
+					load ixprog+8 as n
+				else
+					call ixdeclared p n as p n
+				end
+				call confarg ixconf p n as w
+				if w
+					call ixbadconf w
+				end
+				i+=1
+			end
+			jmp done
+		end
+		if (n!=2)|(i+1>=c)
+			call usage
+		end
+		loadb p as x
+		loadb p+1 as y
+		if x!=45
+			call usage
+		end
+		call argv i+1 as q m
+		i+=2
+		if y==115
+			# NAME=VALUE
+			call textfind q m 61 as k ok
+			ifz ok
+				call usage
+			end
+			call confadd ixconf q k q+k+1 m-k-1 as w
+			if w
+				call ixbadconf w
+			end
+			jmp option
+		end
+		if (y==102)|(y==120)
+			# a file the command depends on, and a program it runs: the
+			# path from the root that the name is now
+			call bycut ixprog 0
+			if y==102
+				call trustfile q m ixprog as ok
+			else
+				call trustprog q m ixprog as ok
+			end
+			ifz ok
+				call about q m
+				if y==102
+					call byadd msg "a file of the provider that is no file that can be read"
+				else
+					call byadd msg "a program of the provider that is no file that can be run"
+				end
+				call fail stusage
+			end
+			load ixprog as a
+			load ixprog+8 as an
+			call conffile ixconf a an as w
+			if w
+				call ixbadconf w
+			end
+			call byadd ixgiven q m
+			call byaddb ixgiven 0 as ok
+			ifz ok
+				call nomem
+			end
+			jmp option
+		end
+		call textfind "idnrtb" y as k ok
+		ifz ok
+			call usage
+		end
+		if seen>>k&1
+			call usage
+		end
+		seen=seen|1<<k
+		if y==105
+			call confput ixconf confmodel q m as ok
+		end
+		if y==110
+			np=q
+			nn=m
+			named=1
+		end
+		if y==114
+			call confput ixconf confrev q m as ok
+		end
+		if (y==100)|(y==116)|(y==98)
+			call textnum q m as v ok
+			ifz ok
+				# what the check below refuses
+				v=0
+			end
+			ok=1
+			if y==100
+				store ixconf+confdim v
+			end
+			if y==116
+				store ixconf+conftime v
+			end
+			if y==98
+				store ixconf+confbatch v
+			end
+		end
+		ifz ok
+			call nomem
+		end
+		jmp option
+	end
+	label done
+	call confargs ixconf as p n
+	ifz n
+		# no command
+		call usage
+	end
+	call confput ixconf confname np nn as ok
+	ifz ok
+		call nomem
+	end
+	ifz named
+		# a provider that has no name of its own is what its program and
+		# its files are now: their bytes are a part of its identity, so
+		# that vectors of the program as it was are not given out for it
+		call trustprint ixconf ixsha as ok
+		call bycut ixhex 0
+		call shahex ixhex ixsha as a
+		ifz ok&a
+			call confargs ixconf as p n
+			call strlen p as n
+			call about p n
+			call byadd msg "the program of the provider or a file it depends on cannot be read"
+			call fail stio
+		end
+		load ixhex as p
+		call confput ixconf confprint p 64 as ok
+		ifz ok
+			call nomem
+		end
+	end
+	if seen&3!=3
+		# no model or no dimension
+		call usage
+	end
+	call confcheck ixconf as w
+	if w
+		call ixbadconf w
+	end
+	ret 1
+end
+
+# Make ixtrust the path of the file of the commands the user allowed,
+# with its directories made if make says so, and ixtkey the key of the
+# command of ixconf for the directory that is indexed: 1, or 0 if the
+# environment names no directory of the user or the directory that is
+# indexed has no name to the kernel. A file that lies in the directory
+# that is indexed ends the program.
+fn ixtrusted make
+	call bycut ixtrust 0
+	call trustbase ixtrust as ok
+	ifz ok
+		ret 0
+	end
+	# The file is to be the user's and not the directory's: one that
+	# lies in the directory that is indexed, as it does when the
+	# directory of the user's configuration is indexed, or one above it,
+	# or when a link leads there, could be written by whoever wrote the
+	# directory, with the line of any command. It is looked at before
+	# anything of it is read or made, the file and the directory it is in.
+	call byadd ixtrust "/aildb" as ok
+	ifz ok
+		call nomem
+	end
+	load ixtrust as p
+	load ixtrust+8 as n
+	call trustwithin p n ixdp ixdn as in
+	ifz in
+		call bycut ixother 0
+		call byadd ixother p n
+		call byadd ixother "/trusted" as ok
+		ifz ok
+			call nomem
+		end
+		load ixother as q
+		load ixother+8 as m
+		call trustwithin q m ixdp ixdn as in
+	end
+	if in==2
+		ret 0
+	end
+	if in
+		call about ixdp ixdn
+		call byadd msg "the file of the commands you allowed, "
+		call byadd msg p n
+		call byadd msg "/trusted, lies in this directory or leads into it, so the directory could allow its own provider: nothing of it was read, written or run. Set XDG_CONFIG_HOME to a directory outside the one that is indexed"
+		call fail stusage
+	end
+	call bycut ixtrust 0
+	call trustbase ixtrust as ok
+	if make
+		load ixtrust as p
+		load ixtrust+8 as n
+		call filemkdir p n 448
+	end
+	call byadd ixtrust "/aildb" as ok
+	ifz ok
+		call nomem
+	end
+	if make
+		load ixtrust as p
+		load ixtrust+8 as n
+		call filemkdir p n 448
+	end
+	call byadd ixtrust "/trusted" as ok
+	ifz ok
+		call nomem
+	end
+	tail trustkey ixdp ixdn ixconf ixtkey
+end
+
+# add the n bytes at p to msg as a word of a shell: as they are if they
+# are letters, digits and a few signs, else between single quotes
+fn ixword p n
+	plain=n>0
+	i=0
+	while i<n
+		loadb p+i as c
+		ok=0
+		if (c>=48)&(c<=57)
+			ok=1
+		end
+		if ((c|32)>=97)&((c|32)<=122)
+			ok=1
+		end
+		if (c==45)|(c==46)|(c==47)|(c==95)|(c==58)|(c==61)|(c==43)|(c==44)|(c==64)|(c==37)
+			ok=1
+		end
+		plain=plain&ok
+		i+=1
+	end
+	if plain
+		tail byadd msg p n
+	end
+	call byaddb msg 39
+	i=0
+	while i<n
+		loadb p+i as c
+		if c==39
+			call byadd msg "'\\''"
+		else
+			call byaddb msg c
+		end
+		i+=1
+	end
+	tail byaddb msg 39
+end
+
+# End the program because the command of the configuration that was read
+# is not one the user allowed for this directory: nothing of it is run.
+# The line names the command and the options that allow it.
+fn ixnotrust
+	call about ixdp ixdn
+	call byadd msg "the configuration of this index names a provider that was not set up by you on this machine, or whose program or a file it depends on is no longer the file it was, and nothing of it was run. Its command is:"
+	call confargs ixconf as p k
+	while k
+		call strlen p as n
+		call byaddb msg 32
+		call ixword p n
+		p+=n+1
+		k-=1
+	end
+	call byadd msg "; to allow it, name the provider yourself: aildb index "
+	call ixword ixdp ixdn
+	call byadd msg " -i "
+	call confstr ixconf confmodel as p n
+	call ixword p n
+	call byadd msg " -d "
+	load ixconf+confdim as v
+	call byaddn msg v
+	call byadd msg " ... -- COMMAND"
+	call fail stusage
+end
+
+# Make the configuration of the index ixconf: the one of the options, if
+# given says that there are any, which becomes .aildb/config when a
+# snapshot of it is there (ixcommit); else the one that .aildb/config
+# has.
+fn ixconfig given
+	call ixin ixpath "config" as p n
+	if given
+		# said before the provider is asked for anything, and not after
+		call ixtrusted 1 as ok
+		ifz ok
+			call about ixdp ixdn
+			call byadd msg "the command of the provider cannot be noted as allowed: the environment has no HOME and no XDG_CONFIG_HOME that is a path from the root, or the directory, the program or a file it depends on has no name in /proc, or one of them lies in the directory and cannot be read, or where the file of the allowed commands leads cannot be said, as for a link to nothing"
+			call fail stio
+		end
+		ixstaged=1
+		ret 0
+	end
+	if (ixlocked==0)&(ixroot!=0)
+		# A run that ended early may have left the snapshot of another
+		# configuration than .aildb/config has: what it left is ended
+		# under the lock before anything is said of the configuration, so
+		# that the one that is read, checked and run is the one of the
+		# snapshot. A run that is at work holds the lock, and then the
+		# configuration is the one of the snapshot that is there.
+		call ixpending as r
+		if r
+			call ixlock 0 1 as r
+			if r
+				call ixunlock
+			end
+			call ixin ixpath "config" as p n
+		end
+	end
+	call bycut ixcfg 0
+	call fileread p n ixcfg as r
+	if (r==-2)&(ixlocked==0)&(ixroot!=0)
+		# the first run of this directory may have ended between its
+		# snapshot and its configuration: with the lock that is known
+		call ixin ixother "config.new" as q m
+		call fileopen q m 0x20000 0 as fd
+		ifsge fd 0
+			sys close fd
+			call ixlockwait 0
+			call ixin ixpath "config" as p n
+			call bycut ixcfg 0
+			call fileread p n ixcfg as r
+		end
+	end
+	if r==-2
+		call about ixdp ixdn
+		call byadd msg "no index is configured here; the first index of a directory names its provider: aildb index DIRECTORY -i MODEL -d DIMENSION -- COMMAND"
+		call fail stusage
+	end
+	ifslt r 0
+		call about p n
+		call byadd msg "cannot read: "
+		call oserr r
+		call fail stio
+	end
+	load ixcfg as a
+	load ixcfg+8 as an
+	call confparse ixconf a an as w line
+	if w
+		call about p n
+		if line
+			call byadd msg "line "
+			call byaddn msg line
+			call byadd msg ": "
+		end
+		call confwhy msg w
+		if w==confmem
+			call fail stio
+		end
+		call fail stinvalid
+	end
+	# the file lies in the directory, which may be anybody's: its command
+	# is run only if the user allowed it for this directory
+	call ixtrusted 0 as ok
+	if ok
+		load ixtrust as p
+		load ixtrust+8 as n
+		call trusthas p n ixtkey as ok
+	end
+	ifz ok
+		call ixnotrust
+	end
+end
+
+# The configuration of the options, if there is one, is written to
+# .aildb/config.new, whole: to config.tmp, which then gets that name.
+# It is done before the snapshot of it is published, with everything
+# else that can fail for the configuration, so that a failure leaves the
+# snapshot that was there with its configuration. From here until
+# ixcommit, config.new says which configuration the snapshot that is
+# being published is of (ixrecover).
+fn ixstage
+	ifz ixstaged
+		ret 0
+	end
+	call bycut ixcfg 0
+	call confwrite ixcfg ixconf as ok
+	ifz ok
+		call nomem
+	end
+	# the command is the user's own word: it is noted as allowed for this
+	# directory before the configuration that names it is there
+	load ixtrust as p
+	load ixtrust+8 as n
+	call trusthas p n ixtkey as ok
+	ifz ok
+		call bycut ixother 0
+		call trustdir ixdp ixdn ixother
+		load ixother as q
+		load ixother+8 as m
+		call trustadd p n ixtkey q m as r
+		if r
+			call about p n
+			call byadd msg "cannot write: "
+			call oserr r
+			call fail stio
+		end
+	end
+	call ixin ixpath "config.new" as p n
+	call ixin ixother "config.tmp" as q m
+	load ixcfg as a
+	load ixcfg+8 as an
+	call ixsave q m a an as r
+	ifz r
+		sys rename q p as r
+	end
+	if r
+		call about p n
+		call byadd msg "cannot write: "
+		call oserr r
+		call fail stio
+	end
+end
+
+# The snapshot of the configuration of the options is there:
+# .aildb/config.new takes the place of .aildb/config. A run that ends
+# between the two, or for which this fails, has left config.new, and the
+# next run does it (ixrecover).
+fn ixcommit
+	ifz ixstaged
+		ret 0
+	end
+	call ixin ixpath "config" as p n
+	call ixin ixother "config.new" as q m
+	sys rename q p as r
+	if r
+		call about p n
+		call byadd msg "cannot write: "
+		call oserr r
+		call fail stio
+	end
+	ixstaged=0
+end
+
+# 1 if the manifest that ixman holds is one, and of the snapshot that is
+# at its name now, by its size and its two sums. snap is not left open.
+fn ixofsnap
+	call manvalid ixman as ok
+	ifz ok
+		ret 0
+	end
+	if ixopen
+		call snapclose snap
+	end
+	ixopen=0
+	ixmanok=0
+	load dst as p
+	load dst+8 as n
+	call snapopen snap p n-1 as r
+	if r
+		ret 0
+	end
+	load snap as a
+	load snap+8 as size
+	load4 a+96 as vsum
+	load4 a+100 as msum
+	call snapclose snap
+	load ixman+72 as x
+	load ixman+80 as y
+	load ixman+88 as z
+	ret (x==size)&(y==msum)&(z==vsum)
+end
+
+# End what a run began that left .aildb/manifest.new or
+# .aildb/config.new: the lock is held, so no run is between two steps.
+# A run writes config.new, then the snapshot to its temporary file, then
+# manifest.new, which says of which snapshot it is; then the snapshot
+# gets its name, and after that manifest.new and config.new get theirs,
+# in that order. So what was left says how far the run came:
+#
+# - manifest.new that is of the snapshot which is there: the snapshot
+#   was published. It takes the name manifest, and nothing has to be
+#   published again.
+# - manifest.new that is of another snapshot, or no manifest: the run
+#   ended before its snapshot had its name. It is removed.
+# - config.new, after that: if the manifest is of the snapshot that is
+#   there and names the identity of config.new, the snapshot is of that
+#   configuration, and config.new takes the name config. Else the
+#   snapshot is of the old one, or there is none, and config.new is
+#   removed: the index is what it was before the run.
+fn ixrecover
+	local id 32
+	call ixin ixother "manifest.new" as q m
+	# O_NOFOLLOW
+	call fileopen q m 0x20000 0 as fd
+	ifsge fd 0
+		sys close fd
+		call manfree ixman
+		call manopen ixman q m as r
+		take=0
+		ifz r
+			call ixofsnap as take
+		end
+		call manfree ixman
+		call ixin ixother "manifest.new" as q m
+		if take
+			call ixin ixpath "manifest" as p n
+			sys rename q p as r
+			if r
+				call about p n
+				call byadd msg "cannot write: "
+				call oserr r
+				call fail stio
+			end
+		else
+			call fileunlink q m
+		end
+	end
+	call ixin ixother "config.new" as q m
+	call bycut ixcfg 0
+	call fileread q m ixcfg as r
+	ifslt r 0
+		ret 0
+	end
+	load ixcfg as a
+	load ixcfg+8 as an
+	call confparse ixconf2 a an as w line
+	take=0
+	ifz w
+		call confident ixconf2 id as ok
+		call bycut ixhex 0
+		call shahex ixhex id as x
+		ifz ok&x
+			call nomem
+		end
+		call ixin ixpath "manifest" as p n
+		call manfree ixman
+		call manopen ixman p n as r
+		ifz r
+			call ixofsnap as take
+		end
+		if take
+			load ixman+64 as h
+			load ixhex as x
+			call texteq h 64 x 64 as take
+		end
+		call manfree ixman
+	end
+	call conffree ixconf2
+	call ixin ixother "config.new" as q m
+	if take
+		call ixin ixpath "config" as p n
+		sys rename q p as r
+		if r
+			call about p n
+			call byadd msg "cannot write: "
+			call oserr r
+			call fail stio
+		end
+	else
+		call fileunlink q m
+	end
+end
+
+# Make the directory .aildb of the directory that is indexed and open it
+# (ixstate), with a file that tells git to ignore everything in it, make
+# dst and lck the paths of the snapshot and of its lock, and take the
+# lock.
+fn ixplace
+	local st 32
+	call treestat ixdp ixdn "" st as r
+	load st as kind
+	ifz r
+		if kind!=treedir
+			r=-20
+		end
+	end
+	if r
+		call about ixdp ixdn
+		call byadd msg "cannot index: "
+		call oserr r
+		call fail stio
+	end
+	call ixstate 1
+	call ixin dst "index" as p n
+	call ixin lck "index.lock" as p n
+	call ixlockwait 0
+	call ixin ixpath ".gitignore" as p n
+	# O_NOFOLLOW
+	call fileopen p n 0x20000 0 as fd
+	ifsge fd 0
+		sys close fd
+	else
+		call ixsave p n "*\n" as r
+		ifslt r 0
+			call about p n
+			call byadd msg "cannot write: "
+			call oserr r
+			call fail stio
+		end
+	end
+end
+
+# say on stderr that the file at the path p l is passed over, for the
+# reason q m
+fn ixover q m p l
+	call bycut msg 0
+	call byadd msg "aildb: passed over, "
+	call byadd msg q m
+	call byadd msg ": "
+	call byadd msg p l
+	call byaddb msg 10
+	load msg as a
+	load msg+8 as n
+	call eprint a n
+end
+
+# cut the file at the path p l: its chunks are added to ixmeta and
+# ixtext, and their number is the first result; a file that gives none
+# for a reason has a line on stderr, and the reason is the second
+fn ixcut p l
+	call bycut ixnotes 0
+	call chunkfile ixdp ixdn p l ixmeta ixtext ixnotes as k why
+	load ixnotes as q
+	load ixnotes+8 as m
+	while m
+		call textline q m as e ok
+		call ixover q e p l
+		q+=e+ok
+		m-=e+ok
+	end
+	if why==chunkmem
+		call nomem
+	end
+	ifz why
+		ixtaken+=1
+		ret k 0
+	end
+	if why!=chunkquiet
+		call bycut ixnotes 0
+		call chunkwhy ixnotes why
+		load ixnotes as q
+		load ixnotes+8 as m
+		call ixover q m p l
+	end
+	ret 0 why
+end
+
+# end the program for the reason w of the provider, with st what its
+# command ended with
+fn ixnoprov w st
+	call about ixdp ixdn
+	load ixerr as q
+	load ixerr+8 as m
+	call provtell msg w st q m
+	if w==provmem
+		call fail stio
+	end
+	call fail stprovider
+end
+
+# say on stderr that the wn bytes at wp could not be done, for the error
+# r of the kernel; the run goes on
+fn ixwarn wp wn r
+	call about ixdp ixdn
+	call byadd msg wp wn
+	call oserr r
+	call byaddb msg 10
+	load msg as p
+	load msg+8 as n
+	call eprint p n
+end
+
+# make the 32 bytes at out what the 64 hexadecimal digits at p say
+fn ixunhex p out
+	i=0
+	while i<32
+		loadb p+i*2 as a
+		loadb p+i*2+1 as b
+		a=a-48-(a>57)*39
+		b=b-48-(b>57)*39
+		storeb out+i a<<4|b
+		i+=1
+	end
+end
+
+# The key of the vector of a chunk, 32 bytes written at out: the SHA-256
+# of the identity of the configuration, the operation, and the n bytes
+# at p, the text of the chunk as the chunker writes it, a string of
+# JSON. Neither the path nor the lines of the chunk are in it.
+fn ixkeyof p n out
+	local s shasize
+	call shainit s
+	call shaadd s ixid 32
+	call shaadd s "documents\n"
+	call shaadd s p n
+	call shaend s out
+end
+
+# the line of a chunk in a manifest, at c and before e: its first and
+# its last line, its language, the address of the digits of its key and
+# the address after the line
+fn ixline c e
+	call textfield c e-c as a ok
+	call textnum c a as first ok
+	c+=a+1
+	call textfield c e-c as a ok
+	call textnum c a as last ok
+	c+=a+1
+	call textfield c e-c as a ok
+	ret first last c a c+a+1 c+a+66
+end
+
+# add a chunk to the records of the run: the line of its metadata, for
+# the path p l, the key at ixkey, and where its text is
+fn ixrecord p l first last lp ln off
+	call byadd ixmeta p l
+	call byaddb ixmeta 9
+	call byaddn ixmeta first
+	call byaddb ixmeta 9
+	call byaddn ixmeta last
+	call byaddb ixmeta 9
+	call byadd ixmeta lp ln
+	call byaddb ixmeta 10 as a
+	call byadd ixkeys ixkey 32 as b
+	store ixone off
+	call byadd ixtoff ixone 8 as c
+	ifz a&b&c
+		call nomem
+	end
+	ixcount+=1
+end
+
+# Look at the file at the path p l, of which ixst says what the
+# filesystem says: 1 if it is the file that the manifest has, with every
+# vector of its chunks still kept, and ixinfo is then what the manifest
+# says of it. It is that file if its size and its times are those of
+# the manifest and older than the run that wrote it, or else if its
+# bytes have the sum of the manifest. ixshap is the digits of the sum
+# of its bytes, or 0 if it was not read.
+fn ixlook p l
+	ixshap=0
+	ifz ixmanok
+		a=0
+		e=0
+	else
+		call manfind ixman p l as a e
+	end
+	if a
+		call manentry a e ixinfo as a
+	end
+	load ixst+8 as size
+	load ixst+16 as mtime
+	load ixst+24 as ctime
+	same=0
+	if a
+		load ixinfo+manfsize as x
+		load ixinfo+manfmtime as y
+		load ixinfo+manfctime as z
+		if (x==size)&(y==mtime)&(z==ctime)&(mtime<ixoldstart)
+			same=1
+			load ixinfo+manfsha as ixshap
+		end
+	end
+	ifz same
+		# a file of more bytes than are ever read is not read for its sum
+		max=chunkmaxfile
+		call chunkpdfname p l as pdf
+		if pdf
+			max=chunkmaxpdf
+		end
+		if size<=max
+			# the file that is opened is the one that was looked at, or
+			# no file: no link is followed on the way to it
+			call bycut ixbody 0
+			call belowopen ixdp ixdn p l belowread as fd
+			r=fd
+			ifsge fd 0
+				call filereadfd fd ixbody as r
+				sys close fd
+			end
+			ifsge r 0
+				load ixbody as q
+				load ixbody+8 as m
+				call sha256 q m ixsha
+				call bycut ixhex 0
+				call shahex ixhex ixsha as ok
+				ifz ok
+					call nomem
+				end
+				load ixhex as q
+				call bycopy ixfsha q 64
+				ixshap=ixfsha
+				if a
+					load ixinfo+manfsha as q
+					if q
+						call texteq q 64 ixfsha 64 as same
+					end
+				end
+			end
+		end
+	end
+	ifz same
+		ret 0
+	end
+	load ixinfo+manffirst as c
+	load ixinfo+manfend as e
+	while c<e
+		call ixline c e as first last lp ln kp c
+		call ixunhex kp ixkey
+		call cacheget ixcache ixkey as v
+		ifz v
+			ret 0
+		end
+	end
+	ret 1
+end
+
+# the file at the path p l is the one of the manifest: its lines are
+# taken from there, and its records are made of them
+fn ixkept p l
+	load ixinfo+manfwhy as why
+	load ixinfo+manfchunks as k
+	load ixinfo+manffirst as c
+	load ixinfo+manfend as e
+	call manfile ixnew p l ixst ixshap why k
+	call byadd ixnew c e-c as ok
+	ifz ok
+		call nomem
+	end
+	call shaadd ixstate p l
+	call shaadd ixstate "\n"
+	call shaadd ixstate c e-c
+	while c<e
+		call ixline c e as first last lp ln kp c
+		call ixunhex kp ixkey
+		call ixrecord p l first last lp ln 0
+	end
+	ifz why
+		ixtaken+=1
+	end
+end
+
+# the file at the path p l is new or another than the manifest has: it
+# is cut, and its lines of the manifest are written
+fn ixanew p l
+	load ixmeta+8 as mo
+	load ixtext+8 as to
+	# the chunker adds the lines of the metadata itself; they are made
+	# again below, with the keys
+	call ixcut p l as k why
+	store ixmeta+8 mo
+	call manfile ixnew p l ixst ixshap why k
+	load ixnew+8 as no
+	while k
+		load ixtext as tb
+		load ixtext+8 as tn
+		call textline tb+to tn-to as tl ok
+		call ixkeyof tb+to tl ixkey
+		# the line that the chunker wrote: the path, two numbers, the language
+		load ixmeta as mb
+		mb+=mo
+		call textline mb 4294967296 as ml ok
+		call textfield mb ml as a ok
+		q=mb+a+1
+		call textfield q ml as a ok
+		call textnum q a as first ok
+		q+=a+1
+		call textfield q ml as a ok
+		call textnum q a as last ok
+		q+=a+1
+		ln=mb+ml-q
+		call bycut ixhex 0
+		call shahex ixhex ixkey
+		load ixhex as h
+		call manchunk ixnew first last q ln h as ok
+		ifz ok
+			call nomem
+		end
+		# its record takes the place of the line it was read from: the
+		# same bytes, so nothing moves
+		store ixmeta+8 mo
+		call ixrecord p l first last q ln to+1
+		mo+=ml+1
+		to+=tl+1
+		k-=1
+	end
+	load ixnew as nb
+	load ixnew+8 as nn
+	call shaadd ixstate p l
+	call shaadd ixstate "\n"
+	call shaadd ixstate nb+no nn-no
+end
+
+# Remove from .aildb the temporary files that a run left when it was
+# killed: the lock is held, so no run is writing one. They are the files
+# that publish names, "index.", sixteen digits and ".tmp".
+fn ixtidy
+	call ixin ixpath "" as p n
+	call bycut ixbody 0
+	call filenames p n ixbody as k
+	o=0
+	while k>0
+		load ixbody as b
+		call strlen b+o as l
+		if l==26
+			call textprefix b+o l "index." as a
+			call texteq b+o+22 4 ".tmp" as c
+			if a&c
+				call bycut ixother 0
+				call byadd ixother b+o l
+				load ixother as q
+				load ixother+8 as m
+				call ixin ixpath q m as p n
+				call fileunlink p n
+			end
+		end
+		o+=l+1
+		k-=1
+	end
+end
+
+# make ixid the identity of the configuration, and ixidhex its digits
+fn ixident
+	call confident ixconf ixid as ok
+	call bycut ixhex 0
+	call shahex ixhex ixid as a
+	ifz ok&a
+		call nomem
+	end
+	load ixhex as p
+	call bycopy ixidhex p 64
+end
+
+# Read the manifest and open the snapshot: ixmanok is 1 if the manifest
+# is of the identity of the configuration and of the snapshot that is
+# there, by its size and its two sums, and snap is then that snapshot,
+# open. If it is not, snap is no snapshot.
+fn ixmanifest
+	call ixin ixpath "manifest" as p n
+	call manfree ixman
+	call manopen ixman p n as r
+	if r
+		call about p n
+		call byadd msg "cannot read: "
+		call oserr r
+		call fail stio
+	end
+	ixmanok=0
+	if ixopen
+		call snapclose snap
+	end
+	ixopen=0
+	call manvalid ixman as ok
+	ifz ok
+		ret 0
+	end
+	load ixman+64 as q
+	call texteq q 64 ixidhex 64 as ok
+	ifz ok
+		ret 0
+	end
+	load dst as p
+	load dst+8 as n
+	call snapopen snap p n-1 as r
+	if r
+		ret 0
+	end
+	load snap as a
+	load snap+8 as size
+	load4 a+96 as vsum
+	load4 a+100 as msum
+	load ixman+72 as x
+	load ixman+80 as y
+	load ixman+88 as z
+	if (x!=size)|(y!=msum)|(z!=vsum)
+		call snapclose snap
+		ret 0
+	end
+	ixopen=1
+	ixmanok=1
+	load ixman+96 as ixoldstart
+end
+
+# 1 if the snapshot is of the files as they are now, without reading
+# one: the manifest is of the snapshot and the configuration, and has
+# every file of the directory with the size and the times it has now,
+# older than the run that wrote it, and no file besides. snap is then
+# the snapshot, open. The revision of git is not asked for.
+fn ixfresh
+	call ixident
+	call ixmanifest
+	ifz ixmanok
+		ret 0
+	end
+	call bycut ixfiles 0
+	call treelist ixdp ixdn ixfiles as files git why
+	if why
+		ret 0
+	end
+	seen=0
+	o=0
+	while files
+		load ixfiles as p
+		p+=o
+		call strlen p as l
+		call textvalid p l as ok
+		if ok
+			call treestat ixdp ixdn p l ixst as r
+			ifz r
+				call manfind ixman p l as a e
+				ifz a
+					ret 0
+				end
+				call manentry a e ixinfo as ok
+				load ixst+8 as size
+				load ixst+16 as mtime
+				load ixst+24 as ctime
+				load ixinfo+manfsize as x
+				load ixinfo+manfmtime as y
+				load ixinfo+manfctime as z
+				if (x!=size)|(y!=mtime)|(z!=ctime)|(mtime>=ixoldstart)
+					ret 0
+				end
+				seen+=1
+			end
+		end
+		o+=l+1
+		files-=1
+	end
+	load ixman+112 as x
+	ret seen==x
+end
+
+# Take the lock of the index as lock of src/main.aiw does, but wait for
+# a run that holds it, ms milliseconds at most, looking every 50; after
+# that the program ends with the status of a build in progress. With
+# the lock, a change of the configuration that a run left half done is
+# ended (ixrecover). A process that has the lock already returns.
+fn ixlockwait ms
+	tail ixlock ms 0
+end
+
+# The same, and with soft a run that still holds the lock after ms
+# milliseconds does not end the program: 1 with the lock, 0 without.
+fn ixlock ms soft
+	local ts 16
+	if ixlocked
+		ret 1
+	end
+	load lck as p
+	load lck+8 as n
+	n-=1
+	# O_WRONLY, O_CREAT and O_NOFOLLOW
+	call fileopen p n 0x20041 420 as fd
+	ifslt fd 0
+		call about p n
+		call byadd msg "cannot create: "
+		call oserr fd
+		call fail stio
+	end
+	label again
+	# LOCK_EX and LOCK_NB
+	sys flock fd 6 as r
+	if r==-11
+		if ms
+			store ts 0
+			store ts+8 50000000
+			sys nanosleep ts 0
+			if ms>50
+				ms-=50
+			else
+				ms=0
+			end
+			jmp again
+		end
+		if soft
+			sys close fd
+			ret 0
+		end
+		load dst as p
+		load dst+8 as n
+		call about p n-1
+		call byadd msg "another build is in progress"
+		call fail stbusy
+	end
+	if r
+		call about p n
+		call byadd msg "cannot lock: "
+		call oserr r
+		call fail stio
+	end
+	ixlocked=1
+	ixlockfd=fd
+	# what a run that ended early left of a change of the configuration
+	call ixrecover
+	ret 1
+end
+
+# Give the lock back: only a process that has done nothing under it but
+# what ixlock does.
+fn ixunlock
+	if ixlocked
+		sys close ixlockfd
+		ixlocked=0
+	end
+end
+
+# 1 if .aildb has a file that a run writes before its snapshot has its
+# name and gives its own name after: such a run is at work, or ended
+# early
+fn ixpending
+	call ixin ixother "config.new" as q m
+	# O_PATH and O_NOFOLLOW: the name alone is looked at
+	call fileopen q m 0x220000 0 as fd
+	ifslt fd 0
+		call ixin ixother "manifest.new" as q m
+		call fileopen q m 0x220000 0 as fd
+	end
+	ifslt fd 0
+		ret 0
+	end
+	sys close fd
+	ret 1
+end
+
+# Begin a run: the identity of the configuration, the vectors that are
+# kept for it, and the manifest, which counts if it is of this identity
+# and of the snapshot that is there.
+fn ixbegin
+	local ts 16
+	call ixtidy
+	sys clock_gettime 0 ts
+	load ts as a
+	load ts+8 as b
+	ixstarted=a*1000000000+b
+	call ixident
+	load ixconf+confdim as dim
+	call ixcachedir 1
+	call ixincache ixpath ixidhex 64 as p n
+	call cacheopen ixcache p n dim as r
+	if r
+		call about p n
+		call byadd msg "cannot read: "
+		call oserr r
+		call fail stio
+	end
+	call ixmanifest
+end
+
+# one request for the k texts of ixpend: their vectors are kept
+fn ixsend k
+	call bycut ixvec 0
+	load ixpend as p
+	load ixpend+8 as n
+	call provdocs ixconf p n k ixvec ixerr as w st
+	if w
+		call ixnoprov w st
+	end
+	load ixconf+confdim as dim
+	i=0
+	while i<k
+		load ixpk as pk
+		load ixvec as vb
+		call cacheadd ixcache pk+i*32 vb+i*dim*4 as ok
+		ifz ok
+			call nomem
+		end
+		i+=1
+	end
+	# what the provider gave is in the file before it is asked again: a
+	# run that is stopped does not ask for it twice
+	call cacheflush ixcache as r
+	if r
+		call ixwarn "the vectors could not be kept: " r
+	end
+	ixasked+=k
+	call bycut ixpend 0
+	call bycut ixpk 0
+end
+
+# ask the provider for the vector of every chunk that has none kept, in
+# requests of as many texts as the configuration allows, a text once
+fn ixembed
+	ixasked=0
+	load ixconf+confbatch as max
+	call bycut ixpend 0
+	call bycut ixpk 0
+	pending=0
+	i=0
+	while i<ixcount
+		load ixkeys as kb
+		call cacheget ixcache kb+i*32 as v
+		ifz v
+			load ixtoff as ob
+			load ob+i*8 as off
+			ifz off
+				call about ixdp ixdn
+				call byadd msg "a vector that was kept is gone"
+				call fail stio
+			end
+			dup=0
+			j=0
+			load ixpk as pk
+			while j<pending
+				call texteq kb+i*32 32 pk+j*32 32 as same
+				dup=dup|same
+				j+=1
+			end
+			ifz dup
+				load ixtext as tb
+				load ixtext+8 as tn
+				call textline tb+off-1 tn-off+1 as tl ok
+				call byadd ixpend tb+off-1 tl+1 as a
+				load ixkeys as kb
+				call byadd ixpk kb+i*32 32 as b
+				ifz a&b
+					call nomem
+				end
+				pending+=1
+				if pending==max
+					call ixsend pending
+					pending=0
+				end
+			end
+		end
+		i+=1
+	end
+	if pending
+		call ixsend pending
+	end
+end
+
+# make ixvec the vectors of the chunks, in their order, from those kept
+fn ixgather
+	load ixconf+confdim as dim
+	call bycut ixvec 0
+	call byneed ixvec ixcount*dim*4 as ok
+	ifz ok
+		call nomem
+	end
+	i=0
+	while i<ixcount
+		load ixkeys as kb
+		call cacheget ixcache kb+i*32 as v
+		ifz v
+			call about ixdp ixdn
+			call byadd msg "a vector that was kept is gone"
+			call fail stio
+		end
+		load ixvec as vb
+		call bycopy vb+i*dim*4 v dim*4
+		i+=1
+	end
+	store ixvec+8 ixcount*dim*4
+end
+
+# Write the manifest of the snapshot that snap is, with the lines of
+# ixnew, whole to .aildb/manifest.new: 0, or the error of the kernel.
+fn ixmanstage
+	load snap as a
+	load snap+8 as size
+	load4 a+96 as vsum
+	load4 a+100 as msum
+	call bycut ixcfg 0
+	call manhead ixcfg ixidhex size msum vsum ixstarted ixstatehex
+	load ixnew as a
+	load ixnew+8 as an
+	call byadd ixcfg a an as ok
+	ifz ok
+		call nomem
+	end
+	call ixin ixother "manifest.new" as q m
+	load ixcfg as a
+	load ixcfg+8 as an
+	tail ixsave q m a an
+end
+
+# .aildb/manifest.new takes the name manifest: 0, or the error of the
+# kernel
+fn ixmancommit
+	call ixin ixpath "manifest" as p n
+	call ixin ixother "manifest.new" as q m
+	sys rename q p as r
+	ret r
+end
+
+# What publish of src/main.aiw calls when the snapshot is whole in its
+# temporary file, read back as snap, and has not got its name yet: in a
+# run of index the manifest of that snapshot is written to manifest.new.
+# A run that ends after the snapshot has its name has then left what
+# says so, and the next run ends it without publishing again
+# (ixrecover). A manifest that cannot be written ends the run with the
+# snapshot that was there.
+fn ixbefore
+	ifz ixrun
+		ret 0
+	end
+	call ixmanstage as r
+	if r
+		call ixin ixother "manifest.new" as q m
+		call about q m
+		call byadd msg "cannot write: "
+		call oserr r
+		call giveup stio
+	end
+	ixmanstaged=1
+end
+
+# The snapshot that is there has no new name, and the lines of ixnew are
+# its manifest: if they are not those of the manifest that is there, it
+# is written, to a file beside it that then takes its place.
+fn ixwrite
+	load ixman+104 as p
+	load ixman as q
+	load ixman+8 as n
+	p+=65
+	load ixnew as a
+	load ixnew+8 as an
+	call texteq p q+n-p a an as same
+	if same
+		ret 0
+	end
+	call ixmanstage as r
+	ifz r
+		call ixmancommit as r
+	end
+	if r
+		# the next run finds no manifest of the snapshot and looks at
+		# every file again
+		call ixwarn "the manifest could not be written: " r
+	end
+end
+
+# remove from .aildb/cache every file but the one of this identity: the
+# vectors of another provider or model, and a file that a run left
+fn ixsweep
+	load ixcbase as p
+	load ixcbase+8 as n
+	call bycut ixbody 0
+	call filenames p n ixbody as k
+	o=0
+	while k>0
+		load ixbody as b
+		call strlen b+o as l
+		call texteq b+o l ixidhex 64 as same
+		ifz same
+			call ixincache ixpath b+o l as p n
+			call fileunlink p n
+		end
+		o+=l+1
+		k-=1
+	end
+end
+
+# Make the snapshot of the directory what its files are now. A file that
+# the manifest has unchanged is not cut again, a text whose vector is
+# kept is not asked for again, and if nothing of what the snapshot is
+# made of changed, no snapshot is written. Else a whole snapshot is
+# published in the place of the one that was there, and then its
+# manifest. The lock is held.
+fn ixrefresh
+	call ixbegin
+	call bycut ixfiles 0
+	call treelist ixdp ixdn ixfiles as files git why
+	if why
+		call about ixdp ixdn
+		call byadd msg "cannot list the files: "
+		if why==treeread
+			call treewhy as r
+			call oserr r
+		end
+		if why==treegit
+			call byadd msg "git failed"
+		end
+		if why==treemem
+			call byadd msg "out of memory"
+		end
+		call fail stio
+	end
+	call bycut ixmeta 0
+	call bycut ixtext 0
+	call bycut ixnew 0
+	call bycut ixkeys 0
+	call bycut ixtoff 0
+	call shainit ixstate
+	ixcount=0
+	ixtaken=0
+	o=0
+	while files
+		# the buffer of the paths does not move: nothing is added to it
+		load ixfiles as p
+		p+=o
+		call strlen p as l
+		call textvalid p l as ok
+		ifz ok
+			call ixover "a path that build does not take or that leaves the directory" p l
+		else
+			call treestat ixdp ixdn p l ixst as r
+			ifz r
+				call ixlook p l as same
+				if same
+					call ixkept p l
+				else
+					call ixanew p l
+				end
+			end
+		end
+		o+=l+1
+		files-=1
+	end
+	call bycut ixrev 0
+	if git
+		call treerev ixdp ixdn ixrev as ok
+	end
+	load ixrev as rp
+	load ixrev+8 as rn
+	call shaadd ixstate ixid 32
+	call shaadd ixstate rp rn
+	call shaend ixstate ixsha
+	call bycut ixhex 0
+	call shahex ixhex ixsha as ok
+	ifz ok
+		call nomem
+	end
+	load ixhex as p
+	call bycopy ixstatehex p 64
+	call ixembed
+	same=0
+	if ixmanok
+		load ixman+104 as p
+		call texteq p 64 ixstatehex 64 as same
+	end
+	ixpublished=0
+	if same
+		call ixstage
+		call ixcommit
+		call ixwrite
+	else
+		call ixgather
+		# the strings of the snapshot start with the model and the revision
+		call bycut strs 0
+		call bycut recs 0
+		call confstr ixconf confmodel as mp mn
+		call byadd strs mp mn
+		call byadd strs rp rn as ok
+		ifz ok
+			call nomem
+		end
+		load ixmeta as p
+		load ixmeta+8 as n
+		call metaparse p n recs strs as count why
+		if why
+			call about ixdp ixdn
+			call byadd msg "the chunk "
+			call byaddn msg count
+			call byadd msg ": "
+			call metawhy msg why
+			call fail stio
+		end
+		load ixconf+confdim as dim
+		call bycut block 0
+		ro=0
+		if rn
+			ro=mn
+		end
+		call packmeta block dim recs strs 0 mn ro rn as ok
+		ifz ok
+			call nomem
+		end
+		if ixopen
+			call snapclose snap
+		end
+		load ixvec as vec
+		# before the snapshot has its name: a configuration that cannot
+		# be written leaves the snapshot that was there
+		call ixstage
+		call hookstop 4
+		# publish calls ixbefore, which writes the manifest of the snapshot
+		# before it has its name
+		ixrun=1
+		call publish vec count dim "the provider"
+		ixrun=0
+		call hookstop 5
+		ixpublished=1
+		call ixmancommit as r
+		if r
+			call ixwarn "the manifest could not be written: " r
+		end
+		call ixcommit
+	end
+	call cacheclose ixcache as r
+	if r
+		call ixwarn "the vectors could not be kept: " r
+	end
+	call ixsweep
+end
+
+# aildb index [DIRECTORY] [-i MODEL -d DIMENSION ... -- COMMAND ...]
+fn index
+	call argc as c
+	set "." as ixdp
+	ixdn=1
+	i=2
+	if c>2
+		call argv 2 as p n
+		loadb p as x
+		if (n>0)&(x!=45)
+			ixdp=p
+			ixdn=n
+			i=3
+		end
+	end
+	call ixoptions i as given
+	call ixplace
+	call ixconfig given
+	call ixrefresh
+	call summary
+	# the line of build, and what this run did
+	load msg+8 as n
+	store msg+8 n-2
+	call byadd msg ",\"files\":"
+	call byaddn msg ixtaken
+	call byadd msg ",\"embedded\":"
+	call byaddn msg ixasked
+	if ixpublished
+		call byadd msg ",\"published\":true}\n"
+	else
+		call byadd msg ",\"published\":false}\n"
+	end
+	load msg as p
+	load msg+8 as n
+	call print p n as ok
+	ifz ok
+		call about ixdp ixdn
+		call byadd msg "indexed, but the line about it could not be written to the output"
+		call fail stio
+	end
+	sys exit_group 0
+end
+
+# aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
+#
+# The search of the index of a directory for a query in words: the
+# index is made what the files are now if it is not, the provider of
+# the index is asked for the vector of the query, and the records are
+# ranked and printed as search prints them.
+fn textsearch
+	call argc as c
+	set "." as ixdp
+	ixdn=1
+	i=2
+	call argv 2 as p n
+	loadb p as x
+	if (n>0)&(x!=45)
+		ixdp=p
+		ixdn=n
+		i=3
+	end
+	tp=0
+	tn=0
+	kp=0
+	kn=0
+	pp=0
+	pn=0
+	lp=0
+	ln=0
+	wp=0
+	wn=0
+	while i<c
+		call argv i as p n
+		if i+1>=c
+			call usage
+		end
+		call argv i+1 as q m
+		i+=2
+		call texteq p n "--text" as is
+		if is
+			if tp
+				call usage
+			end
+			tp=q
+			tn=m
+		else
+			loadb p as x
+			loadb p+1 as y
+			if (n!=2)|(x!=45)
+				call usage
+			end
+			if y==107
+				if kp
+					call usage
+				end
+				kp=q
+				kn=m
+			end
+			if y==112
+				if pp
+					call usage
+				end
+				pp=q
+				pn=m
+			end
+			if y==108
+				if lp
+					call usage
+				end
+				lp=q
+				ln=m
+			end
+			if y==119
+				if wp
+					call usage
+				end
+				wp=q
+				wn=m
+			end
+			if (y!=107)&(y!=112)&(y!=108)&(y!=119)
+				call usage
+			end
+		end
+	end
+	if (tp==0)|(tn==0)|(kp==0)
+		call usage
+	end
+	call textnum kp kn as k ok
+	if (ok==0)|(k-1>0xfffffffe)
+		call usage
+	end
+	call ixstate 0
+	call ixin dst "index" as p n
+	call ixin lck "index.lock" as p n
+	call ixconfig 0
+	load ixconf+conftime as wait
+	if wp
+		call textnum wp wn as wait ok
+		if (ok==0)|(wait>3600000)
+			call usage
+		end
+	end
+	call ixfresh as fresh
+	ifz fresh
+		call ixlockwait wait
+		# the run that held the lock may have changed the provider, and
+		# made the snapshot what the files are: both are looked at again
+		call conffree ixconf
+		call ixconfig 0
+		call ixfresh as fresh
+		ifz fresh
+			call ixrefresh
+		end
+	end
+	call hookmark 2
+	# snap is the snapshot now; the query
+	call bycut ixvec 0
+	call provquerytext ixconf tp tn ixvec ixerr as w st
+	if w==provtext
+		call about ixdp ixdn
+		call byadd msg "the query is not well-formed UTF-8"
+		call fail stinvalid
+	end
+	if w
+		call ixnoprov w st
+	end
+	load snap+24 as dim
+	load ixconf+confdim as x
+	alloc dim*8 as q
+	if (q==0)|(x!=dim)
+		call nomem
+	end
+	load ixvec as p
+	call searchquery snap p q as r
+	if r
+		call about ixdp ixdn
+		call byadd msg "the vector of the query is not one that can be searched with"
+		call fail stprovider
+	end
+	qvec=q
+	load dst as ip
+	load dst+8 as in
+	call scan k pp pn lp ln ip in-1
+	call hookmark 3
+	call results
+	call hookmark 4
+	sys exit_group 0
+end

@@ -1,0 +1,19 @@
+# the directory of the kept vectors is looked at when a run begins and
+# then held open: a process that puts a link at its name while the run
+# goes on does not lead what the run writes and removes to another
+# place. The provider of this test is such a process: when it is asked
+# for vectors it moves .aildb/cache away and puts a link to a directory
+# outside at its name. The vectors of the run are then in the directory
+# that was moved, the directory outside is as it was, and the next run
+# refuses the link.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "tests/lib/cmd.aiw"
+use "tests/lib/dir.aiw"
+call dirsh "mkdir d out\nprintf 'one\\n' > d/a.txt\nprintf 'keep\\n' > out/other\nprintf '#!/bin/sh\\nif [ ! -e swapped ]\\nthen\\n\\t: > swapped\\n\\tmv d/.aildb/cache d/.aildb/held\\n\\tln -s ../../out d/.aildb/cache\\nfi\\nexec \"%s\"\\n' \"$FAKE\" > swap.sh\nchmod +x swap.sh\n"
+call print "# the provider puts a link at the name of the directory\n"
+call dirsh "st=0\nXDG_CONFIG_HOME=\"$PWD/xdg\" GIT_CEILING_DIRECTORIES=\"$PWD\" \"$AILDB\" index d -i m1 -d 3 -n fake -- \"$PWD/swap.sh\" > case.out 2> case.err || st=$?\ncat case.out\nsed \"s|$PWD/||g\" case.err\necho status $st\necho outside: $(ls -A out)\ncat out/other\necho files of vectors in the directory that was held: $(ls -A d/.aildb/held | wc -l)\n"
+call print "# the next run finds the link\n"
+call dirsh "rm -r d/.aildb/held\nst=0\nXDG_CONFIG_HOME=\"$PWD/xdg\" GIT_CEILING_DIRECTORIES=\"$PWD\" \"$AILDB\" index d > case.out 2> case.err || st=$?\ncat case.out\nsed \"s|$PWD/||g\" case.err\necho status $st\necho outside: $(ls -A out)\n"

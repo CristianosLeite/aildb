@@ -1,0 +1,46 @@
+# a provider in the directory
+$ aildb index q -i m1 -d 8 -- q/embed.sh
+--- stdout
+{"records":3,"dimension":8,"model":"m1","source_revision":null,"files":3,"embedded":3,"published":true}
+--- stderr
+--- status 0
+$ aildb search q --text last -k 1
+--- stdout
+{"source_revision":null,"model":"m1"}
+{"rank":1,"score":1.000000,"score_bits":"3feffffff4f6b16d","path":"b.txt","start_line":1,"end_line":1}
+--- stderr
+--- status 0
+--- provider.log
+documents 3 m1
+query 1 m1
+# its bytes change, and with them its vectors: it is not run
+status 2
+aildb: q: the configuration of this index names a provider that was not set up by you on this machine, or whose program or a file it depends on is no longer the file it was, and nothing of it was run. Its command is: TMP/q/embed.sh; to allow it, name the provider yourself: aildb index q -i m1 -d 8 ... -- COMMAND
+# the run that allows it again is killed before it publishes: still not run
+stop 4: reached 1
+ended by signal 9
+--- provider.log
+documents 3 m1
+the configuration and the snapshot are what they were
+status 2
+aildb: q: the configuration of this index names a provider that was not set up by you on this machine, or whose program or a file it depends on is no longer the file it was, and nothing of it was run. Its command is: TMP/q/embed.sh; to allow it, name the provider yourself: aildb index q -i m1 -d 8 ... -- COMMAND
+--- provider.log
+cache
+config
+index
+index.lock
+manifest
+# the run itself
+$ aildb index q -i m1 -d 8 -- q/embed.sh
+--- stdout
+{"records":3,"dimension":8,"model":"m1","source_revision":null,"files":3,"embedded":0,"published":true}
+--- stderr
+--- status 0
+$ aildb search q --text last -k 1
+--- stdout
+{"source_revision":null,"model":"m1"}
+{"rank":1,"score":1.000000,"score_bits":"3feffffffca0b060","path":"b.txt","start_line":1,"end_line":1}
+--- stderr
+--- status 0
+--- provider.log
+query 1 m1

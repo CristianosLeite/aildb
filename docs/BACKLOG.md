@@ -218,6 +218,17 @@ mapped pages contribute to reported peak resident memory.
   `search` of the unpacked executable in a Docker container without AIL.
   The archive is for `v0.1.0` (user, 2026-11-22). Attaching it to the
   release is left in `TODO.md`.
+- [x] The archives attached to their releases (user, 2026-11-24: every
+  open item). The release of `v0.1.1` had its two files already,
+  `aildb-0.1.1-x86_64-linux.tar.gz` and its `.sha256`: downloaded on
+  2026-11-24, the checksum holds, and `BUILD` names aildb `355920b` and
+  AIL `cae2e92`. For `v0.1.0`, `make dist REV=v0.1.0` with the command
+  of AIL built at its tag `v0.1.0` (`9b94a9b`) made
+  `aildb-0.1.0-x86_64-linux.tar.gz` with the checksum
+  `618f98babd39b9c4f8f884d0b01a471ddca0313ee58712a882ebafe264d8f49a`,
+  the one of the archive made on 2026-11-22; `make dist-check` passed
+  on it, and the archive and its `.sha256` were uploaded to the release
+  of `v0.1.0`, which is still a draft.
 - [x] The version 0.1.1 (user, 2026-11-22: every package of the family
   to 0.1.1, with AIL): `Ailfile`, `mcp/Ailfile` and
   `example/consumer/Ailfile` say it and ask for AIL 0.1.1, the server
@@ -292,6 +303,18 @@ mapped pages contribute to reported peak resident memory.
   the model and the limits of a chunk. `docs/evaluation.md` has the run
   of 2026-11-22. The example stays as it was.
 
+- [x] Variants compared with the queries of `make eval` (2026-11-24):
+  first a third corpus, hiredis at `v1.2.0`, C by other authors, with
+  ten queries committed before they were embedded; then the limits of a
+  chunk, lines in common and the path before the text as options of
+  `build/chunk` (`chunkset` of `src/lib/chunk.aiw`), and the model, its
+  dimension and its prefixes as options of `build/embed`; then `make
+  eval-variants`, six variants on the three corpora, with the table in
+  `docs/evaluation.md`: smaller chunks, larger ones, ten lines of
+  overlap, the path, and mxbai-embed-large. No variant is better on all
+  three; the path before the text gains most on `ail` and `aildb` and
+  loses on `hiredis`. No default was changed.
+
 ## 16. MCP server for coding agents
 
 - [x] `aildb-mcp`, in `mcp/`: a server of the Model Context Protocol
@@ -359,3 +382,464 @@ mapped pages contribute to reported peak resident memory.
   limit of 32 MiB; and the chunks of one PDF file may be 16777216
   bytes of metadata and text, `pdfkept`, above which the file is
   passed over whole. Tests in `tests/example_chunk.aiw`.
+
+## 17. On-demand indexing and text search
+
+The user wants an index that the command `aildb` makes and refreshes
+when it is run, with no daemon and no watcher, and an embedding provider
+chosen apart from the LLM that asks (2026-11-24). The index of a
+directory, its configuration, its manifest and its kept vectors are in
+`DIRECTORY/.aildb/` (user, 2026-11-24).
+
+- [x] Before the items: `cmdbegin`, `cmdadd` and `cmdshowv` of
+  `tests/lib/cmd.aiw` run a command whose arguments have spaces; the
+  chunker is the library `src/lib/chunk.aiw`, of which `build/chunk` is
+  the command, with the same output; and `src/lib/sha.aiw` is SHA-256,
+  checked against `hashlib` of Python.
+- [x] SHA-256 is a library of AIL, not a file of aildb (user,
+  2026-11-24): `src/lib/sha.aiw` and its test went to the AIL
+  repository as `lib/std/sha.aiw` and `tests/lib_sha_sums` (its pull
+  request 33), and `src/lib/config.aiw` and `src/index.aiw` name that
+  file. AIL 0.1.2 is the first version that has it.
+- [x] The embedding provider interface: two operations, `documents` for
+  a batch of chunks and `query` for one query, in a request of JSON that
+  carries the model, its revision, the dimension and the settings, so
+  that a provider applies the prefix or the parameters of each
+  (`provrequest` of `src/lib/provider.aiw`). The provider of an index is
+  configured once, in `.aildb/config` (`src/lib/config.aiw`), and
+  `confident` gives the configuration an identity, the SHA-256 of the
+  provider, the model, its revision, the dimension and the settings,
+  which tells apart embeddings of one dimension. `provparse` validates
+  an answer where it enters: the count, the index of each vector, the
+  dimension, finite binary32, and no vector of zeros, the last two with
+  `normwide`, which `build` uses. Tests `lib_config` and `lib_provider`,
+  with answers written in the test for both operations and for each
+  malformed answer; the identities and the bits against Python.
+  `docs/provider.md`.
+- [x] The local command adapter: `provdocs` and `provquerytext` of
+  `src/lib/provider.aiw` start the command of the configuration once
+  for each request, directly, with the request of version 1 of the
+  protocol as its stdin and its answer on stdout, both files in memory;
+  32 texts a request and 120000 ms unless the configuration says
+  others, after which the process is killed; a status that is not 0, a
+  signal and a program that cannot be started are reasons, each with
+  the first line of what the provider said. `aildb-llama`
+  (`adapters/llama.aiw`) is the runner without a socket: it runs
+  `llama-embedding` of llama.cpp on a model file, which is built from
+  the sources of llama.cpp since its release archives have no such
+  program. `aildb-ollama` (`adapters/ollama.aiw`) wraps the protocol of
+  Ollama behind the same interface, with `adapters/lib/ollama.aiw`
+  shared with `build/embed`. Tests `provider_command` (a subprocess,
+  `build/provider-fake`, and no service of HTTP), `adapter_llama`
+  (against `build/llama-fake`) and `adapter_ollama`; both adapters were
+  run by hand on 2026-11-24 against llama.cpp `b12676` and Ollama
+  0.40.17 (`docs/provider.md`). Indexing and a query through them are
+  the tests of the items below.
+- [x] `aildb index [DIRECTORY]`: the index of a directory, the current
+  one if none is named, made in one run from the files as they are on
+  disk, uncommitted edits too, and published as `.aildb/index` by the
+  path of `build`, under its lock. The provider is named by options the
+  first time and read from `.aildb/config` after that. In a work tree
+  git lists the files, so its ignore rules hold; a directory without
+  git gives every file. `.aildb` and `.git` are left out at any depth,
+  a symbolic link is neither followed nor taken, and the chunker is the
+  one of text and PDF files (`src/lib/chunk.aiw`). The revision of git
+  is recorded only for a tree that is clean and has the line ends of
+  git. `src/index.aiw`, `src/lib/tree.aiw`, `src/lib/run.aiw`; status 7
+  for a provider that failed. Tests `cli_index` (new and edited files
+  without commits, a removal, an ignored path, a link), `cli_index_plain`
+  (a directory outside git) and `lib_tree`; `tools/index.sh` and
+  `make index` are unchanged for an index of a revision
+  (`tests/tools_index.out` is the same). Two runs against
+  nomic-embed-text on 2026-11-24, one with each adapter
+  (`docs/index.md`). This run makes the index anew each time; the item
+  below makes it incremental.
+- [x] Incremental refresh: `.aildb/manifest` has, for each file, its
+  size, its times, the SHA-256 of its bytes and its chunks, and a file
+  that it has unchanged is neither read nor cut; `.aildb/cache/` has
+  the vectors, each under the SHA-256 of the identity of the provider
+  and the exact text, so a new or edited file is cut again and asks
+  only for the texts that have no vector, a moved file asks for none
+  and gets its new path and lines, a removed file has no record, and
+  another model or setting, being another identity, uses none of the
+  old vectors. A whole snapshot is published by the path of `build`;
+  the manifest is written after it and believed only for the snapshot
+  it names, so a provider that fails and a run that is killed leave
+  the snapshot that was there usable and the next run finds the
+  manifest stale. Two runs of a directory: the second ends with status
+  5. `src/lib/cache.aiw`, `src/lib/manifest.aiw`. Tests
+  `cli_index_refresh` (unchanged input, one edit, a move, the removal
+  of the last document, a change of the provider, a provider that
+  fails) and `kill_index` (runs killed at four points, and two at
+  once), `lib_cache`, `lib_manifest`. `docs/index.md`,
+  `docs/durability.md`.
+- [x] `aildb search [DIRECTORY] --text QUERY`: the text search of a
+  directory. It reads the configuration of the index, makes or
+  refreshes the snapshot if the files are not what the manifest has,
+  asks the same provider for the vector of the query with the
+  operation `query`, and prints the ranked paths with their lines, or
+  the page of a PDF file, as `search` does. An index that is up to
+  date, which is found from sizes and times alone, costs the one
+  request for the query. `search INDEX`, `build` and `check` are as
+  they were (`tests/cli_search*.out` changed in the line of the usage
+  alone). Test `cli_search_text`: the first search, a second one with
+  no request for documents, and a search right after an edit that is
+  not committed; two runs against nomic-embed-text on 2026-11-24
+  (`docs/index.md`).
+- [x] MCP as an optional adapter of the text search: `aildb-mcp -d
+  DIRECTORY`, started by the client with the directory in its
+  configuration, forwards the query, the limit and the filters of each
+  call to `aildb search DIRECTORY --text`, which owns the refresh of
+  the index and the embedding of the query; the server knows no model,
+  so the LLM that calls can change without the index being made again.
+  `-s -i -e` stays for a snapshot. Test `mcp/tests/directory.aiw`: the
+  first search and a search after an edit through the server, with the
+  results and the failure of a provider those of the command; a run by
+  hand against the model on 2026-11-24 (`docs/mcp.md`).
+- [x] The workflow of a fresh installation, documented and verified:
+  `docs/install.md` goes from the archive to a directory searched in
+  words with the local adapter, with the provider set up once
+  (`llama-embedding` built from llama.cpp, a model file), where the
+  index and the kept vectors are, how the model is changed, and the MCP
+  server as an option. The managed workflow is in the installed
+  command: `tools/dist.sh` packs `aildb`, `aildb-llama`,
+  `aildb-ollama` and `aildb-mcp`, and `tools/dist-check.sh` indexes a
+  directory, searches it by text, writes a file and searches again,
+  also through `aildb-mcp`, in a container without AIL, git and
+  network, with a script as the provider. Both were run on 2026-11-24
+  on the archive of `c144bb1`, whose executables then indexed and
+  searched the directory `docs` of a clone with `aildb-llama` and
+  llama.cpp `b12676` (`docs/install.md`). Not run: the steps with an
+  archive of a release, which no release has yet.
+
+### Fixes after the review of `5eeba0b`
+
+A review of step 17 at `5eeba0b`, in a file `REVIEW.md` that is no part
+of the repository (user, 2026-11-24), had eight findings; each fix is
+one commit. `.agents/knowledge/architecture/review-5eeba0b.md` has what
+each chose.
+
+- [x] The arguments that `aildb-mcp -d` gives the command were written
+  into 8192 bytes without a look at the room, and a directory, a query
+  and two filters, each within its limit, are up to 9286: `arg` of
+  `mcp/src/run.aiw` adds nothing that has no room, `run` then starts
+  nothing, and the call is a failure that says so. Tests
+  `mcp/tests/run.aiw` (8192 bytes run, 8193 not, thirteen arguments
+  not, the command after them run) and `mcp/tests/directory.aiw` (such
+  a call, and the next one served).
+- [x] `aildb index` with options wrote `.aildb/config` before it asked
+  the provider, so a change to a provider that failed left the old
+  snapshot under the new configuration, and no search by text worked
+  until the provider did. The configuration of the options is now
+  written when its snapshot has its name (`ixcommit` of
+  `src/index.aiw`), or when the snapshot is left as it is. Test
+  `tests/cli_search_text.aiw`: a change whose provider fails, and one
+  killed before it publishes, leave the bytes of `config` and `index`,
+  and the search answers with the old model; the change given again
+  asks for nothing that the killed run got. `build/provider-fake` reads
+  faults from a file `provider.fault` too, since a test can no longer
+  make a configuration by a run that fails and edit it.
+- [x] A search by text read the configuration, found the index not up
+  to date and waited for the lock; a run that held it and changed the
+  provider meanwhile was followed by a refresh with the configuration
+  read before, which published a snapshot of the old model under the
+  new configuration. With the lock the search now reads the
+  configuration again and looks again whether the index is up to date.
+  Test `tests/cli_search_text.aiw`: a search started while a run with a
+  slow provider changes the model answers with the new model and asks
+  for its query alone (before the fix: the documents and the query of
+  the old model).
+- [x] The identity of a configuration left the command out whole, and
+  `aildb-llama` takes its model file and the options of llama.cpp as
+  arguments: a change of them kept the vectors of the old ones (the
+  review reproduced it, a text as its own query at 0.809026). The
+  arguments after the program are in the identity now, whose text
+  starts `aildb-provider 2`; the program is not, so a provider that
+  moved keeps the index. Tests `tests/lib_config.aiw` (the identities
+  against `hashlib` of Python: the same with another program, another
+  with an argument more and with one changed) and
+  `tests/cli_index_refresh.aiw` (an argument more asks for every text
+  and publishes; the same arguments under another path of the program
+  ask for nothing).
+- [x] `treestat` asked the kernel about a whole path without following
+  its last part, which says nothing of the parts before it: a directory
+  of a file git knows that became a symbolic link led the index out of
+  the directory, and the file was then read by its name. A path below
+  the indexed directory is now opened part by part with no link
+  followed (`src/lib/below.aiw`), for the look at a file, for its sum
+  and for the chunker, and what is read is a descriptor that the kernel
+  says is a regular file. A part `..` is refused there, so a list
+  given to `build/chunk` without `-c` with such a path has it passed
+  over. Tests `tests/lib_below.aiw`, `tests/lib_tree.aiw` (a path
+  through a link to a directory) and `tests/cli_index.aiw` (a tracked
+  directory moved out and linked back: its file is not taken and the
+  provider not asked).
+- [x] `aildb-mcp` kills the command when the time of a call is over,
+  and `procwait` of AIL kills that one process: the embedding provider
+  the command had started went on running. `src/lib/run.aiw` starts the
+  provider, and git, with `procheld`, written in AIL for this (its pull
+  request 34): the kernel kills the child when its parent ends. Tests
+  `tests/kill_index.aiw` (a run killed while its provider hangs: the
+  provider is gone; with `procstart` in its place the test says that it
+  still runs) and `mcp/tests/directory.aiw` (a call of 500 ms against a
+  provider that hangs fails, the provider is gone, the next call is
+  served).
+- [x] `aildb search DIRECTORY --text` and `aildb index DIRECTORY` ran
+  the command that `DIRECTORY/.aildb/config` names, and a checkout can
+  bring that file with it: the first search, by a person or by a client
+  of `aildb-mcp -d`, ran what the repository chose, with the rights of
+  the user. A command is now run only if the user named it for the
+  directory with the options of `aildb index`, which notes it in
+  `aildb/trusted` under `XDG_CONFIG_HOME` or `~/.config`
+  (`src/lib/trust.aiw`): a line of the SHA-256 of the directory, as the
+  kernel names it, and of every argument. Without the line nothing of
+  the configuration is run, the status is 2, and one line names the
+  command and how to allow it. Tests `tests/lib_trust.aiw` (the key
+  against `sha256sum`, the file), `tests/cli_index_trust.aiw` (a copy of
+  an indexed directory, a command edited by hand, a directory moved, no
+  `HOME`: nothing asked of the provider; the options allow it) and
+  `mcp/tests/directory.aiw` (a call in a directory with a configuration
+  that came with it: a failure, and its command was not run). The tests
+  keep their file in the directory of the test.
+
+### Fixes after the review of `6c707bc`
+
+A second review, of the fixes above at `6c707bc` and of the pull
+requests 33 and 34 of AIL (user, 2026-11-24, again a file `REVIEW.md`
+that is no part of the repository), had six findings; each fix is one
+commit. `.agents/knowledge/architecture/review-6c707bc.md` has what
+each chose.
+
+- [x] The line that allows a command was of its arguments as they were
+  written, and a program named without a slash or from the current
+  directory is found anew by each run: a search with another `PATH` or
+  from another directory ran another program under the same line, and
+  a program of the checkout could change at its path. `aildb index`
+  now finds the program once (`trustprog` of `src/lib/trust.aiw`) and
+  writes its path from the root into the configuration; the key,
+  `aildb-trust 2`, is also of the file that path leads to and, for a
+  program below the indexed directory, of its bytes. Tests
+  `tests/lib_trust.aiw` (the two texts against `sha256sum`; a link
+  turned to another file and a program of the directory changed give
+  another key, a program outside changed the same) and
+  `tests/cli_index_trust.aiw` (a name alone and a path from the
+  current directory, searched from another directory with a `PATH`
+  where the name is a program that leaves a file: the named one
+  answers; a program of the directory replaced is refused, status 2).
+- [x] The identity left the program of the command out, and the name
+  of a provider that was given none was the last part of its path: two
+  programs of one last name at two paths, with the same arguments,
+  were one identity, and the vectors of the first were given out as
+  those of the second (the review reproduced it: nothing embedded,
+  nothing published, a text as its own query at 0.809026). The name of
+  a provider that is given none is now the path of its program from
+  the root, so another program is another identity; `-n NAME` is the
+  word of the user that a provider is the same wherever its program
+  lies. Test `tests/cli_index_refresh.aiw`: two copies of the provider
+  under one last name, without a name the second asks for every text
+  and publishes, under one name it asks for nothing.
+- [x] The files of `.aildb` were written by their names, and a
+  checkout can bring a symbolic link at `.aildb` or at a name in it:
+  the first `aildb index`, with a provider the user named, wrote the
+  configuration and the manifest into the file such a link led to.
+  `.aildb` is now opened from the indexed directory with no link
+  followed and kept open, every path of the index starts at that
+  descriptor (`ixstate`, `ixin` of `src/index.aiw`), each name in it and
+  in `cache` is looked at before anything is written, and what is no
+  regular file ends the command with status 4; the files that take the
+  place of another are made new (`O_EXCL`) and the others opened with
+  no link followed. Test `tests/cli_index_links.aiw`: a link at each
+  name, with the file outside as it was and the provider not asked.
+- [x] The configuration of the options was written after its snapshot
+  was published, so a write that failed there (the review: a directory
+  at `config.new`) left the new snapshot under the old configuration,
+  and the next search by text rebuilt the old one. The configuration
+  is now written whole to `config.new`, and the command noted as
+  allowed, before the snapshot is published (`ixstage`), and renamed
+  after (`ixcommit`); a run that takes the lock and finds `config.new`
+  ends the change or removes the file, by the manifest (`ixrecover`).
+  Test `tests/cli_search_text.aiw`: with `.aildb` not writable the
+  change ends with status 4 and `config` and `index` are the bytes
+  they were; a change killed after its snapshot has its name is ended
+  by the next search, which answers with the new model and asks for
+  its query alone.
+- [x] `procheld` of AIL started the program when the kernel refused to
+  hold the child, and `aildb-llama` had a start of its own with the
+  same gap and a check of the parent that only saw a parent that had
+  ended. `procheld` now starts no program then (the second commit of
+  the pull request 34 of AIL, with a test under a filter of system
+  calls), and `adapters/llama.aiw` starts `llama-embedding` with it,
+  without `/usr/bin/env` in between. `tests/adapter_llama.aiw` prints
+  what it printed; that the program ends with the adapter was checked
+  by hand, a script that sleeps gone after `kill -9` of the adapter.
+
+### Fixes after the review of `cb9285a`
+
+A third review, of the fixes above at `cb9285a` and of the pull
+requests 33 and 34 of AIL (user, 2026-11-24, again a file `REVIEW.md`
+that is no part of the repository), had four findings besides the
+version of AIL; each fix is one commit.
+`.agents/knowledge/architecture/review-cb9285a.md` has what each
+chose.
+
+- [x] The directory `.aildb/cache` was looked at and then closed, and
+  the file of kept vectors was reached by a path through its name: a
+  process that put a link at that name while a run went on led what
+  the run wrote and removed to another directory. The directory is now
+  opened once, from `.aildb` with no link followed, and kept open
+  (`ixcachedir` of `src/index.aiw`); the file of kept vectors and the
+  files that are removed at the end of a run are reached through that
+  descriptor. Test `tests/cli_index_cache.aiw`: a provider that makes
+  the change when it is asked; on the code before the fix the vectors
+  were written into the directory outside and a file of it was
+  removed.
+- [x] A change of the configuration that was killed after its snapshot
+  had its name was ended by the next run, but the manifest was still
+  that of the older snapshot, so that run looked at every file and
+  published the same snapshot again (the review: the inode of the
+  snapshot changed), against what `docs/index.md` said. The manifest
+  of a snapshot is now written to `manifest.new` when the snapshot is
+  whole in its temporary file and before it has its name (`ixbefore`,
+  which `publish` of `src/main.aiw` calls), and renamed after, before
+  `config.new`. `ixrecover` gives a `manifest.new` that is of the
+  snapshot which is there its name and removes another; `config.new`
+  is taken only if the manifest is of the snapshot and names its
+  identity, so a run that ended before its snapshot had its name is
+  undone whole, and the case of no manifest is no longer a guess. An
+  ordinary run that is killed after the rename is ended the same way.
+  Tests `tests/cli_search_text.aiw` (after the kill at stop 5 the next
+  search asks for its query alone and the snapshot has the inode it
+  had; on the code before the fix it had another; a change killed at
+  stop 2 leaves `config`, `index` and `manifest` the bytes they were)
+  and `tests/kill_index.aiw` (the run after a kill at stop 5 and at
+  stop 3 now prints `"published":false`).
+- [x] The line that allows a command was of its program, but
+  `aildb-llama` looked for `llama-embedding` in the `PATH` of each
+  search, and a relative `-x` was taken from the directory of each
+  search: the same line could run another program of llama.cpp for the
+  command line and for an MCP server. A script given to an interpreter
+  had the same gap, which `docs/provider.md` only named. `aildb index`
+  now takes the files a command depends on from the user: `-f FILE`
+  and `-x PROGRAM` are found once, written as lines `file` of the
+  configuration by their paths from the root, and put in the place of
+  the arguments that name them; the key, `aildb-trust 3`, has each of
+  them as it has the program, the file its path leads to and, below
+  the indexed directory, its bytes (`trustof`, read in blocks, not
+  whole into memory). `aildb-llama` takes its program by a path from
+  the root only, and `-x` is no longer optional. Tests
+  `tests/lib_trust.aiw` (the text of a key with two files against
+  `sha256sum`; a file of the directory changed is another key, a file
+  that is gone no key), `tests/lib_config.aiw` (the lines `file`),
+  `tests/cli_index_trust.aiw` (a script named with `-f` and given to
+  `/bin/sh`, searched from another directory, refused once it changed;
+  `aildb-llama` with `-x llama-embedding` found in one `PATH` and
+  searched with another where that name leaves a file, which is not
+  run) and `tests/adapter_llama.aiw` (a program that is no path from
+  the root, and none).
+- [x] A program of the indexed directory that changed is refused until
+  the options are given again, and those options then left the
+  identity what it was: the name of a provider without `-n` is the
+  path of its program, and the bytes were looked at for the permission
+  only. The vectors of the program as it was were given out for the
+  one it had become (the review reproduced it: nothing embedded,
+  nothing published, a text as its own query at 0.809026). A provider
+  that is given no name now has a line `fingerprint` in its
+  configuration, the SHA-256 of the bytes of its program and of the
+  files named with `-f` and `-x` as they are when the options are
+  given (`trustprint`), and the identity, `aildb-provider 3`, has it.
+  With `-n NAME` there is none: the name is the user's word that the
+  provider is the same. Tests `tests/cli_index_refresh.aiw` (a
+  program with a byte more at its path, and a script named with `-f`
+  with a line more: every text asked for and a snapshot published;
+  under a name, nothing asked) and `tests/lib_config.aiw`.
+
+### Fixes after the review of `b515e72`
+
+A fourth review, of the fixes above at `b515e72` (user, 2026-11-24,
+again a file `REVIEW.md` that is no part of the repository), had three
+findings; each fix is one commit.
+`.agents/knowledge/architecture/review-b515e72.md` has what each
+chose.
+
+- [x] A search by text read `.aildb/config` and checked that its
+  command was allowed before it took the lock, and only a run with the
+  lock ended what a killed run had left. A change of the provider that
+  was killed after its snapshot had its name left the old `config`
+  beside the snapshot of the new one, and when the old program was
+  gone since, the search ended with status 2 and never got to the
+  `config.new` that named the provider of the snapshot (the review: a
+  plain `aildb index` then ended the change, and the next search
+  answered). A search that finds `config.new` or `manifest.new` now
+  takes the lock first, if no run holds it, ends what was begun
+  (`ixrecover`), gives the lock back and then reads the configuration
+  (`ixpending`, `ixlock`, `ixunlock` of `src/index.aiw`). Test
+  `tests/cli_search_pending.aiw`: a change killed at stop 5, the
+  program of the old provider removed, and the search asks the new one
+  for its query alone, with the snapshot the file the killed run
+  published; on the code before the fix it ended with status 2.
+- [x] The line that allows a command was of its arguments and of the
+  bytes its files have now, and the vectors of an index are of the
+  fingerprint that `.aildb/config` kept. A run with options notes its
+  line before it publishes, so a run that was to allow a changed
+  program of the directory again, and was killed before its snapshot
+  had its name, left a line that allowed the old configuration with
+  the new bytes: the next search ran the new program against the old
+  vectors (the review: a text as its own query at 0.809026). The key,
+  `aildb-trust 4`, now starts with the identity of the configuration
+  (`confident`), which has the fingerprint: a line allows the
+  configuration it was noted for and no other with the same command.
+  Tests `tests/cli_index_reapprove.aiw` (a script of the directory
+  changed, refused; the run with options killed at stop 4; still
+  refused, with `config` and `index` the bytes they were; on the code
+  before the fix the search answered) and `tests/lib_trust.aiw` (the
+  text of a key against `sha256sum`).
+- [x] `aildb-llama` took any path from the root as its program. The
+  documented command names the program twice, to `aildb index -x`,
+  which has it looked at, and to the adapter, which runs it; a command
+  that named it to the adapter alone was accepted, and a program of
+  the indexed directory was then run with nothing of it in the allowed
+  line but its path as a word, so its bytes could change. A request of
+  the protocol now has a member `files`, the paths of the lines `file`
+  of the configuration (`provrequest` of `src/lib/provider.aiw`), and
+  the adapter runs its program only if it is one of them
+  (`adapters/llama.aiw`); else it ends with status 1 and a line that
+  says to name it to aildb too. Tests `tests/adapter_llama.aiw` (a
+  request without `files`, and one with other paths: the program is
+  not run), `tests/cli_index_trust.aiw` (a program of the directory
+  given to the adapter alone: status 7, nothing run and the
+  configuration as it was; named to both, run, and refused once its
+  bytes changed) and `tests/lib_provider.aiw` (the member).
+
+### Fix after the review of `acb1a70`
+
+A fifth review, of the fixes above at `acb1a70` (user, 2026-11-24,
+`REVIEW.md` again), had one finding.
+`.agents/knowledge/architecture/review-acb1a70.md` has what was chosen.
+
+- [x] The file of the allowed commands was taken wherever
+  `XDG_CONFIG_HOME` or `HOME` put it, also in the directory that was
+  indexed: the directory of the user's configuration indexed itself,
+  or one above it, or a link, made the directory the keeper of the
+  lines that allow its own provider (the review: the setup wrote the
+  file there). `ixtrusted` now asks `trustwithin` of
+  `src/lib/trust.aiw` where the path of the file and of its directory
+  leads, links followed, as far as it is there, before anything is
+  read or made, and a place in the indexed directory ends the command
+  with status 2; a link to nothing allows nothing. Tests
+  `tests/cli_index_trust.aiw` (the file in the directory, through a
+  link, by `HOME`, as a link of the file itself, and a copy of an
+  allowed line in the directory, which is not read; on the code before
+  the fix the setup wrote the file there and ran the provider) and
+  `tests/lib_trust.aiw` (`trustwithin` for paths that are and are not
+  there, through links both ways).
+
+### The version of AIL
+
+- [x] The AIL that `Ailfile` asked for could not build the sources (all
+  five reviews): they use `lib/std/sha.aiw` and `procheld` of
+  `lib/std/proc.aiw`, which AIL 0.1.1 has not. AIL 0.1.2 has both (user,
+  2026-11-24: its tag `v0.1.2` at `4c452d1`, with the pull requests 33
+  and 34, `880195c` among them), and the lines `ail` of `Ailfile` and
+  `mcp/Ailfile` and the version in `docs/install.md` and `README.md`
+  name it. The archive of its release was checked against its
+  `.sha256` and `make test` passes with the command of that archive.

@@ -1,0 +1,133 @@
+# a manifest of src/lib/manifest.aiw is written as text, a head and a
+# line for each file with the lines of its chunks, and read back: what
+# it says of its snapshot and its provider, and of each file by its
+# path; a path it has not is none; and a file that is not there, a text
+# that is no manifest, one that ends in the middle of a file and one
+# with a line too many are no manifest
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "src/lib/manifest.aiw"
+use "tests/lib/cmd.aiw"
+buf m mansize
+buf b 24
+buf st 32
+buf info maninfo
+data id "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff"
+data state "ffeeddccbbaa99887766554433221100ffeeddccbbaa99887766554433221100"
+data sha "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+data key "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+fn num p n x
+	call print p n
+	call putn x
+end
+# print what the manifest says of the file at the path p n
+fn file p n
+	call manfind m p n as a e
+	call print p n
+	ifz a
+		call print ": none\n"
+		ret 0
+	end
+	call manentry a e info as ok
+	load info+manfsize as x
+	call num ": size " x
+	load info+manfmtime as x
+	call num ", times " x
+	load info+manfctime as x
+	call num " " x
+	load info+manfsha as x
+	if x
+		call print ", sha "
+		call print x 4
+	else
+		call print ", not read"
+	end
+	load info+manfwhy as x
+	call num ", reason " x
+	load info+manfchunks as x
+	call num ", chunks " x
+	call print "\n"
+	load info+manffirst as p
+	load info+manfend as e
+	call print p e-p
+end
+# read the manifest of the file p n and say whether it is one
+fn open p n
+	call manopen m p n as r
+	call manvalid m as ok
+	call print p n
+	call num ": result " 0-r
+	call num ", manifest " ok
+	call print "\n"
+end
+call manhead b id 4096 123 456 1000000000000 state
+store st 1
+store st+8 30
+store st+16 111
+store st+24 222
+call manfile b "a.md" st sha 0 2
+call manchunk b 1 2 "markdown" key
+call manchunk b 4 5 "markdown" key
+store st+8 5000000
+call manfile b "big file.bin" st 0 3 0
+store st+8 7
+call manfile b "sub/b.py" st sha 0 1
+call manchunk b 1 1 "python" key
+load b as p
+load b+8 as n
+call print p n
+call filewrite "m.txt" p n
+call open "m.txt"
+load m+72 as x
+call num "snapshot " x
+load m+80 as x
+call num " " x
+load m+88 as x
+call num " " x
+load m+96 as x
+call num ", started " x
+load m+112 as x
+call num ", files " x
+call print "\nidentity "
+load m+64 as x
+call print x 64
+call print "\nstate "
+load m+104 as x
+call print x 64
+call print "\n"
+call file "a.md"
+call file "big file.bin"
+call file "sub/b.py"
+call file "sub"
+call file "a.m"
+call manfree m
+call print "# no manifests\n"
+call open "none.txt"
+call file "a.md"
+call manfree m
+call filewrite "x.txt" "something else\n"
+call open "x.txt"
+call manfree m
+call filewrite "x.txt" p n-10
+call open "x.txt"
+call manfree m
+call bycut b n
+call byadd b "1\t1\ttext\tbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n"
+load b as p
+load b+8 as n
+call filewrite "x.txt" p n
+call open "x.txt"
+call manfree m
+call filewrite "x.txt" "aildb-manifest\t2\n"
+call open "x.txt"
+call manfree m
+call filewrite "x.txt" "aildb-manifest\t1\nidentity\tzz112233445566778899aabbccddeeff00112233445566778899aabbccddeeff\nsnapshot\t1\t2\t3\nstarted\t4\nstate\tffeeddccbbaa99887766554433221100ffeeddccbbaa99887766554433221100\n"
+call open "x.txt"
+call manfree m
+call filewrite "x.txt" "aildb-manifest\t1\nidentity\t00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff\nsnapshot\t1\t2\t3\nstarted\t4\nstate\tffeeddccbbaa99887766554433221100ffeeddccbbaa99887766554433221100\n"
+call open "x.txt"
+call manfree m
+call filewrite "d" ""
+call open "d/m.txt"

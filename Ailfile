@@ -4,10 +4,12 @@
 # (docs/library.md).
 name aildb
 version 0.1.1
-ail 0.1.1
+ail 0.1.2
 
 # what is shipped: the commands build, search and check
 bin aildb src/aildb.aiw
+bin aildb-ollama adapters/ollama.aiw
+bin aildb-llama adapters/llama.aiw
 
 # built for the tests: the commands with hooks that stop a build where a
 # test asks, the chunker of the example, its check and the evaluation
@@ -16,6 +18,8 @@ testbin aildb-stops tests/lib/stops.aiw
 testbin chunk example/chunk.aiw
 testbin embed example/embed.aiw
 testbin embed-fake tests/lib/embedfake.aiw
+testbin provider-fake tests/lib/provfake.aiw
+testbin llama-fake tests/lib/llamafake.aiw
 testbin example-check example/check.aiw
 testbin example-eval example/eval.aiw
 dep ail-extensions 0.1.2 https://github.com/CristianosLeite/ail-extensions.git

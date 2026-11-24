@@ -262,3 +262,43 @@ call filewrite "list.txt" "/etc/a.md\n"
 call run
 call filewrite "list.txt" "lib/a.aiw\n"
 call cmdshowin "chunk . none/meta.tsv text.jsonl" "list.txt"
+
+call print "\n# the options of the evaluation: other limits, lines in common, the path in the text\n"
+call filewrite "twelve.txt" "line 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10\nline 11\nline 12\n"
+call filewrite "gaps.txt" "a\n\n\nb\nc\nd\ne\nf\n"
+call filewrite "list.txt" "twelve.txt\n"
+# fn opts runs the chunker with the options p n before its paths
+fn opts p n text
+	call fileunlink "meta.tsv"
+	call fileunlink "text.jsonl"
+	call bycut f 0
+	call byadd f "chunk "
+	call byadd f p n
+	call byadd f " . meta.tsv text.jsonl"
+	load f as q
+	load f+8 as m
+	call cmdshowin q m "list.txt"
+	call bycut f 0
+	call wrote text
+end
+call opts "-n 5" 0
+call opts "-b 30" 0
+call opts "-n 5 -o 2" 0
+# more lines in common than a chunk has: each chunk still has a new line
+call opts "-n 5 -o 9" 0
+# both limits hold for a chunk with the lines it repeats
+call opts "-n 5 -b 30 -o 3" 0
+call opts "-n 5 -p" 1
+call filewrite "list.txt" "gaps.txt\n"
+# a chunk does not begin with a line that has no ink
+call opts "-n 3 -o 2" 0
+# with -c too, on a source of Markdown: a section is not repeated
+call filewrite "sec.md" "# One\na\nb\nc\nd\n# Two\ne\n"
+call filewrite "list.txt" "sec.md\n"
+call opts "-c -n 3 -o 1 -p" 1
+call print "\n# options that are wrong\n"
+call cmdshowin "chunk -x . meta.tsv text.jsonl" "list.txt"
+call cmdshowin "chunk -n . meta.tsv text.jsonl" "list.txt"
+call cmdshowin "chunk -n five . meta.tsv text.jsonl" "list.txt"
+call cmdshowin "chunk -n 5 . meta.tsv" "list.txt"
+call cmdshowin "chunk -b 2000000 . meta.tsv text.jsonl" "list.txt"

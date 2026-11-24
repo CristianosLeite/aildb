@@ -6,11 +6,15 @@ LICENSE is its text.
 
 An executable of aildb, such as build/aildb, is made by the compiler of
 AIL (https://github.com/CristianosLeite/ail) and has in it code of the
-library of AIL (lib/std) and code that the compiler writes. No file of
-AIL is in the source repository of aildb, which is built by an AIL that
-is installed or checked out. AIL is distributed under the MIT License,
-and whoever passes on an executable of aildb passes on this notice with
-it:
+library of AIL (lib/std) and code that the compiler writes. build/aildb
+and aildb-mcp also have code of the package ail-extensions
+(https://github.com/CristianosLeite/ail-extensions) in them: its reader
+of PDF files and its server of the Model Context Protocol. No file of
+AIL or of ail-extensions is in the source repository of aildb, which is
+built by an AIL that is installed or checked out and names the package
+as a dependency. Both are distributed under the MIT License, with the
+copyright line below, and whoever passes on an executable of aildb
+passes on this notice with it:
 
 MIT License
 

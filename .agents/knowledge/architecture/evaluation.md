@@ -1,6 +1,6 @@
 ---
 title: The retrieval evaluation
-last-verified: 2026-11-22
+last-verified: 2026-11-24
 sources: [conversation 2026-11-22, docs/evaluation.md, docs/TODO.md, example/eval.aiw, tools/eval.sh, example/eval/, tests/example_eval.aiw, architecture/example.md]
 status: current
 ---
@@ -46,3 +46,30 @@ chunk sizes or models was run.
   `docs/TODO.md`. The plan of the conversation had `make eval` take the model and the
   limits of a chunk as variables; that was left to the item, with the comparison.
 - Queries by someone who did not write the sources, and a repository of another author.
+- **A third corpus, hiredis at `v1.2.0`** (step 15 of `docs/TODO.md` asks for queries on
+  a repository of another author, in a language the chunker is taught, before variants
+  are compared; agent, 2026-11-24, proposed in the plan the user approved that day):
+  C, BSD-3-Clause, 72 files, small enough to be embedded in every variant. Ten queries,
+  seven for functions (`sds.c`, `dict.c`, `net.c`, `read.c`, `hiredis.c`) and three for
+  sections of `README.md`, written from the names and places of the functions and
+  sections and committed before they were embedded; the line of a query is the first
+  line of the function or the heading of the section. Its `.pin` has the word `text`
+  after the revision: `tools/eval.sh` then runs `build/chunk` without `-c`, since `-c`
+  takes `.aiw` and `.md` alone. Rejected: a corpus of Python, for which the chunker has
+  no units either and which would add nothing C does not; and changing the two older
+  corpora to the chunker of every text file, which would change their published
+  figures (the decision of 2026-11-23 on the chunker page).
+- **Six variants, one change each against the base** (agent, 2026-11-24): 20 lines and
+  750 bytes, 80 and 3000, 10 lines in common, the path before the text, and
+  mxbai-embed-large with the prefix its authors give for a query. Run once, on
+  2026-11-24 (`docs/evaluation.md`). Not run: pairs of changes, since six runs already
+  say that ten queries a corpus do not tell one change from another by one query.
+- **Lines in common only after a cut by the limits** (agent): a function of AIL or a
+  section of Markdown ends a chunk as a unit, and repeating its last lines in the next
+  unit would put two things in one chunk. So the variant changes little where units end
+  the chunks, which the figures show.
+- **No default was changed from the figures** (agent; the decision is the user's): the
+  path before the text helps the two corpora of one author and hurts the third, and a
+  default for `aildb index` is for the repositories of others. What the third corpus
+  points to is units for C, which is the open item of the chunker page.
+

@@ -1,6 +1,6 @@
 # chunk -- cut the files of a repository into chunks for an index.
 #
-#   chunk [-c] ROOT META TEXT < LIST
+#   chunk [-c] [-n LINES] [-b BYTES] [-o LINES] [-p] ROOT META TEXT < LIST
 #
 # LIST, on stdin, is paths relative to the directory ROOT, one a line, as
 # "git ls-tree -r --name-only" prints them. Every file that is text is
@@ -11,7 +11,8 @@
 # "markdown", "python", ..., and "text" for an end that is not in the
 # table below), with tabs between. TEXT gets one line for each chunk, in
 # the same order: the bytes of the chunk as a string of JSON.
-# docs/example.md says what is text and how a file is cut.
+# docs/example.md says what is text and how a file is cut; the cutting is
+# src/lib/chunk.aiw, which the command index of aildb calls too.
 #
 # A file whose path ends in ".pdf", in letters of either case, and that
 # starts with "%PDF-" is a PDF file: the text of each of its pages, as
@@ -20,13 +21,14 @@
 # chunks are the number of the page, from 1, with the language "pdf". A
 # page that cannot be read is passed over with a line; a file that
 # cannot be opened, that costs more work or memory than it is allowed,
-# or whose chunks are more bytes of META and TEXT than pdfkept, is
+# or whose chunks are more bytes of META and TEXT than chunkpdfkept, is
 # passed over whole, and no chunk of it is kept; a file of which no
 # page gave a chunk is passed over with a line too.
 #
 # A file that is not text is passed over, and so are a file of more than
-# maxfile bytes, maxpdf for a PDF file, which is not read beyond them, a
-# PDF file under a name that does not say so, and a path that build
+# chunkmaxfile bytes, chunkmaxpdf for a PDF file, which is not read
+# beyond them, a PDF file under a name that does not say so, and a path
+# that build
 # would not take or that leads out of ROOT; standard error has a line
 # for each, but for a file that is not text and whose name does not say
 # that it should be.
@@ -38,6 +40,14 @@
 # their lines are; a path of them that build would not take is the
 # status 3.
 #
+# The other options are for the evaluation that compares ways to cut
+# (docs/evaluation.md), and without them a file is cut as that page
+# says: -n and -b are the most lines and the most bytes of a chunk, 40
+# and 1500 without them; -o is the number of lines that a chunk which
+# the limits ended has in common with the next one, none without it; and
+# with -p the text of a chunk in TEXT begins with the path of its file
+# and a line feed, while its line in META is the same.
+#
 # The status is 0 and stdout has the number of files cut and of chunks,
 # or 2 for wrong usage, 3 for that path under -c and 4 for a file that
 # cannot be read or written, with a line on stderr.
@@ -45,56 +55,14 @@ use "lib/std/io.aiw"
 use "lib/std/bytes.aiw"
 use "lib/std/file.aiw"
 use "src/lib/text.aiw"
-use "src/lib/fmt.aiw"
-use "ail-extensions:pdf/src/pdf.aiw"
-
-# a chunk has at most this many lines and, if it has more than one line,
-# at most this many bytes
-const maxlines 40
-const maxbytes 1500
-# a file of more bytes than this is passed over; tools/index.sh reads the
-# number here
-const maxfile 1048576
-# and a PDF file of more bytes than this, which has pictures in it
-# where another file has text
-const maxpdf 33554432
-# the bytes asked for at a time of a file that is longer than it said
-const readstep 65536
-# what a PDF file may cost (pdf/README.md of ail-extensions): the work
-# for each of its bytes and besides, and the bytes of memory
-const pdfwork 64
-const pdfmore 1000000
-const pdfheld 268435456
-# and the bytes that the chunks of one PDF file may be in META and TEXT,
-# which are held until the last file is cut and which the memory of the
-# reader does not count
-const pdfkept 16777216
-
-# the ends of paths and the languages they name, each with a NUL byte
-# after it; an end with no byte is the end of the table
-data langs "aiw\0ail\0" "md\0markdown\0" "txt\0text\0"
-data "c\0c\0" "h\0c\0" "cc\0cpp\0" "cpp\0cpp\0" "hpp\0cpp\0"
-data "py\0python\0" "rs\0rust\0" "go\0go\0" "java\0java\0"
-data "js\0javascript\0" "mjs\0javascript\0" "jsx\0javascript\0"
-data "ts\0typescript\0" "tsx\0typescript\0" "cs\0csharp\0"
-data "kt\0kotlin\0" "swift\0swift\0" "rb\0ruby\0" "php\0php\0"
-data "lua\0lua\0" "sh\0shell\0" "bash\0shell\0" "sql\0sql\0"
-data "json\0json\0" "yaml\0yaml\0" "yml\0yaml\0" "toml\0toml\0"
-data "xml\0xml\0" "html\0html\0" "htm\0html\0" "css\0css\0"
-data "\0"
+use "src/lib/chunk.aiw"
 
 buf list 24
-buf src 24
 buf meta 24
 buf text 24
-buf path 24
-buf doc pdfsize
-buf leaf 24
-# pageno is the page that the chunks being cut are of, 0 for the chunks
-# of a file that has lines; pdfbase is the bytes that META and TEXT had
-# before the PDF file being cut, and pdfspilt says that its chunks came
-# to more than pdfkept, after which none is added
-var chunks files rootp rootn pageno pdfbase pdfspilt
+buf notes 24
+buf msg 24
+var total files rootp rootn
 
 fn fail st p n q m
 	call eprint "chunk: "
@@ -102,317 +70,6 @@ fn fail st p n q m
 	call eprint q m
 	call eprint "\n"
 	sys exit_group st
-end
-
-# 1 if the n bytes at p have a byte that is not a space, a tab or a
-# carriage return
-fn inked p n
-	i=0
-	while i<n
-		loadb p+i as c
-		if (c!=32)&(c!=9)&(c!=13)
-			ret 1
-		end
-		i+=1
-	end
-	ret 0
-end
-
-# 1 if the n bytes at p, which start a line of AIL, start a function: the
-# line starts with "fn ", or it is the first of a run of lines that start
-# with "#" and the line after the run starts with "fn ". prev says that
-# the line before starts with "#".
-fn fnstart p n prev
-	if prev
-		ret 0
-	end
-	call textprefix p n "fn " as r
-	if r
-		ret 1
-	end
-	label run
-	ifz n
-		ret 0
-	end
-	loadb p as c
-	if c!=35
-		tail textprefix p n "fn "
-	end
-	call textline p n as l ok
-	ifz ok
-		ret 0
-	end
-	p+=l+1
-	n-=l+1
-	jmp run
-end
-
-# 1 if the n bytes of a line at p are a heading of Markdown: one to six
-# "#" and a space
-fn heading p n
-	i=0
-	while i<n
-		loadb p+i as c
-		if c!=35
-			if (c==32)&(i>0)&(i<7)
-				ret 1
-			end
-			ret 0
-		end
-		i+=1
-	end
-	ret 0
-end
-
-# add the chunk of the lines first to last, the n bytes at p, of the file
-# at the path pp pn, in the language lp ln
-fn emit pp pn first last lp ln p n
-	if pageno
-		first=pageno
-		last=pageno
-		if pdfspilt
-			ret 0
-		end
-	end
-	call byadd meta pp pn
-	call byaddb meta 9
-	call byaddn meta first
-	call byaddb meta 9
-	call byaddn meta last
-	call byaddb meta 9
-	call byadd meta lp ln
-	call byaddb meta 10 as a
-	call fmtjson text p n as b
-	call byaddb text 10 as c
-	if (a==0)|(b==0)|(c==0)
-		call fail 4 "out of memory" ""
-	end
-	if pageno
-		# with this chunk: the file may have pdfkept bytes and no more
-		load meta+8 as a
-		load text+8 as b
-		if a+b-pdfbase>pdfkept
-			pdfspilt=1
-			ret 0
-		end
-	end
-	chunks+=1
-end
-
-# add the line of l bytes at q, the line of that number of the file at
-# the path pp pn, which is longer than a chunk may be: chunks of maxbytes
-# at most, each of which ends where a character of UTF-8 ends, and all at
-# that one line
-fn pieces pp pn line lp ln q l
-	while l
-		m=l
-		if m>maxbytes
-			m=maxbytes
-			# a byte 10xxxxxx goes on with the character before it
-			label back
-			loadb q+m as c
-			if c&0xc0==0x80
-				m-=1
-				jmp back
-			end
-		end
-		call inked q m as ink
-		if ink
-			call emit pp pn line line lp ln q m
-		end
-		q+=m
-		l-=m
-	end
-end
-
-# cut the n bytes at p, the file at the path pp pn in the language lp ln;
-# kind is 0 for a source of AIL, 1 for Markdown and 2 for a file that
-# has no units, and split says that a line longer than a chunk is cut
-fn cut pp pn p n kind lp ln split
-	line=1
-	# the chunk that is open: its first line and where that starts, its
-	# last line with ink and where that ends; first is 0 if there is none
-	first=0
-	start=0
-	last=0
-	stop=0
-	prev=0
-	fence=0
-	pos=0
-	while pos<n
-		call textline p+pos n-pos as l ok
-		q=p+pos
-		new=0
-		if kind==1
-			call textprefix q l "```" as r
-			if r
-				fence=1-fence
-			else
-				ifz fence
-					call heading q l as new
-				end
-			end
-		end
-		ifz kind
-			call fnstart q n-pos prev as new
-			call textprefix q l "#" as prev
-		end
-		call inked q l as ink
-		if ink
-			if split&(l>maxbytes)
-				if first
-					call emit pp pn first last lp ln p+start stop-start
-					first=0
-				end
-				call pieces pp pn line lp ln q l
-			else
-				if first
-					if new|(line-first>=maxlines)|(pos+l-start>maxbytes)
-						call emit pp pn first last lp ln p+start stop-start
-						first=0
-					end
-				end
-				ifz first
-					first=line
-					start=pos
-				end
-				last=line
-				stop=pos+l
-			end
-		end
-		pos+=l+1
-		line+=1
-	end
-	if first
-		call emit pp pn first last lp ln p+start stop-start
-	end
-end
-
-# 1 if the n bytes at p are the contents of a text file: well-formed
-# UTF-8 with no byte below 0x20 but a tab, a line feed, a form feed and a
-# carriage return, and no byte 0x7F
-fn plain p n
-	i=0
-	while i<n
-		loadb p+i as c
-		if c<32
-			if (c!=9)&(c!=10)&(c!=12)&(c!=13)
-				ret 0
-			end
-		end
-		if c==127
-			ret 0
-		end
-		i+=1
-	end
-	tail textutf8 p n
-end
-
-# the language that the path of n bytes at p names, its address and its
-# length, and 1; or "text" and 0 if the path has no end that is in the
-# table. The end is what follows the last dot of the last part of the
-# path, if that dot is not the first byte of the part.
-fn lang p n
-	i=n
-	label back
-	ifz i
-		jmp none
-	end
-	loadb p+i-1 as c
-	if c==47
-		jmp none
-	end
-	if c!=46
-		i-=1
-		jmp back
-	end
-	if i<2
-		jmp none
-	end
-	loadb p+i-2 as c
-	if c==47
-		jmp none
-	end
-	q=langs
-	label row
-	call strlen q as a
-	ifz a
-		jmp none
-	end
-	call strlen q+a+1 as b
-	call texteq p+i n-i q a as r
-	if r
-		ret q+a+1 b 1
-	end
-	q+=a+b+2
-	jmp row
-	label none
-	ret "text" 4 0
-end
-
-# add the bytes of the file at the path p n to the buffer b, which is
-# empty, but no more than max+1 of them: their number, or the error of
-# the kernel negated. A file that gives max+1 is longer than max. The
-# room asked for is what the file says it has and a byte, not max: a
-# short file is read on a machine that has no memory for the longest.
-# One that gives more than it said is read on in steps.
-fn readmax p n b max
-	local st 144
-	call fileopen p n 0 0 as fd
-	ifslt fd 0
-		ret fd
-	end
-	want=readstep
-	sys fstat fd st as r
-	ifz r
-		load st+48 as want
-		want+=1
-	end
-	if (want<1)|(want>max+1)
-		want=max+1
-	end
-	sum=0
-	label more
-	if sum<=max
-		store b+8 sum
-		call byneed b want as ok
-		ifz ok
-			sys close fd
-			ret -12
-		end
-		load b as q
-		sys read fd q+sum want as r
-		jeq r -4 more
-		ifslt r 0
-			sys close fd
-			ret r
-		end
-		if r
-			sum+=r
-			want-=r
-			ifz want
-				want=readstep
-			end
-			if want>max+1-sum
-				want=max+1-sum
-			end
-			jmp more
-		end
-	end
-	sys close fd
-	store b+8 sum
-	ret sum
-end
-
-# make the buffer path the path p l below the directory ROOT
-fn below p l
-	call bycut path 0
-	call byadd path rootp rootn
-	call byaddb path 47
-	call byadd path p l as a
-	ifz a
-		call fail 4 "out of memory" ""
-	end
 end
 
 # say that the file at the path p l is passed over, for the reason q m
@@ -424,210 +81,108 @@ fn over q m p l
 	call eprint "\n"
 end
 
-# 1 if the path of l bytes at p ends in ".pdf", in letters of either case
-fn pdfname p l
-	if l<4
+# the path p l of the list, with -c if o: its chunks added, or a line
+# that says why it gave none
+fn one o p l
+	call bycut notes 0
+	if o
+		call chunkcorpus rootp rootn p l meta text as k why
+	else
+		call chunkfile rootp rootn p l meta text notes as k why
+	end
+	# the pages of a PDF file that were passed over
+	load notes as q
+	load notes+8 as m
+	while m
+		call textline q m as e ok
+		call over q e p l
+		q+=e+ok
+		m-=e+ok
+	end
+	ifz why
+		files+=1
+		total+=k
 		ret 0
 	end
-	load4 p+l-4 as x
-	ret x|0x20202000==0x6664702e
-end
-
-# The PDF file of the r bytes at q, at the path p l: the text of each
-# page cut into chunks of that page. A page that cannot be read is
-# passed over; if the file cannot be opened or is spent, or its chunks
-# are more bytes than pdfkept, nothing of it is kept.
-fn pdffile p l q r
-	load meta+8 as m0
-	load text+8 as t0
-	c0=chunks
-	pdfbase=m0+t0
-	pdfspilt=0
-	call pdfopen q r doc r*pdfwork+pdfmore pdfheld as pages
-	ifslt pages 0
-		if pages==pdfdoclocked
-			call over "an encrypted PDF file" p l
-			ret 0
-		end
-		if (pages==pdfdocspent)|(pages==pdfdocmem)
-			call over "a PDF file that costs more than it may" p l
-			ret 0
-		end
-		call over "a PDF file that cannot be read" p l
-		ret 0
+	if why==chunkmem
+		call fail 4 "out of memory" ""
 	end
-	i=1
-	while i<=pages
-		call bycut leaf 0
-		call pdfpage doc i leaf as x
-		if (x==pdfdocspent)|(x==pdfdocmem)
-			# the document, not the page: what was cut of it goes
-			call pdfclose doc
-			pageno=0
-			store meta+8 m0
-			store text+8 t0
-			chunks=c0
-			call over "a PDF file that costs more than it may" p l
-			ret 0
-		end
-		ifslt x 0
-			call eprint "chunk: passed over, the page "
-			call eputn i
-			if x==pdffilter
-				call eprint " with a filter that is not known: "
-			else
-				call eprint " that cannot be read: "
-			end
-			call eprint p l
-			call eprint "\n"
-		else
-			load leaf as a
-			pageno=i
-			call cut p l a x 2 "pdf" 1
-			pageno=0
-			if pdfspilt
-				call pdfclose doc
-				store meta+8 m0
-				store text+8 t0
-				chunks=c0
-				call over "a PDF file with more text than is kept of one" p l
-				ret 0
-			end
-		end
-		i+=1
+	if why==chunkread
+		call bycut msg 0
+		call byadd msg rootp rootn
+		call byaddb msg 47
+		call byadd msg p l
+		load msg as q
+		load msg+8 as m
+		call fail 4 "cannot read " q m
 	end
-	call pdfclose doc
-	if chunks==c0
-		# pages that are pictures, or none that could be read
-		call over "a PDF file with no text" p l
-		ret 0
-	end
-	files+=1
-end
-
-# write the number v to standard error
-fn eputn v
-	local t 24
-	store t 0
-	store t+8 0
-	store t+16 0
-	call byaddn t v
-	load t as a
-	load t+8 as n
-	call eprint a n
-	call byfree t
-end
-
-# the path p l of the list under -c: a source of AIL or Markdown by its
-# end, cut whatever it holds
-fn corpus p l
-	ail=0
-	md=0
-	if l>4
-		call texteq p+l-4 4 ".aiw" as ail
-	end
-	if l>3
-		call texteq p+l-3 3 ".md" as md
-	end
-	ifz ail|md
-		ret 0
-	end
-	call textvalid p l as a
-	call textinside p l as b
-	if (a==0)|(b==0)
+	if o&(why==chunkpath)
 		call fail 3 "a path with a byte that build does not take, or one that leaves the directory" ""
 	end
-	call below p l
-	call bycut src 0
-	load path as q
-	load path+8 as m
-	call fileread q m src as r
-	ifslt r 0
-		call fail 4 "cannot read " q m
+	if why!=chunkquiet
+		call bycut msg 0
+		call chunkwhy msg why
+		load msg as q
+		load msg+8 as m
+		call over q m p l
 	end
-	load src as q
-	load src+8 as m
-	if md
-		call cut p l q m 1 "markdown" 0
-	else
-		call cut p l q m 0 "ail" 0
-	end
-	files+=1
 end
 
-# the path p l of the list: a file that is cut if it is text
-fn take p l
-	call textvalid p l as a
-	call textinside p l as b
-	if (a==0)|(b==0)
-		call over "a path that build does not take or that leaves the directory" p l
-		ret 0
-	end
-	call lang p l as lp ln known
-	call below p l
-	call bycut src 0
-	load path as q
-	load path+8 as m
-	call pdfname p l as pdf
-	if pdf
-		call readmax q m src maxpdf as r
-		ifslt r 0
-			call fail 4 "cannot read " q m
-		end
-		if r>maxpdf
-			call over "a file of more than 33554432 bytes" p l
-			ret 0
-		end
-		load src as q
-		call textprefix q r "%PDF-" as t
-		ifz t
-			call over "a file that is no PDF file" p l
-			ret 0
-		end
-		tail pdffile p l q r
-	end
-	call readmax q m src maxfile as r
-	ifslt r 0
-		call fail 4 "cannot read " q m
-	end
-	if r>maxfile
-		call over "a file of more than 1048576 bytes" p l
-		ret 0
-	end
-	load src as q
-	call textprefix q r "%PDF-" as t
-	if t
-		call over "a PDF file whose name does not end in .pdf" p l
-		ret 0
-	end
-	call plain q r as t
-	ifz t
-		if known
-			call over "a file that is not text" p l
-		end
-		ret 0
-	end
-	kind=2
-	call texteq lp ln "ail" as t
-	if t
-		kind=0
-	end
-	call texteq lp ln "markdown" as t
-	if t
-		kind=1
-	end
-	call cut p l q r kind lp ln 1
-	files+=1
-end
-
-call argc as c
-call argv 1 as p n
-call texteq p n "-c" as o
-if c!=4+o
-	call eprint "usage: chunk [-c] ROOT META TEXT < LIST\n"
+fn usage
+	call eprint "usage: chunk [-c] [-n LINES] [-b BYTES] [-o LINES] [-p] ROOT META TEXT < LIST\n"
 	sys exit_group 2
 end
-call argv 1+o as p n
+
+# the options, each before the three paths
+call argc as c
+o=0
+lines=0
+bytes=0
+back=0
+named=0
+i=1
+label option
+call argv i as p n
+loadb p as x
+if (i<c)&(n==2)&(x==45)
+	loadb p+1 as y
+	i+=1
+	if y==99
+		o=1
+		jmp option
+	end
+	if y==112
+		named=1
+		jmp option
+	end
+	call argv i as q m
+	call textnum q m as v ok
+	if (i>=c)|(ok==0)
+		call usage
+	end
+	i+=1
+	if y==110
+		lines=v
+		jmp option
+	end
+	if y==98
+		bytes=v
+		jmp option
+	end
+	if y==111
+		back=v
+		jmp option
+	end
+	call usage
+end
+if (c!=i+3)|((lines==0)&(bytes==0)&(back==0)&(named==0)&(o==0)&(i!=1))
+	call usage
+end
+if (lines>100000)|(bytes>1000000)|(back>100000)
+	call usage
+end
+call chunkset lines bytes back named
+call argv i as p n
 rootp=p
 rootn=n
 call filereadfd 0 list as r
@@ -639,23 +194,19 @@ load list+8 as n
 while n
 	call textline p n as l ok
 	if l
-		if o
-			call corpus p l
-		else
-			call take p l
-		end
+		call one o p l
 	end
 	p+=l+ok
 	n-=l+ok
 end
-call argv 2+o as p n
+call argv i+1 as p n
 load meta as q
 load meta+8 as m
 call filewrite p n q m as r
 ifslt r 0
 	call fail 4 "cannot write " p n
 end
-call argv 3+o as p n
+call argv i+2 as p n
 load text as q
 load text+8 as m
 call filewrite p n q m as r
@@ -664,5 +215,5 @@ ifslt r 0
 end
 call putn files
 call print " files, "
-call putn chunks
+call putn total
 call print " chunks\n"

@@ -1,0 +1,8 @@
+# The third corpus of make eval (docs/evaluation.md): hiredis, the C
+# client of Redis, at its tag v1.2.0, with the queries of
+# example/eval/hiredis.tsv. It is the work of other authors, in a
+# language the chunker has no units for, and its files are cut as an
+# index of a directory cuts them: the word after the revision says so.
+#
+#   url revision [text]
+https://github.com/redis/hiredis.git 60e5075d4ac77424809f855ba3e398df7aacefe8 text

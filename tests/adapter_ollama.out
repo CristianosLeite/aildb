@@ -1,0 +1,40 @@
+$ aildb-ollama -e ... < docs.json
+{"aildb":1,"embeddings":[{"index":0,"vector":[4,287 and 766 of 0.1]},{"index":1,"vector":[12,1085 and 766 of 0.1]},{"index":2,"vector":[4,289 and 766 of 0.1]}]}
+status 0
+$ aildb-ollama -e ... < query.json
+{"aildb":1,"embeddings":[{"index":0,"vector":[4,300 and 766 of 0.1]}]}
+status 0
+$ aildb-ollama -e ... < bare.json
+{"aildb":1,"embeddings":[{"index":0,"vector":[1,97 and 766 of 0.1]}]}
+status 0
+$ OLLAMA_HOST=... aildb-ollama < bare.json
+{"aildb":1,"embeddings":[{"index":0,"vector":[1,97 and 766 of 0.1]}]}
+status 0
+--- failures
+$ aildb-ollama -e ... < refuse.json
+aildb-ollama: Ollama refused: status 500 {"error":"the model is not loaded"}
+status 1
+$ aildb-ollama -e ... < two.json
+aildb-ollama: the request is not of version 1 of the protocol
+status 1
+$ aildb-ollama -e ... < bad.json
+aildb-ollama: the request is no object of JSON
+status 1
+$ aildb-ollama -e ... < bare.json
+aildb-ollama: Ollama cannot be asked: error 111
+status 1
+$ aildb-ollama -e nowhere < bare.json
+--- stdout
+--- stderr
+aildb-ollama: the address of Ollama is to be an IPv4 address or localhost, with a port or not: http://nowhere
+--- status 1
+$ aildb-ollama -e < bare.json
+--- stdout
+--- stderr
+usage: aildb-ollama [-e ENDPOINT]
+--- status 2
+$ aildb-ollama -x 127.0.0.1 < bare.json
+--- stdout
+--- stderr
+usage: aildb-ollama [-e ENDPOINT]
+--- status 2

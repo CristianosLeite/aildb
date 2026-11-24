@@ -1,0 +1,62 @@
+3 for a setting twice
+0 for the check
+aildb	1
+provider	fake
+model	model one
+revision	r2
+dimension	768
+timeout	120000
+batch	32
+set	a	
+set	document_prefix	search_document: 
+set	query_prefix	search_query: 
+arg	provider-fake
+arg	--flag
+arg	two words
+--- read and written again
+0 0
+1 the same text
+[search_query: ]
+--- identities
+94cf35fbe6cdd28c419ea07e74c9c0227f624dd11983a56834dc900156cee9f6
+94cf35fbe6cdd28c419ea07e74c9c0227f624dd11983a56834dc900156cee9f6
+94cf35fbe6cdd28c419ea07e74c9c0227f624dd11983a56834dc900156cee9f6
+0 for the text with another program
+94cf35fbe6cdd28c419ea07e74c9c0227f624dd11983a56834dc900156cee9f6
+d5c00ef31d688cc9b606a72d966669a94d60c751b6e3ac5303dbe114b9794680
+b01a5b14bcb0f93dd41a597af107114adaa64a9ed8dd332f9ae8206246920621
+2ea89ab76f82481d445ba4e80800dd12f6f76f80650f7ade423c498373ec00ce
+affa0b5208483e7c82ffafc7698fc47cb0c6fcd0de6f886a6f4377a889e1c8b3
+7111e2ed2d069ed650afbdac13a6511547239dfeaf6e3fc6b44e450c00c96cf0
+01b49036d007ffa62d858fc3b77c24a5253ed11636d044210d3be5f2a3137233
+064fe8b4acbd6b208057c52691320eabdaa091a6551dd767f3952408c1f07ce9
+--- no configuration
+1 at 5: the text ends without a line feed
+5 at 1: the first line is not that of version 1
+5 at 1: the first line is not that of version 1
+5 at 3: the first line is not that of version 1
+2 at 2: a line that is none of a configuration
+2 at 2: a line that is none of a configuration
+3 at 3: a line or a setting that is there twice
+4 at 0: no provider, model or dimension
+6 at 0: the name of the provider is not 1 to 255 bytes of valid text
+7 at 0: the model is not 1 to 255 bytes of valid text
+8 at 0: the revision of the model is more than 255 bytes or no valid text
+9 at 0: the dimension is not a number from 1 to 65536
+9 at 0: the dimension is not a number from 1 to 65536
+9 at 0: the dimension is not a number from 1 to 65536
+10 at 0: the time is not a number of milliseconds from 1 to 3600000
+11 at 0: the number of texts of a request is not from 1 to 1024
+2 at 5: a line that is none of a configuration
+12 at 5: a setting whose name is not 1 to 255 bytes of valid text, or whose value is more than 4095 bytes or no valid text
+3 at 6: a line or a setting that is there twice
+14 at 0: no command of the provider
+0 at 0: 
+--- the files a command depends on
+00 for two files
+161616 for a path not from the root, none, and one that is no text
+file	/models/a model.gguf
+file	/usr/bin/llama-embedding
+0 read again, files: 2
+94cf35fbe6cdd28c419ea07e74c9c0227f624dd11983a56834dc900156cee9f6
+16 at 6: a file of the command that is no path from the root, of more than 4095 bytes or no valid text, or more than 64 files

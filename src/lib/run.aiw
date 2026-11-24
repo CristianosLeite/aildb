@@ -1,0 +1,103 @@
+# src/lib/run.aiw -- a program run to its end, with what it reads and
+# writes in files in memory: the provider of an index and git are run
+# with it. The program never waits for the caller to read what it
+# prints, and the caller reads it when the program is gone. It uses
+# lib/std/io.aiw, lib/std/bytes.aiw, lib/std/file.aiw and
+# lib/std/proc.aiw.
+#
+# The functions return what they found and print nothing. Every name of
+# this file starts with "run"; a program has no var of such a name.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+
+const runmemfd 319
+const runlseek 8
+data runname "aildb\0"
+# the result of runcmd for a program that could not be started
+const runnone -2000
+# and for one that took longer than it might, which is what procwait
+# gives
+const runlate -1000
+
+# a descriptor of a file in memory with the runn bytes at runp, placed
+# at its start, or a negative number
+fn runfile runp runn
+	sys runmemfd runname 1 as runfd
+	ifslt runfd 0
+		ret runfd
+	end
+	if runn
+		call fdwrite runfd runp runn as runok
+		ifz runok
+			sys close runfd
+			ret 0-5
+		end
+		sys runlseek runfd 0 0
+	end
+	ret runfd
+end
+
+# Run the program whose arguments are at runav, as procstart takes them,
+# with the runn bytes at runp as its stdin, for runms milliseconds at
+# most, or without a limit if runms is 0: what procwait gives, an exit
+# status, a signal negated or runlate for a program that was killed when
+# its time was over; or runnone if it could not be started. The program
+# is started with procheld, so the kernel kills it when this process
+# ends before it. What it
+# printed is then the bytes buffer runout and what it said the bytes
+# buffer runerr, both emptied first. A program that is not there is the
+# status 127.
+fn runcmd runav runp runn runout runerr runms
+	call bycut runout 0
+	call bycut runerr 0
+	call runfile runp runn as runin
+	call runfile 0 0 as runo
+	call runfile 0 0 as rune
+	runst=runnone
+	ifsge runin|runo|rune 0
+		# held: a caller that is killed, as a command is whose time is
+		# over, takes the program with it
+		call procheld runav runin runo rune as runpid
+		ifsge runpid 0
+			call procwait runpid runms as runst
+		end
+		sys runlseek runo 0 0
+		sys runlseek rune 0 0
+		call filereadfd runo runout
+		call filereadfd rune runerr
+	end
+	ifsge runin 0
+		sys close runin
+	end
+	ifsge runo 0
+		sys close runo
+	end
+	ifsge rune 0
+		sys close rune
+	end
+	ret runst
+end
+
+# Make the bytes buffer runb the addresses of the runk strings that lie
+# at runp, each with a NUL byte after it, and a 0 after the last, as
+# procstart takes the arguments of a program: the address of the
+# addresses, or 0 without memory or without a string.
+fn runargv runb runp runk
+	call bycut runb 0
+	call byneed runb runk*8+8 as runok
+	if (runok==0)|(runk==0)
+		ret 0
+	end
+	load runb as runa
+	runi=0
+	while runi<runk
+		store runa+runi*8 runp
+		call strlen runp as runl
+		runp+=runl+1
+		runi+=1
+	end
+	store runa+runk*8 0
+	ret runa
+end

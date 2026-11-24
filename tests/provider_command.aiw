@@ -1,0 +1,136 @@
+# provdocs and provquerytext of src/lib/provider.aiw ask a provider that
+# is a command, build/provider-fake, started with the request as its
+# stdin and no service of HTTP: the vectors of five documents come in
+# requests of two texts at most and in the order of the texts, and that
+# of a query in one; a provider that answers wrongly, ends with a
+# status, says something, takes too long or is not there is a reason,
+# after which the buffer of the vectors holds what it held
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "src/lib/fmt.aiw"
+use "src/lib/config.aiw"
+use "src/lib/provider.aiw"
+use "tests/lib/cmd.aiw"
+buf c confsize
+buf v 24
+buf e 24
+buf m 24
+buf f 24
+buf exe 4200
+var exen
+# a configuration whose command is build/provider-fake with the argument
+# p n, or without one, or the program p n itself if own
+fn conf own p n
+	call conffree c
+	call confinit c
+	call confput c confname "fake"
+	call confput c confmodel "m1"
+	store c+confdim 3
+	store c+confbatch 2
+	call confadd c "document_prefix" "d: "
+	call confadd c "query_prefix" "q: "
+	if own
+		call confarg c p n
+	else
+		call confarg c exe exen
+		if n
+			call confarg c p n
+		end
+	end
+end
+# print the reason w with the status st, in words, and the binary32 that
+# the buffer of the vectors holds
+fn told w st
+	call putn w
+	call print " "
+	call bycut m 0
+	load e as q
+	load e+8 as l
+	call provtell m w st q l
+	load m as q
+	load m+8 as l
+	call print q l
+	call print "\n"
+	load v as q
+	load v+8 as l
+	i=0
+	while i<l
+		load4 q+i as x
+		call bycut m 0
+		call fmthex m x
+		load m as a
+		call print " "
+		call print a+8 8
+		i+=4
+		if i%12==0
+			call print "\n"
+		end
+	end
+end
+fn log
+	call bycut f 0
+	call fileread "provider.log" f
+	call print "--- provider.log\n"
+	load f as q
+	load f+8 as l
+	call print q l
+	call fileunlink "provider.log"
+end
+call bycopy exe cmdhome cmdhomen
+call bycopy exe+cmdhomen "/build/provider-fake"
+exen=cmdhomen+20
+call conf 0 ""
+call provdocs c "\"a\"\n\"bc\"\n\"\"\n\"d\\u000ae\"\n\"fgh\"\n" 5 v e as w st
+call told w st
+call log
+call provquerytext c "bc" v e as w st
+call told w st
+call log
+call print "--- no vectors\n"
+call bycut v 0
+call provquerytext c "b\xffc" v e as w st
+call told w st
+call provdocs c "\"a\"\nb\n" 2 v e as w st
+call told w st
+call conf 0 "count"
+call provdocs c "\"a\"\n\"bc\"\n\"d\"\n" 3 v e as w st
+call told w st
+call conf 0 "order"
+call provdocs c "\"a\"\n\"bc\"\n" 2 v e as w st
+call told w st
+call conf 0 "dim"
+call provquerytext c "a" v e as w st
+call told w st
+call conf 0 "nan"
+call provquerytext c "a" v e as w st
+call told w st
+call conf 0 "zero"
+call provquerytext c "a" v e as w st
+call told w st
+call conf 0 "garbage"
+call provquerytext c "a" v e as w st
+call told w st
+call conf 0 "exit3"
+call provquerytext c "a" v e as w st
+call told w st
+call conf 0 "hang"
+store c+conftime 200
+call provquerytext c "a" v e as w st
+call told w st
+call conf 1 "/nonexistent/provider"
+call provquerytext c "a" v e as w st
+call told w st
+call conf 1 "/bin/sh"
+call confarg c "-c"
+call confarg c "kill -TERM $$"
+call provquerytext c "a" v e as w st
+call told w st
+# a provider that says something and answers well is one that answered
+call conf 1 "/bin/sh"
+call confarg c "-c"
+call confarg c "echo a warning >&2; exec \"$0\"" 
+call confarg c exe exen
+call provquerytext c "a" v e as w st
+call told w st

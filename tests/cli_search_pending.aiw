@@ -1,0 +1,54 @@
+# aildb search --text of a directory whose last run of index was killed
+# after the snapshot of another provider had its name and before the
+# configuration had, with the program of the old provider gone since:
+# the search ends what the run left before it looks at the
+# configuration, so it asks the new provider and publishes nothing, and
+# does not end because the program that .aildb/config still named is no
+# longer there.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "tests/lib/cmd.aiw"
+use "tests/lib/dir.aiw"
+buf w 8
+# start aildb-stops with the line p n, stop it at the stop point s and
+# kill it there
+fn killed p n s
+	storeb w 48+s
+	call filewrite "aildb.hook" "stop "
+	call fileopen "aildb.hook" 0x401 0 as fd
+	sys write fd w 1
+	sys close fd
+	call dirhooks 1
+	call dirspawn p n as pid
+	call cmdawait "aildb.stopped" 5000 as r
+	call fileunlink "aildb.hook"
+	call dirhooks 0
+	call print "stop "
+	call putn s
+	call print ": reached "
+	call putn r
+	call print "\n"
+	sys kill pid 9
+	call procwait pid 0 as x
+	call fileunlink "aildb.stopped"
+	call print "ended by signal "
+	call putn 0-x
+	call print "\n"
+	call dirasked
+end
+call dirsh "mkdir p out\nprintf 'alpha\\n' > p/a.txt\nprintf 'last\\n' > p/b.txt\ncp $FAKE out/old\ncp $FAKE out/new\n"
+call print "# a provider, and a change of it killed between its snapshot and its configuration\n"
+call dirrun "index p -i m1 -d 8 -- out/old spread"
+call dirasked
+call killed "index p -i m2 -d 8 -- out/new spread" 5
+call dirsh "ls p/.aildb\ngrep model p/.aildb/config p/.aildb/config.new\nstat -c %i p/.aildb/index > inode.kept\n"
+call dirrun "check p/.aildb/index"
+call print "# the program of the old provider is gone: the search ends the change and asks the new one\n"
+call dirsh "rm out/old\n"
+call dirrun "search p --text last -k 1"
+call dirasked
+call dirsh "ls p/.aildb\ngrep model p/.aildb/config\nstat -c %i p/.aildb/index | cmp - inode.kept && echo the snapshot is the file that the run published\n"
+call dirrun "index p"
+call dirasked

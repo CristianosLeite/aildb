@@ -10,10 +10,12 @@ another program wrote.
 
 A chunk is what one record of the index stands for: some whole lines of
 one file. `build/chunk`, an AIL program compiled from `example/chunk.aiw`
-by `make test`, cuts the files:
+by `make test`, cuts the files. The cutting itself is the library
+`src/lib/chunk.aiw` ([library.md](library.md#the-chunker)), of which the
+program is the command:
 
 ```
-build/chunk [-c] ROOT META TEXT < LIST
+build/chunk [-c] [-n LINES] [-b BYTES] [-o LINES] [-p] ROOT META TEXT < LIST
 ```
 
 `LIST` is paths relative to the directory `ROOT`, one a line, as `git
@@ -52,7 +54,7 @@ Without `-c`, every file of the list that is text is cut:
   `html`, `css`, and `text` for `txt`). A path with another end or with
   none, as `Makefile`, is `text`. The ends are compared byte for byte,
   so `A.PY` is `text`.
-- **The most bytes of a file** are 1048576, the constant `maxfile`. The
+- **The most bytes of a file** are 1048576, the constant `chunkmaxfile`. The
   chunker reads one byte more than that at most, and a file that has it
   is passed over with `chunk: passed over, a file of more than 1048576
   bytes: <path>`.
@@ -63,6 +65,16 @@ Without `-c`, every file of the list that is text is cut:
   most, each of which ends where a character ends, and each has that
   one line as its first and its last: several records then name the
   same place.
+
+The other options are for [the evaluation](evaluation.md#variants), which
+compares ways to cut, and a file is cut as this page says without them:
+`-n` and `-b` are the most lines and the most bytes of a chunk, 40 and
+1500; `-o` is a number of lines that a chunk which the limits ended has in
+common with the next one, so that what stands at a cut is whole in one of
+the two, never more than leaves the next chunk a line of its own and
+never across a unit; and with `-p` the text of a chunk, as the model is
+given it, begins with the path of its file and a line feed, while its
+line of metadata is the same.
 
 The status is 0, with the number of files cut and of chunks on standard
 output; 2 for wrong usage; 4 for a file of the list that cannot be read,
@@ -83,7 +95,7 @@ which `Ailfile` names as a dependency:
   text is several records that name the same page. A path that ends in
   `.pdf` says that the two numbers of a result are a page; the result
   of a search does not have the language.
-- **The most bytes** of a PDF file are 33554432, the constant `maxpdf`,
+- **The most bytes** of a PDF file are 33554432, the constant `chunkmaxpdf`,
   since such a file has pictures where another has text. The memory a
   file is read into is what the file has, not that most, so a short
   file is read where there is no memory for the longest.
@@ -100,7 +112,7 @@ which `Ailfile` names as a dependency:
   uses that up after pages of it were cut, their chunks are taken back,
   so that an index has all the readable pages of a file or none.
 - **The most that is kept of one file** is 16777216 bytes of metadata
-  and text, the constant `pdfkept`: the chunks of every file are held
+  and text, the constant `chunkpdfkept`: the chunks of every file are held
   in memory until the last is cut, and the memory of the module does
   not count them. A file whose chunks come to more is passed over
   whole, as one that is spent, with `chunk: passed over, a PDF file
@@ -156,7 +168,7 @@ belong to the chunk of that function until a limit ends it.
 The limits are for the embedding model: 1500 bytes are well inside the
 text that the model reads at once, and a chunk that is one function or one
 section says where to open the file. They are constants at the top of
-`example/chunk.aiw`.
+`src/lib/chunk.aiw`.
 
 `tests/example_chunk.aiw` shows each rule on small files, with `-c` and
 without. On the AIL repository at `a5b4559`, `build/chunk` printed on
@@ -188,10 +200,17 @@ and the numbers are the libraries of AIL (`ail build embed` makes it, and
 `make example` does):
 
 ```
-build/embed document TEXT VECTORS
-build/embed query QUERIES VECTORS
-build/embed model
+build/embed [OPTIONS] document TEXT VECTORS
+build/embed [OPTIONS] query QUERIES VECTORS
+build/embed [OPTIONS] model
 ```
+
+`OPTIONS` are for [the evaluation](evaluation.md#variants), which compares
+models, and may be left out: `-m MODEL` is the model Ollama is asked for,
+`-d DIMENSION` the elements of its vectors, and `-D PREFIX` and `-Q
+PREFIX` what stands before a chunk and before a query, either of which may
+be empty. Without them they are nomic-embed-text, 768, `search_document: `
+and `search_query: `.
 
 `TEXT` is the file of that name of `build/chunk`; `QUERIES` has a query
 on each line, up to the first tab, and an empty line is passed over.

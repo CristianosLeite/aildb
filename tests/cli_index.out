@@ -1,0 +1,268 @@
+# two sections, a file of Python and one that is not text, committed
+$ aildb index r
+--- stdout
+--- stderr
+aildb: r: no index is configured here; the first index of a directory names its provider: aildb index DIRECTORY -i MODEL -d DIMENSION -- COMMAND
+--- status 2
+$ aildb index r -i m1 -d 3 -s document_prefix=d: -- FAKE
+--- stdout
+{"records":4,"dimension":3,"model":"m1","source_revision":"c0faccd7364870d24a192b3a835eab0f74a7612c","files":3,"embedded":4,"published":true}
+--- stderr
+aildb: passed over, a file that is not text: bin.py
+--- status 0
+--- provider.log
+documents 4 m1 [d:]
+c0faccd7364870d24a192b3a835eab0f74a7612c
+.gitignore
+cache
+config
+index
+index.lock
+manifest
+aildb	1
+provider	FAKE
+model	m1
+dimension	3
+timeout	120000
+batch	32
+fingerprint	DIGITS
+set	document_prefix	d:
+*
+$ aildb search r/.aildb/index -k 100 -q dir.q
+--- stdout
+{"source_revision":"c0faccd7364870d24a192b3a835eab0f74a7612c","model":"m1"}
+{"rank":1,"score":0.587281,"score_bits":"3fe2cb009a22e192","path":"sub/b.py","start_line":1,"end_line":1}
+{"rank":2,"score":0.584488,"score_bits":"3fe2b421257c4dc9","path":".gitignore","start_line":1,"end_line":1}
+{"rank":3,"score":0.584282,"score_bits":"3fe2b26fd56be65b","path":"a.md","start_line":1,"end_line":2}
+{"rank":4,"score":0.584113,"score_bits":"3fe2b10d12a09dab","path":"a.md","start_line":4,"end_line":5}
+--- stderr
+--- status 0
+# a new file, an edited one, an ignored one and a link, none committed
+$ aildb index r
+--- stdout
+{"records":5,"dimension":3,"model":"m1","source_revision":null,"files":4,"embedded":2,"published":true}
+--- stderr
+--- status 0
+--- provider.log
+documents 2 m1 [d:]
+$ aildb search r/.aildb/index -k 100 -q dir.q
+--- stdout
+{"source_revision":null,"model":"m1"}
+{"rank":1,"score":0.587898,"score_bits":"3fe2d00eb184c2d2","path":"sub/b.py","start_line":1,"end_line":2}
+{"rank":2,"score":0.584488,"score_bits":"3fe2b421257c4dc9","path":".gitignore","start_line":1,"end_line":1}
+{"rank":3,"score":0.584282,"score_bits":"3fe2b26fd56be65b","path":"a.md","start_line":1,"end_line":2}
+{"rank":4,"score":0.584113,"score_bits":"3fe2b10d12a09dab","path":"a.md","start_line":4,"end_line":5}
+{"rank":5,"score":0.583060,"score_bits":"3fe2a86e02a6fe68","path":"new.txt","start_line":1,"end_line":1}
+--- stderr
+--- status 0
+# a file removed
+$ aildb index r
+--- stdout
+{"records":3,"dimension":3,"model":"m1","source_revision":null,"files":3,"embedded":0,"published":true}
+--- stderr
+--- status 0
+--- provider.log
+$ aildb search r/.aildb/index -k 100 -q dir.q
+--- stdout
+{"source_revision":null,"model":"m1"}
+{"rank":1,"score":0.587898,"score_bits":"3fe2d00eb184c2d2","path":"sub/b.py","start_line":1,"end_line":2}
+{"rank":2,"score":0.584488,"score_bits":"3fe2b421257c4dc9","path":".gitignore","start_line":1,"end_line":1}
+{"rank":3,"score":0.583060,"score_bits":"3fe2a86e02a6fe68","path":"new.txt","start_line":1,"end_line":1}
+--- stderr
+--- status 0
+# all committed: the revision again, and from the directory itself
+c609d70081a49b49e0e145beaa78aaae4ede511d
+$ cd r; aildb index
+--- stdout
+{"records":3,"dimension":3,"model":"m1","source_revision":"c609d70081a49b49e0e145beaa78aaae4ede511d","files":3,"embedded":0,"published":true}
+--- stderr
+--- status 0
+--- provider.log
+$ aildb check r/.aildb/index
+--- stdout
+{"records":3,"dimension":3,"model":"m1","source_revision":"c609d70081a49b49e0e145beaa78aaae4ede511d"}
+--- stderr
+--- status 0
+# other options take the place of the configuration
+$ aildb index r -d 2 -i m2 -n other -r rev9 -t 5000 -b 1 -- FAKE
+--- stdout
+{"records":3,"dimension":2,"model":"m2","source_revision":"c609d70081a49b49e0e145beaa78aaae4ede511d","files":3,"embedded":3,"published":true}
+--- stderr
+aildb: passed over, a file that is not text: bin.py
+--- status 0
+--- provider.log
+documents 1 m2
+documents 1 m2
+documents 1 m2
+aildb	1
+provider	other
+model	m2
+revision	rev9
+dimension	2
+timeout	5000
+batch	1
+# wrong usage
+$ aildb index r -i m1 -- FAKE
+--- stdout
+--- stderr
+usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
+       aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
+       aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
+       aildb check INDEX
+       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] [-f FILE]... [-x PROGRAM]... -- COMMAND [ARGUMENT...]]
+--- status 2
+$ aildb index r -d 3 -- FAKE
+--- stdout
+--- stderr
+usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
+       aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
+       aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
+       aildb check INDEX
+       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] [-f FILE]... [-x PROGRAM]... -- COMMAND [ARGUMENT...]]
+--- status 2
+$ aildb index r -i m1 -d 3
+--- stdout
+--- stderr
+usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
+       aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
+       aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
+       aildb check INDEX
+       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] [-f FILE]... [-x PROGRAM]... -- COMMAND [ARGUMENT...]]
+--- status 2
+$ aildb index r -i m1 -d 3 --
+--- stdout
+--- stderr
+usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
+       aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
+       aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
+       aildb check INDEX
+       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] [-f FILE]... [-x PROGRAM]... -- COMMAND [ARGUMENT...]]
+--- status 2
+$ aildb index r -i m1 -i m2 -d 3 -- FAKE
+--- stdout
+--- stderr
+usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
+       aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
+       aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
+       aildb check INDEX
+       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] [-f FILE]... [-x PROGRAM]... -- COMMAND [ARGUMENT...]]
+--- status 2
+$ aildb index r -i m1 -d 3 -z 1 -- FAKE
+--- stdout
+--- stderr
+usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
+       aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
+       aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
+       aildb check INDEX
+       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] [-f FILE]... [-x PROGRAM]... -- COMMAND [ARGUMENT...]]
+--- status 2
+$ aildb index r -i m1 -d 3 -s novalue -- FAKE
+--- stdout
+--- stderr
+usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
+       aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
+       aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
+       aildb check INDEX
+       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] [-f FILE]... [-x PROGRAM]... -- COMMAND [ARGUMENT...]]
+--- status 2
+$ aildb index r -i m1 -d
+--- stdout
+--- stderr
+usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
+       aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
+       aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
+       aildb check INDEX
+       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] [-f FILE]... [-x PROGRAM]... -- COMMAND [ARGUMENT...]]
+--- status 2
+$ aildb index r more
+--- stdout
+--- stderr
+usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
+       aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
+       aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
+       aildb check INDEX
+       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] [-f FILE]... [-x PROGRAM]... -- COMMAND [ARGUMENT...]]
+--- status 2
+$ aildb index r -i m1 -d 0 -- FAKE
+--- stdout
+--- stderr
+aildb: the dimension is not a number from 1 to 65536
+--- status 2
+$ aildb index r -i m1 -d 3 -t 0 -- FAKE
+--- stdout
+--- stderr
+aildb: the time is not a number of milliseconds from 1 to 3600000
+--- status 2
+$ aildb index r -i m1 -d 3 -b 2000 -- FAKE
+--- stdout
+--- stderr
+aildb: the number of texts of a request is not from 1 to 1024
+--- status 2
+$ aildb index r -i m1 -d 3 -s a=1 -s a=2 -- FAKE
+--- stdout
+--- stderr
+aildb: a line or a setting that is there twice
+--- status 2
+# a directory that is none, and a configuration that is none
+$ aildb index none -i m1 -d 3 -- FAKE
+--- stdout
+--- stderr
+aildb: none: cannot index: no such file or directory
+--- status 4
+$ aildb index r/bin.py -i m1 -d 3 -- FAKE
+--- stdout
+--- stderr
+aildb: r/bin.py: cannot index: not a directory
+--- status 4
+$ aildb index r
+--- stdout
+--- stderr
+aildb: r/.aildb/config: line 3: a line that is none of a configuration
+--- status 3
+# a provider that fails: the snapshot stays
+$ aildb check r/.aildb/index
+--- stdout
+{"records":3,"dimension":2,"model":"m2","source_revision":"c609d70081a49b49e0e145beaa78aaae4ede511d"}
+--- stderr
+--- status 0
+$ aildb index r -i m3 -d 3 -- FAKE exit3
+--- stdout
+--- stderr
+aildb: passed over, a file that is not text: bin.py
+aildb: r: the provider ended with the status 3: provider-fake: the model is not there
+--- status 7
+$ aildb index r -i m3 -d 3 -- /nonexistent/provider
+--- stdout
+--- stderr
+aildb: /nonexistent/provider: the program of the provider is not a file that can be run
+--- status 2
+$ aildb index r -i m3 -d 3 -- FAKE count
+--- stdout
+--- stderr
+aildb: passed over, a file that is not text: bin.py
+aildb: r: the answer has not as many vectors as there were texts
+--- status 7
+$ aildb check r/.aildb/index
+--- stdout
+{"records":3,"dimension":2,"model":"m2","source_revision":"c609d70081a49b49e0e145beaa78aaae4ede511d"}
+--- stderr
+--- status 0
+.gitignore
+cache
+config
+index
+index.lock
+manifest
+# a directory of files that git knows becomes a link to one outside
+$ aildb index r
+--- stdout
+{"records":3,"dimension":2,"model":"m2","source_revision":"c609d70081a49b49e0e145beaa78aaae4ede511d","files":3,"embedded":0,"published":false}
+--- stderr
+--- status 0
+sub/b.py
+sub/b.py
+$ aildb index r
+--- stdout
+{"records":2,"dimension":2,"model":"m2","source_revision":null,"files":2,"embedded":0,"published":true}
+--- stderr
+--- status 0

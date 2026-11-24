@@ -1,7 +1,7 @@
 ---
 title: The chunker of an index
-last-verified: 2026-11-23
-sources: [conversation 2026-11-23, example/chunk.aiw, tools/index.sh, tests/example_chunk.aiw, tests/tools_index.aiw, src/lib/text.aiw, docs/example.md, docs/mcp.md]
+last-verified: 2026-11-24
+sources: [conversation 2026-11-23, conversation 2026-11-24, src/lib/chunk.aiw, tests/lib_chunk.aiw, example/chunk.aiw, tools/index.sh, tests/example_chunk.aiw, tests/tools_index.aiw, src/lib/text.aiw, docs/example.md, docs/mcp.md]
 status: current
 ---
 # The chunker of an index
@@ -53,8 +53,8 @@ ail-extensions.
   2026-11-23, for where it applies; agent for the number, for the user to review).
   `tools/index.sh` reads the size of each blob from `git ls-tree -l` and does not
   write one that is longer, with a line; it reads the number from the constant
-  `maxfile` of `example/chunk.aiw`, as `tools/eval.sh` reads the limits of a chunk.
-  The chunker, started by hand, reads `maxfile`+1 bytes at most.
+  `chunkmaxfile` of `src/lib/chunk.aiw`, as `tools/eval.sh` reads the limits of a chunk.
+  The chunker, started by hand, reads `chunkmaxfile`+1 bytes at most.
 - **The script writes every regular file and the chunker decides** (agent,
   2026-11-23). Before, the script knew the two suffixes of the chunker; now nothing
   of what is indexed is said twice. A path of the list that is not there is still the
@@ -117,3 +117,15 @@ ail-extensions.
 - A file without units is cut by the limits alone, so a chunk of Python may end in
   the middle of a function. `make eval` has no corpus in another language to measure
   it with.
+- **The chunker is a library, `src/lib/chunk.aiw`, and `build/chunk` its command**
+  (agent, 2026-11-24, for the user to review; the plan of step 17 the user approved
+  that day). The command `index` of aildb is to cut the files of a directory with the
+  same rules, and a program cannot be called. `chunkfile` and `chunkcorpus` add the
+  lines of one file to buffers of the caller and return its chunks or a reason;
+  `chunkwhy` has the words of a reason, which are those that `build/chunk` printed, so
+  `tests/example_chunk.out` and `tests/tools_index.out` did not change. A file that
+  gives a reason leaves the buffers as they were, which the PDF files alone did before.
+  The file keeps what it reads in buffers of its own, so one file is cut at a time;
+  a descriptor that the caller owns was rejected as more to pass for no caller that
+  cuts two files at once. The constants got the prefix of the file, and
+  `tools/index.sh` and `tools/eval.sh` read them there.

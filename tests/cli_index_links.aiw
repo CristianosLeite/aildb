@@ -1,0 +1,53 @@
+# what an index writes, it writes in a directory .aildb of its own: a
+# checkout can bring a symbolic link at that name or at the name of a
+# file in it, and aildb index, named with its provider as the user
+# names it, is then to write nothing through it. Each case ends with
+# status 4 before the provider is asked, the file or the directory
+# that the link leads to is as it was, and the same directory without
+# the link is indexed. A search by text of a directory whose .aildb is
+# a link is refused too.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "tests/lib/cmd.aiw"
+use "tests/lib/dir.aiw"
+buf step 24
+# make the directory d anew with one file, run the lines p n in it, and
+# index it: what aildb says, with the path of the test taken out, how it
+# ended, and whether the file victim and the directory out are as they
+# were
+fn case p n
+	call bycut step 0
+	call byadd step "rm -rf d out provider.log\nmkdir d out\nprintf 'text\\n' > d/t.txt\nprintf 'mine\\n' > victim\ncd d\n"
+	call byadd step p n
+	call byadd step "\ncd ..\nst=0\nXDG_CONFIG_HOME=\"$PWD/xdg\" GIT_CEILING_DIRECTORIES=\"$PWD\" \"$AILDB\" index d -i m1 -d 3 -n fake -- \"$FAKE\" > case.out 2> case.err || st=$?\ncat case.out\nsed \"s|$PWD/||g\" case.err\necho status $st\ncat victim\nls -A out | wc -l\nls provider.log 2>&1 | sed 's/^ls: .*: /ls: /'\n"
+	load step as q
+	load step+8 as m
+	tail dirsh q m
+end
+call print "# no link: indexed\n"
+call case "true"
+call print "# .aildb is a link to a directory outside\n"
+call case "ln -s ../out .aildb"
+call print "# .aildb is a link to nothing\n"
+call case "ln -s ../none .aildb"
+call print "# .aildb is a file\n"
+call case "printf x > .aildb"
+call print "# the configuration as it is written is a link\n"
+call case "mkdir .aildb\nln -s ../../victim .aildb/config.new"
+call print "# the manifest as it is written is a link\n"
+call case "mkdir .aildb\nln -s ../../victim .aildb/manifest.new"
+call print "# the lock is a link\n"
+call case "mkdir .aildb\nln -s ../../victim .aildb/index.lock"
+call print "# the file for git is a link to a file that is not there\n"
+call case "mkdir .aildb\nln -s ../../out/made .aildb/.gitignore"
+call print "# the directory of the kept vectors is a link\n"
+call case "mkdir .aildb\nln -s ../../out .aildb/cache"
+call print "# a file of kept vectors is a link\n"
+call case "mkdir -p .aildb/cache\nln -s ../../../victim .aildb/cache/0000"
+call print "# a directory where a file is written\n"
+call case "mkdir -p .aildb/config.new"
+call print "# a search of a directory whose .aildb is a link to an index\n"
+call case "true"
+call dirsh "mkdir e\nprintf 'text\\n' > e/t.txt\nln -s ../d/.aildb e/.aildb\nst=0\nXDG_CONFIG_HOME=\"$PWD/xdg\" GIT_CEILING_DIRECTORIES=\"$PWD\" \"$AILDB\" search e --text text -k 1 > case.out 2> case.err || st=$?\ncat case.out\nsed \"s|$PWD/||g\" case.err\necho status $st\n"

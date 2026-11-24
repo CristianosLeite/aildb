@@ -93,9 +93,53 @@ the score printed.
 - **The path** of a result is bytes of the mapped file, good while the
   snapshot is open.
 - **Names.** A file of aildb owns the names that start with its own:
-  `search`, `snap`, `topk`, `norm`, `text`, `crc`, `fmt`, `meta`, `pack`.
+  `search`, `snap`, `topk`, `norm`, `text`, `crc`, `fmt`, `meta`, `pack`,
+  `chunk`, `conf`, `prov`, `run`, `below`, `tree`, `cache`, `man`, `trust`.
   A program has no `var` and no function of such a name.
+
+## The chunker
+
+`aildb:src/lib/chunk.aiw` cuts a file into the chunks that
+[example.md](example.md#chunks) describes. It needs the module `pdf` of
+the package ail-extensions, so a package that uses it names that package
+as a dependency too, with the version of the `Ailfile` of aildb.
+
+| Function | Does |
+|---|---|
+| `chunkfile rp rn p l m t no` | cuts the file at the path `p l` below the directory `rp rn` if it is text or a PDF file: for each chunk a line of metadata added to the bytes buffer `m` and the chunk as a string of JSON on a line added to `t`; the number of chunks and 0, or 0 and a reason, after which `m` and `t` hold what they held; `no` gets a line for each page of a PDF file that was passed over |
+| `chunkcorpus rp rn p l m t` | the same with the rules of the corpora (`chunk -c`): a path that ends in `.aiw` or `.md`, whatever it holds |
+| `chunklang p n` | the language that a path names, its address and length, and 1; `text` and 0 for an end that is not in the table |
+| `chunkwhy b w` | adds the words of the reason `w` to the bytes buffer `b` |
+
+A reason is a constant of the file, `chunkpath` to `chunkmem`;
+`chunkquiet` is a file that is not text under a name that does not say
+it should be, of which nothing is to be said. The functions print
+nothing and end no program. One file is cut at a time.
 
 Writing a snapshot from a program is not offered as one call: `build`
 is the command, with its lock, its temporary file and its syncs
 ([durability.md](durability.md)), and a program starts it.
+
+## The provider
+
+`aildb:src/lib/config.aiw` and `aildb:src/lib/provider.aiw` are the
+configuration of an embedding provider and the protocol it is asked
+with ([provider.md](provider.md)).
+
+| Function | Does |
+|---|---|
+| `confinit c`, `conffree c` | make the `confsize` bytes at `c` an empty configuration; give its memory back |
+| `confparse c p n` | reads the text of a file `.aildb/config`: 0 and 0, or a reason and the line at fault |
+| `confwrite b c` | adds the configuration to a bytes buffer as that text |
+| `confput c k p n`, `confstr c k` | set and read the string `confname`, `confmodel` or `confrev`; the numbers are at `c+confdim`, `c+conftime` and `c+confbatch` |
+| `confadd c p n q m`, `confget c p n`, `confnext c lp ln` | add a setting, read one, and walk them in the order of their names |
+| `confarg c p n`, `confargs c` | add an argument of the command; the arguments and their number |
+| `confcheck c` | 0 if the configuration may be used, or the reason |
+| `confident c out` | writes the 32 bytes of its identity |
+| `confwhy b w` | adds the words of a reason |
+| `provrequest b c op p n` | adds the request of `provdocuments` or `provquery` to a bytes buffer; `p n` is the texts, a string of JSON on each line, or the bytes of the query |
+| `provparse p n dim k out` | reads an answer to `k` texts: `k` times `dim` binary32 added to the bytes buffer `out`, or a reason |
+| `provdocs c p n k out err` | asks the provider of the configuration for the vectors of `k` documents, in requests of as many texts as the configuration allows: 0 and 0, or a reason and what `procwait` gave, with what the command said in the bytes buffer `err` |
+| `provquerytext c p n out err` | the same for the vector of one query |
+| `provtell b w st q n` | adds the words of a reason, with the status and the first line of what the command said |
+| `provwhy b w` | adds the words of a reason of an answer |
