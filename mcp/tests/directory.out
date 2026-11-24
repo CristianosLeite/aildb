@@ -4,7 +4,7 @@ index.lock
 
 # the first call makes the snapshot
 > {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"test","version":"0"}}}
-< {"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{"tools":{}},"serverInfo":{"name":"aildb-mcp","version":"0.1.1"},"instructions":"Semantic search over an index of source files: the tool search returns paths and line ranges, at the revision it names, for a query in words."}}
+< {"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{"tools":{}},"serverInfo":{"name":"aildb-mcp","version":"0.1.2"},"instructions":"Semantic search over an index of source files: the tool search returns paths and line ranges, at the revision it names, for a query in words."}}
 > {"jsonrpc":"2.0","method":"notifications/initialized"}
 > {"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"search","arguments":{"query":"alpha beta","k":2}}}
 < {"jsonrpc":"2.0","id":3,"result":{"content":[{"type":"text","text":"{\"model\":\"m1\",\"source_revision\":null,\"hits\":[{\"rank\":1,\"score\":1.000000,\"score_bits\":\"3fefffffffd6db62\",\"path\":\"a.txt\",\"start_line\":1,\"end_line\":1},{\"rank\":2,\"score\":0.860621,\"score_bits\":\"3feb8a3570c42bd6\",\"path\":\"c.md\",\"start_line\":4,\"end_line\":5}]}"}],"structuredContent":{"model":"m1","source_revision":null,"hits":[{"rank":1,"score":1.000000,"score_bits":"3fefffffffd6db62","path":"a.txt","start_line":1,"end_line":1},{"rank":2,"score":0.860621,"score_bits":"3feb8a3570c42bd6","path":"c.md","start_line":4,"end_line":5}]},"isError":false}}
@@ -72,7 +72,7 @@ the server ended with status 0
 
 # a directory that was never indexed
 > {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"test","version":"0"}}}
-< {"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{"tools":{}},"serverInfo":{"name":"aildb-mcp","version":"0.1.1"},"instructions":"Semantic search over an index of source files: the tool search returns paths and line ranges, at the revision it names, for a query in words."}}
+< {"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{"tools":{}},"serverInfo":{"name":"aildb-mcp","version":"0.1.2"},"instructions":"Semantic search over an index of source files: the tool search returns paths and line ranges, at the revision it names, for a query in words."}}
 > {"jsonrpc":"2.0","method":"notifications/initialized"}
 > {"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"search","arguments":{"query":"alpha"}}}
 < {"jsonrpc":"2.0","id":2,"result":{"content":[{"type":"text","text":"the search failed: aildb: e: no index is configured here; the first index of a directory names its provider: aildb index DIRECTORY -i MODEL -d DIMENSION -- COMMAND"}],"isError":true}}
@@ -100,7 +100,7 @@ status 2, stdout 0 bytes: usage: aildb-mcp -d DIRECTORY [-a AILDB] [-t MS]
 
 # a directory with a configuration that came with it: no provider is run
 > {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"test","version":"0"}}}
-< {"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{"tools":{}},"serverInfo":{"name":"aildb-mcp","version":"0.1.1"},"instructions":"Semantic search over an index of source files: the tool search returns paths and line ranges, at the revision it names, for a query in words."}}
+< {"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{"tools":{}},"serverInfo":{"name":"aildb-mcp","version":"0.1.2"},"instructions":"Semantic search over an index of source files: the tool search returns paths and line ranges, at the revision it names, for a query in words."}}
 > {"jsonrpc":"2.0","method":"notifications/initialized"}
 > {"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"search","arguments":{"query":"alpha"}}}
 < {"jsonrpc":"2.0","id":2,"result":{"content":[{"type":"text","text":"the search failed: aildb: c: the configuration of this index names a provider that was not set up by you on this machine, or whose program or a file it depends on is no longer the file it was, and nothing of it was run. Its command is: /bin/sh -c 'touch ran'; to allow it, name the provider yourself: aildb index c -i m1 -d 8 ... -- COMMAND"}],"isError":true}}
@@ -110,7 +110,7 @@ the server ended with status 0
 # a directory, a query and filters that are each within their limit
 # and have no room together: a failure of the call, and the next is served
 > {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"test","version":"0"}}}
-< {"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{"tools":{}},"serverInfo":{"name":"aildb-mcp","version":"0.1.1"},"instructions":"Semantic search over an index of source files: the tool search returns paths and line ranges, at the revision it names, for a query in words."}}
+< {"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{"tools":{}},"serverInfo":{"name":"aildb-mcp","version":"0.1.2"},"instructions":"Semantic search over an index of source files: the tool search returns paths and line ranges, at the revision it names, for a query in words."}}
 > {"jsonrpc":"2.0","method":"notifications/initialized"}
 > a query of 4000 bytes, a path_prefix of 2000 and a language of 255
 < {"jsonrpc":"2.0","id":2,"result":{"content":[{"type":"text","text":"the directory, the query and the filters are too long together"}],"isError":true}}
@@ -121,7 +121,7 @@ the server ended with status 0
 # a provider that does not answer in the time of a call: the command is
 # killed, and the provider it started ends with it
 > {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"test","version":"0"}}}
-< {"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{"tools":{}},"serverInfo":{"name":"aildb-mcp","version":"0.1.1"},"instructions":"Semantic search over an index of source files: the tool search returns paths and line ranges, at the revision it names, for a query in words."}}
+< {"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{"tools":{}},"serverInfo":{"name":"aildb-mcp","version":"0.1.2"},"instructions":"Semantic search over an index of source files: the tool search returns paths and line ranges, at the revision it names, for a query in words."}}
 > {"jsonrpc":"2.0","method":"notifications/initialized"}
 > {"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"search","arguments":{"query":"new","k":1}}}
 < {"jsonrpc":"2.0","id":2,"result":{"content":[{"type":"text","text":"the search took longer than it may"}],"isError":true}}

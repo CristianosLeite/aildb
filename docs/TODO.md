@@ -15,7 +15,7 @@ to `BACKLOG.md`, under the same section.
 ## 1. binary32 in AIL (work in the AIL repository)
 
 The statements are written and in `main` of AIL, and float literals are
-written in a pull request of AIL (`docs/BACKLOG.md`).
+in AIL since its version 0.1.2 (`docs/BACKLOG.md`).
 
 Nothing is left of this step here.
 
@@ -29,7 +29,7 @@ Nothing is left of this step (`BACKLOG.md`).
 
 ## 11. Release
 
-Versions 0.1.0 and 0.1.1 are tagged, and each release has its archive
+Versions 0.1.0, 0.1.1 and 0.1.2 are tagged, and each release has its archive
 (`BACKLOG.md`). The release of `v0.1.0` is a draft: to publish it is the
 user's.
 

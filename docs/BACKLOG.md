@@ -53,8 +53,9 @@ and `a5b4559`, 2026-11-21); `make test` passed there.
   64 bits of the nearest double wherever a number is read. Written in
   the AIL repository, its branch `float-literals` and its pull request
   32, at `f800bb2`: the compiler reads a literal with `numdouble` of
-  `lib/std/num.aiw`, and its `make test` passes. aildb writes no float
-  literal: its `Ailfile` asks for AIL 0.1.1, which has none.
+  `lib/std/num.aiw`, and its `make test` passes. They are in AIL since
+  its version 0.1.2, which `Ailfile` asks for; aildb writes no float
+  literal yet.
 
 ## 2. Skeleton
 
@@ -235,6 +236,16 @@ mapped pages contribute to reported peak resident memory.
   names ail-extensions 0.1.1, and the tag `v0.1.1` names the merge of
   the change. It is the first version with the fix of the named pipe,
   the evaluation, the archive of a release and the MCP server.
+- [x] The version 0.1.2 (user, 2026-11-24: the pull requests 18 to 25
+  merged and a new version published; the number is the agent's, the
+  one of the AIL it asks for): `Ailfile` and `mcp/Ailfile` say it, and
+  `aildb-mcp` names it to a client. It is the first version with step
+  17, the index of a directory, the search by text, the two providers
+  and `aildb-mcp -d`, with the fixes of its five reviews, and the first
+  whose archive has four executables. `example/consumer` stays at
+  0.1.1, the tag whose library it builds. `make test` passes with the
+  command of the release of AIL 0.1.2: 49 tests, the one of the
+  consumer and three of `mcp/`.
 
 ## 12. aildb as a package
 
