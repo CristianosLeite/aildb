@@ -33,7 +33,9 @@ the provider's, from the settings of the configuration it is sent.
 
 The provider of an index is configured once, when the index is made, in
 the file `.aildb/config` of the indexed directory. It is text, one line
-for each thing, a word, a tab and a value, and may be edited by hand:
+for each thing, a word, a tab and a value, and may be edited by hand,
+all but its command, which is run only as you named it
+([below](#which-commands-are-run)):
 
 ```
 aildb	1
@@ -110,6 +112,61 @@ configuration **says**: a model file that was replaced under the same
 path, or a model that a service replaced under the same name, has the
 same identity, and its vectors are mixed with the old ones. The revision
 is the line to change then.
+
+## Which commands are run
+
+The configuration lies in the indexed directory, and a directory may be
+somebody else's: a checkout of a repository can have a `.aildb/config`
+in it, whatever its `.gitignore` says. Its command would run with your
+rights the first time the directory is searched by text, by you or by a
+coding agent through `aildb-mcp`. So the file alone starts nothing.
+
+A command is run only if **you named it for that directory** on this
+machine: `aildb index DIRECTORY -i MODEL -d DIMENSION -- COMMAND` notes
+the command, every argument of it, as allowed for the directory, in a
+file of yours outside every indexed directory:
+
+```
+$XDG_CONFIG_HOME/aildb/trusted      if the variable is a path from the root
+$HOME/.config/aildb/trusted         else
+```
+
+A line of it is the SHA-256, in 64 digits, of this text, with `<s>` and
+the numbers as in the identity above, and after a tab the directory, for
+whoever reads the file:
+
+```
+aildb-trust 1
+<directory>
+number of arguments
+<argument>             one line for each, the program first
+```
+
+The directory is the path the kernel gives for it, from the root and
+with no symbolic link in it (`/proc/self/fd`), so it is the same under
+whatever name it was given. Before a configuration that was read from
+the file is used, by `aildb index` without options and by `aildb search
+--text`, the line is looked for. If it is not there, nothing of the
+configuration is run and the command ends with status 2 and one line
+that names the command of the file and says how to allow it, which is
+to give the options yourself:
+
+```
+aildb: c: the configuration of this index names a provider that was not set up by you on this machine, and nothing of it was run. Its command is: /bin/sh -c 'touch ran'; to allow it, name the provider yourself: aildb index c -i m1 -d 8 ... -- COMMAND
+```
+
+- **What takes the permission away**: an argument of the command changed
+  in the file by hand, the program among them; the directory moved or
+  copied; another machine or another user. The model, the settings, the
+  time and the number of texts may be edited: they are given to the
+  command you allowed and choose no program.
+- **Without `HOME` and `XDG_CONFIG_HOME`**, or where the kernel has no
+  `/proc`, nothing is allowed and nothing can be: `aildb index` with
+  options ends with status 4 before the provider is asked.
+- **To take a permission back**, remove its line from the file, or the
+  file.
+- A program that searches a snapshot, `aildb search INDEX -q`, and the
+  library run no command and look at none of this.
 
 ## The protocol, version 1
 

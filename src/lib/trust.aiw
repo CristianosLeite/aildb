@@ -1,0 +1,205 @@
+# src/lib/trust.aiw -- which commands of a provider the user of this
+# machine allowed, and for which directory. The configuration of an
+# index names a command, and it lies in the indexed directory, which may
+# be a checkout of somebody else's repository: what it names is run only
+# if a file that is the user's own, outside every indexed directory,
+# says so. docs/provider.md has the rule and the file.
+#
+# That file is "aildb/trusted" in the directory of the user's
+# configuration: XDG_CONFIG_HOME if the environment has it as a path
+# from the root, else ".config" in HOME. A line of it starts with the 64
+# digits of a key, the SHA-256 of the directory, as the kernel names it,
+# and of every argument of the command; what follows the digits on the
+# line is for a reader and is not looked at.
+#
+# The functions return what they found and print nothing. Every name of
+# this file starts with "trust"; a program has no var of such a name.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "lib/std/sha.aiw"
+use "src/lib/text.aiw"
+use "src/lib/config.aiw"
+
+const trustreadlink 89
+buf trusttext 24        # what a key is the sum of, and the file as it is read
+buf trustlink 24        # a path in /proc
+buf trusthex 24
+
+# Add to the bytes buffer trustb the directory of the user's
+# configuration, with no slash after it: 1, or 0 if the environment
+# names none or there is no memory.
+fn trustbase trustb
+	call procvar "XDG_CONFIG_HOME" as trustp trustn
+	if trustn
+		loadb trustp as trustc
+		if trustc==47
+			tail byadd trustb trustp trustn
+		end
+	end
+	call procvar "HOME" as trustp trustn
+	ifz trustn
+		ret 0
+	end
+	loadb trustp as trustc
+	if trustc!=47
+		ret 0
+	end
+	call byadd trustb trustp trustn
+	tail byadd trustb "/.config"
+end
+
+# Add to the bytes buffer trustb the path of the directory trustdp
+# trustdn as the kernel names it, from the root and with no symbolic
+# link in it: 1, or 0 if it is no directory, if the kernel does not
+# say (no /proc), or without memory.
+fn trustdir trustdp trustdn trustb
+	local trustname 4096
+	# O_PATH, O_DIRECTORY and O_CLOEXEC
+	call fileopen trustdp trustdn 0x290000 0 as trustfd
+	ifslt trustfd 0
+		ret 0
+	end
+	call bycut trustlink 0
+	call byadd trustlink "/proc/self/fd/"
+	call byaddn trustlink trustfd
+	call byaddb trustlink 0 as trustok
+	trustr=0
+	if trustok
+		load trustlink as trustp
+		sys trustreadlink trustp trustname 4096 as trustr
+	end
+	sys close trustfd
+	# a name of 4096 bytes may be one that was cut
+	if (trustr<1)|(trustr>4095)
+		ret 0
+	end
+	loadb trustname as trustc
+	if trustc!=47
+		ret 0
+	end
+	tail byadd trustb trustname trustr
+end
+
+# The key of the command of the configuration trustc for the directory
+# trustdp trustdn, 32 bytes written at trustout: 1, or 0 if the
+# directory has no name (trustdir) or without memory. It is the SHA-256
+# of "aildb-trust 1", the directory, the number of arguments and every
+# argument, the program first, each on a line and each string with its
+# length before it, as the identity of a configuration is written.
+fn trustkey trustdp trustdn trustc trustout
+	call bycut trusttext 0
+	call byadd trusttext "aildb-trust 1\n"
+	load trusttext+8 as trusto
+	call trustdir trustdp trustdn trusttext as trustok
+	ifz trustok
+		ret 0
+	end
+	# the length of the directory before it
+	load trusttext+8 as trustn
+	trustn-=trusto
+	call bycut trustlink 0
+	call byaddn trustlink trustn
+	call byaddb trustlink 58
+	load trusttext as trustp
+	call byadd trustlink trustp+trusto trustn as trustok
+	ifz trustok
+		ret 0
+	end
+	call bycut trusttext trusto
+	load trustlink as trustp
+	load trustlink+8 as trustn
+	call byadd trusttext trustp trustn
+	call byaddb trusttext 10
+	call confargs trustc as trustp trustk
+	call byaddn trusttext trustk
+	call byaddb trusttext 10 as trustok
+	while trustk
+		call strlen trustp as trustn
+		call byaddn trusttext trustn
+		call byaddb trusttext 58
+		call byadd trusttext trustp trustn
+		call byaddb trusttext 10 as trustok
+		trustp+=trustn+1
+		trustk-=1
+	end
+	ifz trustok
+		ret 0
+	end
+	load trusttext as trustp
+	load trusttext+8 as trustn
+	call sha256 trustp trustn trustout
+	ret 1
+end
+
+# 1 if the file at the path trustp trustn has a line that starts with
+# the digits of the 32 bytes at trustkp, and 0 if it has none, cannot be
+# read or is not there
+fn trusthas trustp trustn trustkp
+	call bycut trusthex 0
+	call shahex trusthex trustkp as trustok
+	ifz trustok
+		ret 0
+	end
+	call bycut trusttext 0
+	call fileread trustp trustn trusttext as trustr
+	ifslt trustr 0
+		ret 0
+	end
+	load trusthex as trusth
+	load trusttext as trustq
+	load trusttext+8 as trustm
+	while trustm
+		call textline trustq trustm as trustl trustok
+		if trustl>=64
+			call texteq trustq 64 trusth 64 as trustsame
+			if trustsame
+				ret 1
+			end
+		end
+		trustq+=trustl+trustok
+		trustm-=trustl+trustok
+	end
+	ret 0
+end
+
+# Add a line for the 32 bytes at trustkp to the file at the path trustp
+# trustn, which is made if it is not there, for its owner alone: 0, or
+# the error of the kernel. After the digits the line has a tab and the
+# trustnn bytes at trustnp, for a reader, with a "?" for each byte that
+# would end the line.
+fn trustadd trustp trustn trustkp trustnp trustnn
+	call bycut trusthex 0
+	call shahex trusthex trustkp
+	call byaddb trusthex 9
+	trusti=0
+	while trusti<trustnn
+		loadb trustnp+trusti as trustc
+		if trustc<32
+			trustc=63
+		end
+		call byaddb trusthex trustc
+		trusti+=1
+	end
+	call byaddb trusthex 10 as trustok
+	ifz trustok
+		ret -12
+	end
+	# O_WRONLY, O_CREAT and O_APPEND: the line is one write at the end
+	call fileopen trustp trustn 0x441 384 as trustfd
+	ifslt trustfd 0
+		ret trustfd
+	end
+	load trusthex as trustq
+	load trusthex+8 as trustm
+	sys write trustfd trustq trustm as trustr
+	sys close trustfd
+	ifslt trustr 0
+		ret trustr
+	end
+	if trustr!=trustm
+		ret -5
+	end
+	ret 0
+end

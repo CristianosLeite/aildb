@@ -42,8 +42,9 @@ end
 # The arguments of aildb, or of aildb-stops after dirhooks 1, with the
 # line dirp dirn after it, as cmdargs gives them: the command is run
 # through env, which tells git not to look for a work tree above the
-# directory of the test, and in the directory dird dirdn of it if dirdn
-# is not 0.
+# directory of the test and aildb to keep the commands it allows in the
+# directory xdg of it, and in the directory dird dirdn of it if dirdn is
+# not 0.
 fn dirargs dirp dirn dird dirdn
 	call bycut dirline 0
 	call byadd dirline "/usr/bin/env "
@@ -55,7 +56,10 @@ fn dirargs dirp dirn dird dirdn
 	call byadd dirline "GIT_CEILING_DIRECTORIES="
 	call strlen cmdtmp as dirl
 	call byadd dirline cmdtmp dirl
-	call byaddb dirline 32
+	# the commands that a test allows are noted in its own directory
+	call byadd dirline " XDG_CONFIG_HOME="
+	call byadd dirline cmdtmp dirl
+	call byadd dirline "/xdg "
 	call byadd dirline cmdhome cmdhomen
 	if dirstops
 		call byadd dirline "/build/aildb-stops "
@@ -105,11 +109,17 @@ fn dirrunin dirp dirn dird dirdn
 end
 
 # run the lines dirp dirn with sh, after the settings of git that make a
-# commit the same wherever the test runs; they say nothing unless they
-# fail
+# commit the same wherever the test runs, and with the paths of
+# build/aildb and build/provider-fake as $AILDB and $FAKE; they say
+# nothing unless they fail
 fn dirsh dirp dirn
 	call bycut dirstep 0
 	call byadd dirstep "export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1\nexport GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@example.com\nexport GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@example.com\nexport GIT_AUTHOR_DATE=2026-01-01T00:00:00Z GIT_COMMITTER_DATE=2026-01-01T00:00:00Z\n"
+	call byadd dirstep "AILDB="
+	call byadd dirstep cmdhome cmdhomen
+	call byadd dirstep "/build/aildb\nFAKE="
+	call byadd dirstep cmdhome cmdhomen
+	call byadd dirstep "/build/provider-fake\n"
 	call byadd dirstep dirp dirn
 	load dirstep as dirq
 	load dirstep+8 as dirm

@@ -98,6 +98,15 @@ $ aildb-mcp -d p -t 0
 status 2, stdout 0 bytes: usage: aildb-mcp -d DIRECTORY [-a AILDB] [-t MS]
        aildb-mcp -s SNAPSHOT -i MODEL -e ENDPOINT [-a AILDB] [-p PREFIX] [-t MS]
 
+# a directory with a configuration that came with it: no provider is run
+> {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"test","version":"0"}}}
+< {"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-11-25","capabilities":{"tools":{}},"serverInfo":{"name":"aildb-mcp","version":"0.1.1"},"instructions":"Semantic search over an index of source files: the tool search returns paths and line ranges, at the revision it names, for a query in words."}}
+> {"jsonrpc":"2.0","method":"notifications/initialized"}
+> {"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"search","arguments":{"query":"alpha"}}}
+< {"jsonrpc":"2.0","id":2,"result":{"content":[{"type":"text","text":"the search failed: aildb: c: the configuration of this index names a provider that was not set up by you on this machine, and nothing of it was run. Its command is: /bin/sh -c 'touch ran'; to allow it, name the provider yourself: aildb index c -i m1 -d 8 ... -- COMMAND"}],"isError":true}}
+the command was not run
+the server ended with status 0
+
 # a directory, a query and filters that are each within their limit
 # and have no room together: a failure of the call, and the next is served
 > {"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"test","version":"0"}}}

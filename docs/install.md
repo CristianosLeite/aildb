@@ -107,9 +107,16 @@ search, and prints what it did.
 Everything of the index is in `~/src/project/.aildb/`
 ([index.md](index.md#what-is-in-aildb)): the snapshot `index`, the
 configuration `config`, the `manifest` and the kept vectors in `cache/`.
-Git ignores the directory by a file in it. Nothing is written anywhere
-else, nothing runs between two commands, and removing the directory
-removes the index.
+Git ignores the directory by a file in it. Nothing runs between two
+commands, and removing the directory removes the index.
+
+One line is written outside it: `~/.config/aildb/trusted` (or under
+`XDG_CONFIG_HOME`) notes that you named this command for this directory.
+The command of a configuration is run only with that line
+([provider.md](provider.md#which-commands-are-run)), so a directory that
+came with a `.aildb/config` of its own, or one that you moved or copied,
+is searched by text after you have given `aildb index` its options there
+once.
 
 ## Another model
 

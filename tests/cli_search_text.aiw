@@ -46,6 +46,13 @@ fn find d dn t tn o on
 	load args+8 as m
 	call cmdadd q m
 	call bycut args 0
+	call byadd args "XDG_CONFIG_HOME="
+	call byadd args cmdtmp l
+	call byadd args "/xdg"
+	load args as q
+	load args+8 as m
+	call cmdadd q m
+	call bycut args 0
 	call byadd args cmdhome cmdhomen
 	call byadd args "/build/aildb"
 	load args as q

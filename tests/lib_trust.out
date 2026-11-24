@@ -1,0 +1,38 @@
+$ /bin/sh -e step.sh
+--- stdout
+--- stderr
+--- status 0
+1 for a key
+$ /bin/sh -e step.sh
+--- stdout
+the key is the sum of the text
+--- stderr
+--- status 0
+# the same directory by other names
+1 1
+1 1
+# another directory, and none
+1 0
+0 0
+0 0
+# another command
+1 0
+1 0
+1 0
+1 1
+# the file of keys
+0 before
+0 added
+1 after
+0 for another key
+11 for both
+$ /bin/sh -e step.sh
+--- stdout
+600
+2
+a name?with a tab
+
+--- stderr
+--- status 0
+0 in a file of other lines
+2 for a file in no directory

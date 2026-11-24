@@ -567,3 +567,20 @@ each chose.
   still runs) and `mcp/tests/directory.aiw` (a call of 500 ms against a
   provider that hangs fails, the provider is gone, the next call is
   served).
+- [x] `aildb search DIRECTORY --text` and `aildb index DIRECTORY` ran
+  the command that `DIRECTORY/.aildb/config` names, and a checkout can
+  bring that file with it: the first search, by a person or by a client
+  of `aildb-mcp -d`, ran what the repository chose, with the rights of
+  the user. A command is now run only if the user named it for the
+  directory with the options of `aildb index`, which notes it in
+  `aildb/trusted` under `XDG_CONFIG_HOME` or `~/.config`
+  (`src/lib/trust.aiw`): a line of the SHA-256 of the directory, as the
+  kernel names it, and of every argument. Without the line nothing of
+  the configuration is run, the status is 2, and one line names the
+  command and how to allow it. Tests `tests/lib_trust.aiw` (the key
+  against `sha256sum`, the file), `tests/cli_index_trust.aiw` (a copy of
+  an indexed directory, a command edited by hand, a directory moved, no
+  `HOME`: nothing asked of the provider; the options allow it) and
+  `mcp/tests/directory.aiw` (a call in a directory with a configuration
+  that came with it: a failure, and its command was not run). The tests
+  keep their file in the directory of the test.

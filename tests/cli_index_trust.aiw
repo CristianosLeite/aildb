@@ -1,0 +1,77 @@
+# the command of a provider is run only if the user named it for the
+# directory, with build/provider-fake as the provider, whose log shows
+# what was asked. An index that was made with options is searched; a
+# copy of the directory, with the configuration in it as a checkout
+# that came with one would have it, is not: the search by text and
+# aildb index without options end with status 2 and a line that names
+# the command, and the provider is asked for nothing. The options given
+# for the copy allow it. A command that was changed in the file by hand
+# is not allowed, nor is the directory after it was moved. The commands
+# that are allowed are lines of a file of the user, under
+# XDG_CONFIG_HOME or under HOME, one for a directory and a command and
+# no second one when the same is named again; without either variable
+# nothing is allowed and nothing can be, which is said before the
+# provider is asked.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "tests/lib/cmd.aiw"
+use "tests/lib/dir.aiw"
+buf step 24
+# run aildb with the line p n where it is to refuse: its status, what it
+# printed, and what it said with FAKE for the path of the provider,
+# which is not the same wherever the test runs
+fn deny p n
+	call print "$ aildb "
+	call print p n
+	call print "\n"
+	call bycut step 0
+	call byadd step "st=0\nXDG_CONFIG_HOME=\"$PWD/xdg\" GIT_CEILING_DIRECTORIES=\"$PWD\" \"$AILDB\" "
+	call byadd step p n
+	call byadd step " > deny.out 2> deny.err || st=$?\necho status $st\ncat deny.out\nsed \"s|$FAKE|FAKE|\" deny.err\n"
+	load step as q
+	load step+8 as m
+	tail dirsh q m
+end
+call dirsh "mkdir p\nprintf 'alpha beta\\n' > p/a.txt\nprintf 'gamma\\n' > p/b.txt\n"
+call print "# an index made with options: its command is allowed\n"
+call dirrun "index p -i m1 -d 8 -- FAKE spread"
+call dirrun "search p --text gamma -k 1"
+call dirasked
+call dirsh "ls xdg/aildb\nstat -c %a xdg/aildb/trusted\nwc -l < xdg/aildb/trusted\ncut -f2 xdg/aildb/trusted | sed \"s|^$PWD|TMP|\"\n"
+call print "# a copy of the directory, its configuration with it: nothing is run\n"
+call dirsh "cp -r p c\n"
+call deny "search c --text gamma -k 1"
+call deny "index c"
+call dirsh "printf 'new\\n' > c/n.txt\n"
+call deny "search c --text new -k 1"
+call dirasked
+call print "# the options given for it allow it\n"
+call dirrun "index c -i m1 -d 8 -- FAKE spread"
+call dirrun "search c --text new -k 1"
+call dirasked
+call dirsh "wc -l < xdg/aildb/trusted\n"
+call print "# the same named again: no second line\n"
+call dirrun "index c -i m1 -d 8 -- FAKE spread"
+call dirsh "wc -l < xdg/aildb/trusted\n"
+call print "# a command changed in the file by hand\n"
+call dirsh "cp p/.aildb/config config.kept\nprintf 'arg\\tit'\"'\"'s more\\n' >> p/.aildb/config\n"
+call deny "search p --text gamma -k 1"
+call dirsh "sed -i 's|^arg\\t.*provider-fake$|arg\\t/bin/sh|' p/.aildb/config\ngrep -c /bin/sh p/.aildb/config\n"
+call deny "search p --text gamma -k 1"
+call dirsh "cp config.kept p/.aildb/config\n"
+call dirrun "search p --text gamma -k 1"
+call dirasked
+call print "# the directory moved\n"
+call dirsh "mv p moved\n"
+call deny "search moved --text gamma -k 1"
+call dirsh "mv moved p\n"
+call dirrun "search p --text gamma -k 1"
+call dirasked
+call print "# no directory of the user: nothing is allowed, and nothing can be\n"
+call dirsh "env -i \"$AILDB\" search p --text gamma -k 1 2>&1 | sed \"s|$FAKE|FAKE|\"\nenv -i HOME=home XDG_CONFIG_HOME=xdg \"$AILDB\" search p --text gamma -k 1 2>&1 | sed \"s|$FAKE|FAKE|\"\nmkdir n\nprintf 'text\\n' > n/t.txt\nenv -i \"$AILDB\" index n -i m1 -d 8 -- \"$FAKE\" 2>&1 || echo status $?\nls -A n\n"
+call dirasked
+call print "# HOME alone: the file is in .config of it\n"
+call dirsh "mkdir home\nenv -i HOME=\"$PWD/home\" GIT_CEILING_DIRECTORIES=\"$PWD\" \"$AILDB\" index n -i m1 -d 8 -- \"$FAKE\"\nfind home | sort\nenv -i HOME=\"$PWD/home\" GIT_CEILING_DIRECTORIES=\"$PWD\" \"$AILDB\" search n --text text -k 1\nenv -i HOME=\"$PWD/home\" GIT_CEILING_DIRECTORIES=\"$PWD\" \"$AILDB\" search p --text gamma -k 1 2>&1 | sed \"s|$FAKE|FAKE|\"\n"
+call dirasked

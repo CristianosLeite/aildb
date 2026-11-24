@@ -1,7 +1,7 @@
 ---
 title: The fixes after the review of 5eeba0b
 last-verified: 2026-11-24
-sources: [conversation 2026-11-24, REVIEW.md (never part of the repository), docs/BACKLOG.md (step 17), mcp/src/run.aiw, mcp/tests/run.aiw, mcp/tests/directory.aiw, src/index.aiw, docs/index.md, tests/cli_search_text.aiw, tests/lib/provfake.aiw]
+sources: [conversation 2026-11-24, REVIEW.md (never part of the repository), docs/BACKLOG.md (step 17), mcp/src/run.aiw, mcp/tests/run.aiw, mcp/tests/directory.aiw, src/index.aiw, docs/index.md, tests/cli_search_text.aiw, tests/lib/provfake.aiw, src/lib/config.aiw, src/lib/below.aiw, src/lib/run.aiw, src/lib/trust.aiw, docs/provider.md, tests/cli_index_trust.aiw, the pull request 34 of AIL]
 status: current
 ---
 # The fixes after the review of 5eeba0b
@@ -137,3 +137,48 @@ was chosen by the agent and is for the user to review.
   finish its call, within the time of the provider.
 - **A consequence.** This branch needs two things of AIL that are in no version: the
   pull requests 33 (SHA-256) and 34. It is tested with a command built from both.
+
+## A checkout that names the command to run (P1)
+
+- **Finding.** The command of the provider is in `DIRECTORY/.aildb/config`. The
+  `.gitignore` that `aildb index` writes keeps git from adding the directory, but a
+  repository can have the file tracked all the same, and then the first search by text
+  in a checkout, which a client of `aildb-mcp -d` can cause, runs a command that the
+  repository chose, with the rights and the environment of the user.
+- **Decision (agent, 2026-11-24).** The configuration stays where the user put it
+  (2026-11-24: everything of an index in `.aildb/`), and a command is run only with a
+  record of the user's own: `aildb index` with options, which is the user naming the
+  command, adds a line to `aildb/trusted` under `XDG_CONFIG_HOME` or `~/.config`, the
+  SHA-256 of the directory and every argument. A configuration that was read from the
+  file is checked against it in `ixconfig`, before anything of it is used, and again
+  when a search reads it a second time with the lock. Not allowed is status 2, the
+  status of a directory that was never indexed, with a line that names the command.
+- **Why the directory is in the key.** A command with a relative path, `sh
+  ./provider.sh`, allowed for one directory would else be allowed in any checkout that
+  has a file of that name. The directory is the name the kernel gives a descriptor of
+  it in `/proc/self/fd`, so links in the name given do not matter; where there is no
+  `/proc`, nothing is allowed.
+- **Why the whole command and not the identity.** The model, the settings, the time
+  and the number of texts are data for the command the user allowed; only the
+  arguments choose what is run.
+- **Rejected.** The command in a file of the user in place of the lines `arg` of
+  `.aildb/config`: the same record, and a change of the layout the user chose. A
+  question on the terminal: the command runs under a server and in scripts. An option
+  that allows what the file has without naming it: the user would allow what they did
+  not read; the line of the refusal shows the command, and the options are typed.
+- **What it costs.** A directory that is moved or copied, and a clone on another
+  machine, need the options once more. The record is written when the configuration is
+  (`ixcommit`), and a run with options ends with status 4 before it asks the provider
+  if there is nowhere to write it.
+- **Tests** set `XDG_CONFIG_HOME` to a directory of the test (`tests/lib/dir.aiw`,
+  `mcp/tests/directory.aiw`), so nothing is written in the home of whoever runs them.
+
+## The AIL that the manifest asks for (P1)
+
+- **Finding.** `Ailfile` says `ail 0.1.1` and the sources use `lib/std/sha.aiw`, which
+  no version of AIL has; `make test` on GitHub installs that version and cannot pass.
+- **Not fixed here, and why.** It is fixed by a version of AIL, which is the user's to
+  give: the pull requests 33 (SHA-256) and, since this review, 34 (`procheld`) of AIL
+  merged and released, then the lines `ail` of `Ailfile` and `mcp/Ailfile` raised and
+  `docs/install.md` with them. Until then the branch is tested with a command built
+  from the two branches of AIL ([open items](../status/open-items.md)).

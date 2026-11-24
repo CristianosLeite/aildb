@@ -1,0 +1,95 @@
+# src/lib/trust.aiw: the key of a command for a directory is the
+# SHA-256 of the text the file states, which sha256sum gives for the
+# same text; it is the same for the directory under another name and
+# another for another directory, another argument, an argument more and
+# another program. A file of keys is made for its owner alone, has a key
+# after it was added and not before, and a key is found whatever follows
+# its digits on the line. A directory that is none has no key.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "tests/lib/cmd.aiw"
+use "src/lib/trust.aiw"
+buf c confsize
+buf k 32
+buf k2 32
+buf hex 24
+# the configuration c with the command of the k arguments at p, a NUL
+# byte after each
+fn command p l k
+	call conffree c
+	call confinit c
+	while k
+		call strlen p as n
+		call confarg c p n
+		p+=n+1
+		k-=1
+	end
+end
+# print whether the key of c for the directory p n is the one in k
+fn same p n
+	call trustkey p n c k2 as ok
+	call texteq k 32 k2 32 as eq
+	call putn ok
+	call print " "
+	call putn eq
+	call print "\n"
+end
+call confinit c
+call filewrite "step.sh" "mkdir -p d/sub e\nln -s d/sub named\n"
+call cmdshow "/bin/sh -e step.sh"
+call command "prog\0-m\0a b\0" 3
+call trustkey "d/sub" c k as ok
+call putn ok
+call print " for a key\n"
+call shahex hex k
+load hex as p
+load hex+8 as n
+call filewrite "key.txt" p n
+call filewrite "step.sh" "d=$(cd d/sub && pwd -P)\nprintf 'aildb-trust 1\\n%s:%s\\n3\\n4:prog\\n2:-m\\n3:a b\\n' ${#d} \"$d\" | sha256sum | cut -c1-64 | tr -d '\\n' > sum.txt\ncmp key.txt sum.txt && echo the key is the sum of the text\n"
+call cmdshow "/bin/sh -e step.sh"
+call print "# the same directory by other names\n"
+call same "named"
+call same "d/../d/sub/."
+call print "# another directory, and none\n"
+call same "d"
+call same "none"
+call same "key.txt"
+call print "# another command\n"
+call command "prog\0-m\0a  b\0" 3
+call same "d/sub"
+call command "prog\0-m\0a b\0more\0" 4
+call same "d/sub"
+call command "other\0-m\0a b\0" 3
+call same "d/sub"
+call command "prog\0-m\0a b\0" 3
+call same "d/sub"
+call print "# the file of keys\n"
+call trusthas "keys" k as has
+call putn has
+call print " before\n"
+call trustadd "keys" k "a name\twith a tab" as r
+call putn r
+call print " added\n"
+call trusthas "keys" k as has
+call putn has
+call print " after\n"
+call trustkey "d" c k2
+call trusthas "keys" k2 as has
+call putn has
+call print " for another key\n"
+call trustadd "keys" k2 "" as r
+call trusthas "keys" k as a
+call trusthas "keys" k2 as b
+call putn a
+call putn b
+call print " for both\n"
+call filewrite "step.sh" "stat -c %a keys\nwc -l < keys\ncut -f2- keys\nprintf 'short\\n\\n' > junk\ncut -c1-63 keys >> junk\n"
+call cmdshow "/bin/sh -e step.sh"
+call trusthas "junk" k as has
+call putn has
+call print " in a file of other lines\n"
+call trustadd "none/keys" k "" as r
+call putn 0-r
+call print " for a file in no directory\n"

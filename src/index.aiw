@@ -14,6 +14,7 @@ use "src/lib/provider.aiw"
 use "src/lib/tree.aiw"
 use "src/lib/cache.aiw"
 use "src/lib/manifest.aiw"
+use "src/lib/trust.aiw"
 
 buf ixconf confsize     # the configuration of the provider
 buf ixpath 24           # a path in .aildb, with a NUL byte
@@ -45,6 +46,8 @@ buf ixinfo maninfo      # what the manifest says of the file that is looked at
 buf ixst 32             # and what the filesystem says of it
 buf ixkey 32
 buf ixone 8
+buf ixtrust 24          # the path of the file of the commands the user allowed
+buf ixtkey 32           # and the key of the command of this index
 const ixclock 228
 # the directory that is indexed, and what a run did: the chunks, the
 # texts the provider was asked for, the files that were cut, and 1 if a
@@ -230,6 +233,101 @@ fn ixoptions i
 	ret 1
 end
 
+# Make ixtrust the path of the file of the commands the user allowed,
+# with its directories made if make says so, and ixtkey the key of the
+# command of ixconf for the directory that is indexed: 1, or 0 if the
+# environment names no directory of the user or the directory that is
+# indexed has no name to the kernel.
+fn ixtrusted make
+	call bycut ixtrust 0
+	call trustbase ixtrust as ok
+	ifz ok
+		ret 0
+	end
+	if make
+		load ixtrust as p
+		load ixtrust+8 as n
+		call filemkdir p n 448
+	end
+	call byadd ixtrust "/aildb" as ok
+	ifz ok
+		call nomem
+	end
+	if make
+		load ixtrust as p
+		load ixtrust+8 as n
+		call filemkdir p n 448
+	end
+	call byadd ixtrust "/trusted" as ok
+	ifz ok
+		call nomem
+	end
+	tail trustkey ixdp ixdn ixconf ixtkey
+end
+
+# add the n bytes at p to msg as a word of a shell: as they are if they
+# are letters, digits and a few signs, else between single quotes
+fn ixword p n
+	plain=n>0
+	i=0
+	while i<n
+		loadb p+i as c
+		ok=0
+		if (c>=48)&(c<=57)
+			ok=1
+		end
+		if ((c|32)>=97)&((c|32)<=122)
+			ok=1
+		end
+		if (c==45)|(c==46)|(c==47)|(c==95)|(c==58)|(c==61)|(c==43)|(c==44)|(c==64)|(c==37)
+			ok=1
+		end
+		plain=plain&ok
+		i+=1
+	end
+	if plain
+		tail byadd msg p n
+	end
+	call byaddb msg 39
+	i=0
+	while i<n
+		loadb p+i as c
+		if c==39
+			call byadd msg "'\\''"
+		else
+			call byaddb msg c
+		end
+		i+=1
+	end
+	tail byaddb msg 39
+end
+
+# End the program because the command of the configuration that was read
+# is not one the user allowed for this directory: nothing of it is run.
+# The line names the command and the options that allow it.
+fn ixnotrust
+	call about ixdp ixdn
+	call byadd msg "the configuration of this index names a provider that was not set up by you on this machine, and nothing of it was run. Its command is:"
+	call confargs ixconf as p k
+	while k
+		call strlen p as n
+		call byaddb msg 32
+		call ixword p n
+		p+=n+1
+		k-=1
+	end
+	call byadd msg "; to allow it, name the provider yourself: aildb index "
+	call ixword ixdp ixdn
+	call byadd msg " -i "
+	call confstr ixconf confmodel as p n
+	call ixword p n
+	call byadd msg " -d "
+	load ixconf+confdim as v
+	call byaddn msg v
+	call byadd msg " ... -- COMMAND"
+	call fail stusage
+end
+
 # Make the configuration of the index ixconf: the one of the options, if
 # given says that there are any, which becomes .aildb/config when a
 # snapshot of it is there (ixcommit); else the one that .aildb/config
@@ -237,6 +335,13 @@ end
 fn ixconfig given
 	call ixin ixpath "config" as p n
 	if given
+		# said before the provider is asked for anything, and not after
+		call ixtrusted 1 as ok
+		ifz ok
+			call about ixdp ixdn
+			call byadd msg "the command of the provider cannot be noted as allowed: the environment has no HOME and no XDG_CONFIG_HOME that is a path from the root, or the directory has no name in /proc"
+			call fail stio
+		end
 		ixstaged=1
 		ret 0
 	end
@@ -269,6 +374,17 @@ fn ixconfig given
 		end
 		call fail stinvalid
 	end
+	# the file lies in the directory, which may be anybody's: its command
+	# is run only if the user allowed it for this directory
+	call ixtrusted 0 as ok
+	if ok
+		load ixtrust as p
+		load ixtrust+8 as n
+		call trusthas p n ixtkey as ok
+	end
+	ifz ok
+		call ixnotrust
+	end
 end
 
 # The configuration of the options, if there is one, is written to
@@ -283,6 +399,24 @@ fn ixcommit
 	call confwrite ixcfg ixconf as ok
 	ifz ok
 		call nomem
+	end
+	# the command is the user's own word: it is noted as allowed for this
+	# directory before the configuration that names it is there
+	load ixtrust as p
+	load ixtrust+8 as n
+	call trusthas p n ixtkey as ok
+	ifz ok
+		call bycut ixother 0
+		call trustdir ixdp ixdn ixother
+		load ixother as q
+		load ixother+8 as m
+		call trustadd p n ixtkey q m as r
+		if r
+			call about p n
+			call byadd msg "cannot write: "
+			call oserr r
+			call fail stio
+		end
 	end
 	call ixin ixpath "config" as p n
 	call ixin ixother "config.new" as q m

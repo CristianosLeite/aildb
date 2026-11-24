@@ -273,9 +273,12 @@ The snapshot is published as `build` publishes one
 `DIRECTORY/.aildb/index.lock`: a second `index` of the directory while one
 runs ends with status 5, and a run that fails, at the provider or anywhere
 before the rename, leaves the snapshot that was there. The statuses are
-those above: 2 for wrong usage, 3 for a file `.aildb/config` that is no
-configuration, 4 for a directory or a file that cannot be read or written,
-5, 6, and 7 for a provider that failed.
+those above: 2 for wrong usage, and for a configuration whose command
+was not named by the user for this directory
+([provider.md](provider.md#which-commands-are-run)), of which nothing is
+run; 3 for a file `.aildb/config` that is no configuration, 4 for a
+directory or a file that cannot be read or written, 5, 6, and 7 for a
+provider that failed.
 
 ## `search --text`
 
@@ -313,8 +316,10 @@ sizes and the times in the manifest ([index.md](index.md#searching-by-text)).
 | `-p PREFIX`, `-l LANGUAGE` | the filters of `search` |
 | `-w MILLISECONDS` | how long to wait for another run that is refreshing the index, 0 to 3600000; without it, the time the configuration gives a request of the provider |
 
-The statuses: 2 for wrong usage and for a directory that was never
-indexed; 3 for a query that is not well-formed UTF-8 and a configuration
+The statuses: 2 for wrong usage, for a directory that was never
+indexed, and for one whose configuration names a command that the user
+did not name for it ([provider.md](provider.md#which-commands-are-run));
+3 for a query that is not well-formed UTF-8 and a configuration
 that is none; 4; 5 if another run still holds the index after the wait; 6;
 and 7 if the provider failed, for the documents or for the query. What a
 refresh says of a file it passes over is on standard error; standard

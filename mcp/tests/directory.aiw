@@ -9,7 +9,9 @@
 # finds the edit, and asks for the changed text and the query. Then the
 # filters, a provider that fails, whose line is the failure of the call
 # as it is that of the command, arguments that are wrong, a directory
-# that was never indexed, and starts that are wrong. Then a call whose
+# that was never indexed, and starts that are wrong. Then a directory
+# whose configuration came with it and names a command nobody allowed
+# here, which is not run; a call whose
 # values have no room together, and a provider that does not answer in
 # the time of a call, which is gone when the call has failed.
 use "lib/std/io.aiw"
@@ -28,14 +30,17 @@ var seen
 
 # start the command line p n of the server after what every start has:
 # git is told to look for no work tree above the directory of the test,
-# and the command of aildb is the one of the repository. Its stdin is a
+# the commands of providers that are allowed are noted in the directory
+# xdg of it, and the command of aildb is the one of the repository. Its stdin is a
 # pipe and its stdout the file mcp.out.
 fn server p n
 	call bycut line 0
 	call byadd line "/usr/bin/env GIT_CEILING_DIRECTORIES="
 	call strlen cmdtmp as l
 	call byadd line cmdtmp l
-	call byaddb line 32
+	call byadd line " XDG_CONFIG_HOME="
+	call byadd line cmdtmp l
+	call byadd line "/xdg "
 	call byadd line cmdhome cmdhomen
 	call byadd line "/build/aildb-mcp -a "
 	call byadd line cmdhome cmdhomen
@@ -128,7 +133,7 @@ end
 # print is printed
 fn sh p n
 	call bycut step 0
-	call byadd step "export GIT_CEILING_DIRECTORIES=$PWD\nAILDB="
+	call byadd step "export GIT_CEILING_DIRECTORIES=$PWD XDG_CONFIG_HOME=$PWD/xdg\nAILDB="
 	call byadd step cmdhome cmdhomen
 	call byadd step "/../build/aildb\nFAKE="
 	call byadd step cmdhome cmdhomen
@@ -207,6 +212,14 @@ call refused "-d p -e http://127.0.0.1:1"
 call refused "-d p -p prefix"
 call refused "-d"
 call refused "-d p -t 0"
+call print "\n# a directory with a configuration that came with it: no provider is run\n"
+call sh "mkdir -p c/.aildb\ncp p/a.txt c/\nprintf 'aildb\\t1\\nprovider\\tx\\nmodel\\tm1\\ndimension\\t8\\narg\\t/bin/sh\\narg\\t-c\\narg\\ttouch ran\\n' > c/.aildb/config\n"
+call start "-d c" as pid
+call ask "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-11-25\",\"capabilities\":{},\"clientInfo\":{\"name\":\"test\",\"version\":\"0\"}}}"
+call say "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}"
+call ask "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"alpha\"}}}"
+call sh "ls ran 2>/dev/null || echo the command was not run\n"
+call finish pid
 call print "\n# a directory, a query and filters that are each within their limit\n# and have no room together: a failure of the call, and the next is served\n"
 buf big 24
 # add k times the n bytes at p to big

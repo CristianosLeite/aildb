@@ -44,6 +44,12 @@ by the `aildb index` that indexed the directory first.
   ([provider.md](provider.md#how-a-provider-is-run)); the next call goes
   on from the vectors that were kept.
 
+The server starts no provider that the user did not name for the
+directory: the command checks that
+([provider.md](provider.md#which-commands-are-run)), so a client that
+calls the tool in a checkout with a configuration of its own gets a
+failure that names the command, and nothing has run.
+
 Nothing is checked when the server starts but its arguments, status 2 if
 they are wrong. A directory that has no index, a provider that fails and
 an index that another run holds are failures of a call, in the words of
