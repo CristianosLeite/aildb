@@ -27,6 +27,7 @@ command makes:
 | `index` | the snapshot ([format.md](format.md)): what `aildb search` and `aildb check` are given, and any program that reads a snapshot |
 | `index.lock` | the lock of a run, empty, never removed |
 | `config` | the configuration of the provider ([provider.md](provider.md#the-configuration-of-an-index)) |
+| `config.new` | there only while a change of the configuration is not ended: the configuration that the snapshot being published is of ([below](#runs-that-fail-overlap-or-are-killed)) |
 | `manifest` | of which files the snapshot was made, and the chunks of each ([below](#the-manifest)) |
 | `cache/` | the vectors that are kept, in one file named by the identity of the configuration ([below](#the-vectors-that-are-kept)) |
 | `.gitignore` | one line, `*`, so that git ignores the directory and everything in it: an index does not make a work tree dirty, and is not committed by `git add .` |
@@ -295,15 +296,33 @@ vectors that no chunk used, when a run ends that had such.
   removes; after the rename, the new snapshot and the manifest of the old
   one, which the next run takes for none. In both the next run publishes
   a snapshot of the files as they are then and writes its manifest.
-- **A configuration is written when its snapshot is there**, not
-  before: after options that name a provider which then fails, or a run
-  of them that is killed before the snapshot has its name, `config` and
-  `index` are what they were, and a search by text goes on with the old
-  provider. The vectors that the new one gave are kept, and the same
-  options given again ask for the rest. A run that is killed between the
-  two renames leaves the new snapshot with the old configuration, which
-  the next run finds out by the manifest and makes one of the two again:
-  the old one, unless the options are given again.
+- **A configuration and its snapshot change together.** Options that
+  name another provider are a configuration that is not `config` until a
+  snapshot of it has its name. When the provider has answered for every
+  text, the configuration is written whole to `config.new`, and the
+  command is noted as allowed; then the snapshot is published; then
+  `config.new` takes the name `config`. So:
+  - a provider that fails, and a configuration that cannot be written,
+    end the run before anything is published: `config` and `index` are
+    what they were, and a search by text goes on with the old provider.
+    The vectors that the new one gave are kept, and the same options
+    given again ask for the rest;
+  - a run that ends between the snapshot and the last rename, killed or
+    because the rename failed, leaves the new snapshot, the old `config`
+    and `config.new`. The next run that takes the lock, a search by text
+    among them, ends what was begun: `config.new` takes the name
+    `config`, and nothing is embedded or published for it;
+  - a run that ends after `config.new` was written and before the
+    snapshot has its name leaves `config.new` with the old snapshot. The
+    next run tells the two apart by the manifest: if the manifest is of
+    the snapshot that is there and names another identity than
+    `config.new` has, the snapshot is the old one and `config.new` is
+    removed. If no manifest is of the snapshot, nothing says which
+    configuration it is of, and the one of `config.new`, which is what
+    you asked for last, is taken; the run then makes the snapshot of it.
+
+  `aildb check` of `.aildb/index` in the second case reports the new
+  model while `config` still names the old one, until that next run.
 
 ## What was checked
 

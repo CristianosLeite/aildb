@@ -633,4 +633,17 @@ each chose.
   place of another are made new (`O_EXCL`) and the others opened with
   no link followed. Test `tests/cli_index_links.aiw`: a link at each
   name, with the file outside as it was and the provider not asked.
+- [x] The configuration of the options was written after its snapshot
+  was published, so a write that failed there (the review: a directory
+  at `config.new`) left the new snapshot under the old configuration,
+  and the next search by text rebuilt the old one. The configuration
+  is now written whole to `config.new`, and the command noted as
+  allowed, before the snapshot is published (`ixstage`), and renamed
+  after (`ixcommit`); a run that takes the lock and finds `config.new`
+  ends the change or removes the file, by the manifest (`ixrecover`).
+  Test `tests/cli_search_text.aiw`: with `.aildb` not writable the
+  change ends with status 4 and `config` and `index` are the bytes
+  they were; a change killed after its snapshot has its name is ended
+  by the next search, which answers with the new model and asks for
+  its query alone.
 

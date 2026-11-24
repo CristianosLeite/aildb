@@ -267,3 +267,61 @@ documents 8 m3
 query 1 m3
 {"records":8,"dimension":8,"model":"m3","source_revision":null,"files":7,"embedded":8,"published":true}
 model	m3
+# a change whose configuration cannot be written: nothing is published
+$ aildb index p -i m4 -d 8 -- FAKE spread
+--- stdout
+--- stderr
+aildb: p/.aildb/config.new: cannot write: permission denied
+--- status 4
+the configuration and the snapshot are what they were
+cache
+config
+index
+index.lock
+manifest
+--- provider.log
+documents 8 m4
+$ aildb search p --text 'last' -k 1
+--- stdout
+{"source_revision":null,"model":"m3"}
+{"rank":1,"score":1.000000,"score_bits":"3feffffffca0b060","path":"g.txt","start_line":1,"end_line":1}
+--- stderr
+--- status 0
+--- provider.log
+query 1 m3
+# a change killed between its snapshot and its configuration: the next run ends it
+--- provider.log
+documents 8 m5
+cache
+config
+config.new
+index
+index.lock
+manifest
+p/.aildb/config:model	m3
+p/.aildb/config.new:model	m5
+$ aildb check p/.aildb/index
+--- stdout
+{"records":8,"dimension":8,"model":"m5","source_revision":null}
+--- stderr
+--- status 0
+$ aildb search p --text 'last' -k 1
+--- stdout
+{"source_revision":null,"model":"m5"}
+{"rank":1,"score":1.000000,"score_bits":"3feffffffca0b060","path":"g.txt","start_line":1,"end_line":1}
+--- stderr
+--- status 0
+--- provider.log
+query 1 m5
+cache
+config
+index
+index.lock
+manifest
+model	m5
+$ aildb index p
+--- stdout
+{"records":8,"dimension":8,"model":"m5","source_revision":null,"files":7,"embedded":0,"published":false}
+--- stderr
+--- status 0
+--- provider.log

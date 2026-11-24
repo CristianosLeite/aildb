@@ -17,6 +17,7 @@ use "src/lib/manifest.aiw"
 use "src/lib/trust.aiw"
 
 buf ixconf confsize     # the configuration of the provider
+buf ixconf2 confsize    # and the one that a run left to take its place
 buf ixpath 24           # a path in .aildb, with a NUL byte
 buf ixother 24          # and another, for a rename
 buf ixcfg 24            # the text of the configuration
@@ -73,6 +74,8 @@ var ixstaged
 # the descriptor of the directory .aildb plus 1, or 0 while it is not
 # open: every file of the index is then reached through it
 var ixroot
+# 1 once this process holds the lock of the index
+var ixlocked
 
 fn nomem
 	call bycut msg 0
@@ -528,6 +531,19 @@ fn ixconfig given
 	end
 	call bycut ixcfg 0
 	call fileread p n ixcfg as r
+	if (r==-2)&(ixlocked==0)&(ixroot!=0)
+		# the first run of this directory may have ended between its
+		# snapshot and its configuration: with the lock that is known
+		call ixin ixother "config.new" as q m
+		call fileopen q m 0x20000 0 as fd
+		ifsge fd 0
+			sys close fd
+			call ixlockwait 0
+			call ixin ixpath "config" as p n
+			call bycut ixcfg 0
+			call fileread p n ixcfg as r
+		end
+	end
 	if r==-2
 		call about ixdp ixdn
 		call byadd msg "no index is configured here; the first index of a directory names its provider: aildb index DIRECTORY -i MODEL -d DIMENSION -- COMMAND"
@@ -569,10 +585,13 @@ fn ixconfig given
 end
 
 # The configuration of the options, if there is one, is written to
-# .aildb/config.new, which takes the place of .aildb/config: the
-# snapshot of it is there, so a run that failed before this left the
-# configuration that the snapshot it left is of.
-fn ixcommit
+# .aildb/config.new, whole: to config.tmp, which then gets that name.
+# It is done before the snapshot of it is published, with everything
+# else that can fail for the configuration, so that a failure leaves the
+# snapshot that was there with its configuration. From here until
+# ixcommit, config.new says which configuration the snapshot that is
+# being published is of (ixrecover).
+fn ixstage
 	ifz ixstaged
 		ret 0
 	end
@@ -599,8 +618,8 @@ fn ixcommit
 			call fail stio
 		end
 	end
-	call ixin ixpath "config" as p n
-	call ixin ixother "config.new" as q m
+	call ixin ixpath "config.new" as p n
+	call ixin ixother "config.tmp" as q m
 	load ixcfg as a
 	load ixcfg+8 as an
 	call ixsave q m a an as r
@@ -613,7 +632,97 @@ fn ixcommit
 		call oserr r
 		call fail stio
 	end
+end
+
+# The snapshot of the configuration of the options is there:
+# .aildb/config.new takes the place of .aildb/config. A run that ends
+# between the two, or for which this fails, has left config.new, and the
+# next run does it (ixrecover).
+fn ixcommit
+	ifz ixstaged
+		ret 0
+	end
+	call ixin ixpath "config" as p n
+	call ixin ixother "config.new" as q m
+	sys rename q p as r
+	if r
+		call about p n
+		call byadd msg "cannot write: "
+		call oserr r
+		call fail stio
+	end
 	ixstaged=0
+end
+
+# End what a run began that left .aildb/config.new: the lock is held, so
+# no run is between the two. That file was written before a snapshot of
+# its configuration was published and renamed after, so the snapshot
+# that is there is of one of the two configurations. It is of the old
+# one if the manifest is of that snapshot and names another identity
+# than config.new has: the run ended before it published, and
+# config.new is removed. Else the snapshot was published, or nothing
+# says which it is of, and config.new takes the place of config: what
+# the user asked for last. A config.new that is no configuration is
+# removed.
+fn ixrecover
+	local id 32
+	call ixin ixother "config.new" as q m
+	call bycut ixcfg 0
+	call fileread q m ixcfg as r
+	ifslt r 0
+		ret 0
+	end
+	load ixcfg as a
+	load ixcfg+8 as an
+	call confparse ixconf2 a an as w line
+	take=0
+	ifz w
+		take=1
+		call confident ixconf2 id as ok
+		call bycut ixhex 0
+		call shahex ixhex id as x
+		ifz ok&x
+			call nomem
+		end
+		call ixin ixpath "manifest" as p n
+		call manfree ixman
+		call manopen ixman p n as r
+		call manvalid ixman as ok
+		if (r==0)&ok
+			load dst as p
+			load dst+8 as n
+			call snapopen snap p n-1 as r
+			ifz r
+				load snap as a
+				load snap+8 as size
+				load4 a+96 as vsum
+				load4 a+100 as msum
+				load ixman+72 as x
+				load ixman+80 as y
+				load ixman+88 as z
+				if (x==size)&(y==msum)&(z==vsum)
+					load ixman+64 as h
+					load ixhex as x
+					call texteq h 64 x 64 as take
+				end
+				call snapclose snap
+			end
+		end
+		call manfree ixman
+	end
+	call conffree ixconf2
+	if take
+		call ixin ixpath "config" as p n
+		sys rename q p as r
+		if r
+			call about p n
+			call byadd msg "cannot write: "
+			call oserr r
+			call fail stio
+		end
+	else
+		call fileunlink q m
+	end
 end
 
 # Make the directory .aildb of the directory that is indexed and open it
@@ -1088,9 +1197,14 @@ end
 
 # Take the lock of the index as lock of src/main.aiw does, but wait for
 # a run that holds it, ms milliseconds at most, looking every 50; after
-# that the program ends with the status of a build in progress.
+# that the program ends with the status of a build in progress. With
+# the lock, a change of the configuration that a run left half done is
+# ended (ixrecover). A process that has the lock already returns.
 fn ixlockwait ms
 	local ts 16
+	if ixlocked
+		ret 0
+	end
 	load lck as p
 	load lck+8 as n
 	n-=1
@@ -1129,6 +1243,9 @@ fn ixlockwait ms
 		call oserr r
 		call fail stio
 	end
+	ixlocked=1
+	# what a run that ended early left of a change of the configuration
+	call ixrecover
 end
 
 # Begin a run: the identity of the configuration, the vectors that are
@@ -1424,6 +1541,7 @@ fn ixrefresh
 	end
 	ixpublished=0
 	if same
+		call ixstage
 		call ixcommit
 		call ixwrite 0
 	else
@@ -1462,6 +1580,9 @@ fn ixrefresh
 			call snapclose snap
 		end
 		load ixvec as vec
+		# before the snapshot has its name: a configuration that cannot
+		# be written leaves the snapshot that was there
+		call ixstage
 		call hookstop 4
 		call publish vec count dim "the provider"
 		call hookstop 5
@@ -1608,6 +1729,8 @@ fn textsearch
 		call usage
 	end
 	call ixstate 0
+	call ixin dst "index" as p n
+	call ixin lck "index.lock" as p n
 	call ixconfig 0
 	load ixconf+conftime as wait
 	if wp
@@ -1616,8 +1739,6 @@ fn textsearch
 			call usage
 		end
 	end
-	call ixin dst "index" as p n
-	call ixin lck "index.lock" as p n
 	call ixfresh as fresh
 	ifz fresh
 		call ixlockwait wait

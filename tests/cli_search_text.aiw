@@ -190,3 +190,28 @@ call find "p" "queued" "-k 1 -w 5000"
 call procwait pid 5000 as x
 call dirasked
 call dirsh "cat bg.out bg.err\ngrep model p/.aildb/config\nrm provider.fault provider.started\n"
+call print "# a change whose configuration cannot be written: nothing is published\n"
+call dirsh "cp p/.aildb/config config.kept\ncp p/.aildb/index index.kept\nchmod 555 p/.aildb\n"
+call dirrun "index p -i m4 -d 8 -- FAKE spread"
+call dirsh "chmod 755 p/.aildb\ncmp config.kept p/.aildb/config && cmp index.kept p/.aildb/index && echo the configuration and the snapshot are what they were\nls p/.aildb\n"
+call dirasked
+call find "p" "last" "-k 1"
+call dirasked
+call print "# a change killed between its snapshot and its configuration: the next run ends it\n"
+call filewrite "aildb.hook" "stop 5"
+call dirhooks 1
+call dirspawn "index p -i m5 -d 8 -- FAKE spread" as pid
+call cmdawait "aildb.stopped" 5000 as r
+call fileunlink "aildb.hook"
+call dirhooks 0
+sys kill pid 9
+call procwait pid 0 as x
+call fileunlink "aildb.stopped"
+call dirasked
+call dirsh "ls p/.aildb\ngrep model p/.aildb/config p/.aildb/config.new\n"
+call dirrun "check p/.aildb/index"
+call find "p" "last" "-k 1"
+call dirasked
+call dirsh "ls p/.aildb\ngrep model p/.aildb/config\n"
+call dirrun "index p"
+call dirasked

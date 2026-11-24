@@ -1,7 +1,7 @@
 ---
 title: The fixes after the review of 6c707bc
 last-verified: 2026-11-24
-sources: [conversation 2026-11-24, REVIEW.md (never part of the repository), docs/BACKLOG.md (step 17), src/lib/trust.aiw, src/index.aiw, docs/provider.md, tests/lib_trust.aiw, tests/cli_index_trust.aiw, tests/cli_index_refresh.aiw, tests/cli_index_links.aiw, src/lib/cache.aiw, docs/index.md]
+sources: [conversation 2026-11-24, REVIEW.md (never part of the repository), docs/BACKLOG.md (step 17), src/lib/trust.aiw, src/index.aiw, docs/provider.md, tests/lib_trust.aiw, tests/cli_index_trust.aiw, tests/cli_index_refresh.aiw, tests/cli_index_links.aiw, src/lib/cache.aiw, docs/index.md, tests/cli_search_text.aiw]
 status: current
 ---
 # The fixes after the review of 6c707bc
@@ -90,3 +90,35 @@ findings marked P1 and three marked P2. Each fix is one commit of the branch
 - **What it costs.** A system without `/proc` has no index of a directory (the rule
   of the allowed commands needed it already). Something a user put into `.aildb` that
   is no regular file ends the command until it is removed.
+
+## A configuration that cannot be written after its snapshot (P2)
+
+- **Finding.** The first review's fix wrote `.aildb/config` after the snapshot was
+  published. A write that failed there left the new snapshot under the old
+  configuration; `aildb check` named the new model, and the next search by text made
+  the snapshot of the old one again.
+- **Decision (agent, 2026-11-24).** The review's two halves, both. Everything that
+  can fail for the configuration is done before the snapshot has its name
+  (`ixstage`): the line of the allowed command, and the configuration written whole
+  to `config.tmp` and renamed to `config.new`. After publication one rename is left
+  (`ixcommit`). `config.new` is the journal: a run that takes the lock and finds it
+  (`ixrecover`, called by `ixlockwait`) renames it to `config`, unless the manifest is
+  of the snapshot that is there and names another identity, which says that the
+  snapshot is still the old one; then it is removed.
+- **When nothing says which configuration the snapshot is of** (no manifest of it:
+  the run ended between the snapshot and the manifest, or the manifest was removed),
+  `config.new` is taken. It is what the user asked for last, and after a publication
+  it is the right one; in the other case the run that follows makes its snapshot.
+- **A search that needs no lock** reads `config` as before; with `config.new` left
+  behind its manifest names another identity, so it takes the lock, ends the change
+  and reads the configuration again, which the first review's fix already did.
+  A directory whose first index ended between the two has no `config`: the search
+  takes the lock when it sees `config.new` and no `config`.
+- **Rejected.** A directory for each generation with one link that names the active
+  one, "an active generation published atomically": the snapshot is `.aildb/index`
+  to `aildb-mcp -s`, to `aildb search INDEX` and to the documents, and a link there
+  is what the fix above forbids. The identity in the header of a snapshot: a version
+  2 of the format for what the managed index alone needs (decided with step 17).
+- **The review's own case**, a directory at `config.new`, is now refused before
+  anything by the look at the names of `.aildb`; the test of the write failure makes
+  `.aildb` not writable instead, which a run as root would not notice.
