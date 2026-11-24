@@ -500,7 +500,7 @@ and `aildb-llama` with `-x llama-embedding`, found in one `PATH` and
 searched with another in which that name is a program that leaves a
 file, which is not run;
 `tests/kill_index.aiw` kills a run whose provider hangs and finds the
-provider gone. `make dist-check` on the archive of `d07892b`
+provider gone. `make dist-check` on the archive of `b262fef`
 (2026-11-24, in `debian:stable-slim`, where `HOME` is `/root`) indexed
 and searched a directory by text with the rule in force.
 
@@ -514,4 +514,9 @@ answer of two vectors of 768 numbers with the indexes 0 and 1; with a
 model file that is not there `aildb-llama` ended with 1 and the line
 `main: unable to load model` of the program, and `aildb-ollama` with a
 model Ollama does not have ended with 1 and its `status 404`. A program
-started by `aildb-llama` was gone after the adapter was killed.
+started by `aildb-llama` was gone after the adapter was killed. After
+`-x` of `aildb index` was written, the same day, a directory of two
+files was indexed with `-x llama-embedding -- aildb-llama -m FILE -x
+llama-embedding` and that program in `PATH`, and then searched from
+another directory with a `PATH` that names no directory: the search
+answered, with the program that the configuration has by its path.

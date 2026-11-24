@@ -74,15 +74,18 @@ no daemon or filesystem watcher, and wants to choose an embedding provider
 independently of the LLM that asks the questions. It is written
 ([install.md](install.md), [index.md](index.md), [provider.md](provider.md)).
 
-The eight findings of the review of `5eeba0b` are fixed but one, and
-the six of the review of `6c707bc` but the same one (`BACKLOG.md`);
-their choices wait for the user's review
+The eight findings of the review of `5eeba0b` are fixed but one, the
+six of the review of `6c707bc` but the same one, and the four others
+of the review of `cb9285a` all (`BACKLOG.md`); their choices wait for
+the user's review
 (`.agents/knowledge/status/open-items.md`).
 
-- [ ] The AIL that `Ailfile` asks for cannot build the sources (both
-  reviews): they use `lib/std/sha.aiw` and `procheld` of
+- [ ] The AIL that `Ailfile` asks for cannot build the sources (all
+  three reviews): they use `lib/std/sha.aiw` and `procheld` of
   `lib/std/proc.aiw`, the pull requests 33 and 34 of AIL, which are in
-  no version. When the user has given AIL a version with both: the
+  no version. The version is to be 0.1.2, with both pull requests, the
+  second commit of 34 among them (user, 2026-11-24); it is the user's
+  to give. When it is there and its archive is checked: the
   lines `ail` of `Ailfile` and `mcp/Ailfile` and the version in
   `docs/install.md` are raised to it, and `make test` on GitHub, which
   installs that release, is the check.

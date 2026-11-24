@@ -116,3 +116,25 @@ was chosen by the agent and is for the user to review.
   put there, are in the identity as they were.
 - **Every index made before this is embedded again**: the text of the identity
   changed. No version has it.
+
+## The version of AIL (the user's word, 2026-11-24)
+
+- **AIL 0.1.2** is to be the version with the pull requests 33 and 34, the second
+  commit of 34 (`880195c`) among them; the manifests of aildb and the installation
+  guide are raised after the archive of that version is checked. On 2026-11-24 the
+  two pull requests are open and no such version exists, so nothing was raised: a
+  version is the user's to give, and the test on GitHub fails for the branch until
+  then.
+
+## What was checked
+
+`make test` with a command of AIL built from the two pull requests merged: 47 tests,
+the consumer, the three of `mcp/`. Three of the four fixes have a test that was run on
+the code before the fix and failed there (the directory of kept vectors, the inode of
+the snapshot after recovery) or that shows the reproduced case turned (every text
+asked for after a program changed); the fourth has the search with another `PATH`.
+`make dist REV=HEAD` and `make dist-check` in `debian:stable-slim` passed on
+`b262fef`. By hand on the same day, with `llama-embedding` of llama.cpp `b12676` and
+the model file of nomic-embed-text that Ollama keeps: a directory of two files indexed
+with `-x llama-embedding -- aildb-llama -m FILE -x llama-embedding`, and then searched
+from another directory with a `PATH` that has no directory in it, which answered.
