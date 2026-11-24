@@ -40,8 +40,10 @@ for review.
   that no two configurations give the same text. Not in it: the program of the command,
   the time and the number of texts of a request, which change no vector. The arguments
   after the program were left out too and are in it since the review of `5eeba0b`
-  ([page](review-5eeba0b.md)): `aildb-llama` takes its model file as one. It is
-  what the configuration says, not what the provider runs: aildb cannot see weights, and
+  ([page](review-5eeba0b.md)): `aildb-llama` takes its model file as one.
+  The program is in it through the name since the review of `6c707bc`
+  ([page](review-6c707bc.md)): a provider without `-n` is named by the path of its
+  program. It is what the configuration says, not what the provider runs: aildb cannot see weights, and
   `docs/provider.md` says so.
 - **SHA-256 is `lib/std/sha.aiw` of AIL** (user, 2026-11-24: "SHA256 should live on AIL
   not in aildb"). The agent had written it here, as `src/lib/sha.aiw`, because the

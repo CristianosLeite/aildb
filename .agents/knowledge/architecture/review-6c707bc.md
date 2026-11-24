@@ -1,7 +1,7 @@
 ---
 title: The fixes after the review of 6c707bc
 last-verified: 2026-11-24
-sources: [conversation 2026-11-24, REVIEW.md (never part of the repository), docs/BACKLOG.md (step 17), src/lib/trust.aiw, src/index.aiw, docs/provider.md, tests/lib_trust.aiw, tests/cli_index_trust.aiw]
+sources: [conversation 2026-11-24, REVIEW.md (never part of the repository), docs/BACKLOG.md (step 17), src/lib/trust.aiw, src/index.aiw, docs/provider.md, tests/lib_trust.aiw, tests/cli_index_trust.aiw, tests/cli_index_refresh.aiw]
 status: current
 ---
 # The fixes after the review of 6c707bc
@@ -39,3 +39,25 @@ findings marked P1 and three marked P2. Each fix is one commit of the branch
   given to an interpreter among them (`-- python3 embed.py`): the key is of `python3`
   and of the argument as text. For the user to decide: whether arguments that name
   files below the indexed directory are to be in the key by their bytes too.
+
+## Another program under the same identity (P2)
+
+- **Finding.** The identity has the arguments after the program and not the program,
+  and the name of a provider without `-n` was the last part of the path of its
+  program. Two implementations of one last name at two paths were one identity: the
+  second run embedded nothing and the vectors of the first answered for it.
+- **Decision (agent, 2026-11-24).** The name of a provider that is given none is the
+  path of its program from the root. The name is in the identity, so another path is
+  another provider; the text of the identity (`aildb-provider 2`) and the file of a
+  configuration do not change. Keeping the vectors across a move is what the user
+  asks for with `-n NAME`: the review's "reuse across executable changes opt-in".
+- **What it costs.** A provider without a name that is moved, or named once by a
+  path with `./` in it and once without, asks for every text again. A name is at
+  most 255 bytes, so a longer path needs `-n`.
+- **Rejected.** The bytes of the program in the identity: an update of `aildb-llama`
+  that changes no vector would ask for everything again. A line of the protocol in
+  which a provider states an identity of its own: the review names it as another
+  way; it is a change of the protocol, version 1, and of every provider written for
+  it, for what `-n` already lets the user say. For the user to decide if wanted.
+- **Not covered.** A program replaced under the same path, as a model file replaced
+  under the same path was not: the identity is what the configuration says.

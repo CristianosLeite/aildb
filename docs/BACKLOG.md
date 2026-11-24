@@ -609,4 +609,16 @@ each chose.
   current directory, searched from another directory with a `PATH`
   where the name is a program that leaves a file: the named one
   answers; a program of the directory replaced is refused, status 2).
+- [x] The identity left the program of the command out, and the name
+  of a provider that was given none was the last part of its path: two
+  programs of one last name at two paths, with the same arguments,
+  were one identity, and the vectors of the first were given out as
+  those of the second (the review reproduced it: nothing embedded,
+  nothing published, a text as its own query at 0.809026). The name of
+  a provider that is given none is now the path of its program from
+  the root, so another program is another identity; `-n NAME` is the
+  word of the user that a provider is the same wherever its program
+  lies. Test `tests/cli_index_refresh.aiw`: two copies of the provider
+  under one last name, without a name the second asks for every text
+  and publishes, under one name it asks for nothing.
 

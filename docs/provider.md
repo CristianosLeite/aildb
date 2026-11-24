@@ -103,13 +103,24 @@ model file with `-m` and gives what follows `--` to llama.cpp. An
 argument that changes, a path of a model file that moved among them,
 is therefore another identity, and every text is asked for again; that
 costs time once, where the same vectors under two arguments that differ
-would be an index of two models. What is not in it: the program of the
-command, its first argument, so that a provider moved to another path
-keeps the index, and the time and the number of texts of a request.
+would be an index of two models. What is not in it: the time and the
+number of texts of a request.
+
+**The program of the command** is in it through the name of the
+provider. Without `-n`, the name is the path of the program from the
+root, as `aildb index` found it: another program at another path is
+another provider, even one of the same last name, and starts from no
+vector. With `-n NAME` you say what the provider is, and then its
+program may lie anywhere: the same name, model, settings and arguments
+are the same identity under whatever path. So a provider that you move
+keeps its vectors if it has a name, and one that you replace by another
+under the same name mixes the vectors of the two, which is yours to
+avoid: give the other another name. A name is 1 to 255 bytes, so a
+program whose path is longer needs one.
 
 aildb cannot see the weights a provider runs. The identity is what the
-configuration **says**: a model file that was replaced under the same
-path, or a model that a service replaced under the same name, has the
+configuration **says**: a program that was replaced under the same
+path, a model file that was replaced under the same path, or a model that a service replaced under the same name, has the
 same identity, and its vectors are mixed with the old ones. The revision
 is the line to change then.
 

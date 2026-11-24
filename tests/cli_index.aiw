@@ -26,7 +26,7 @@ call dirsh "git init -q r\nmkdir r/sub\nprintf '# One\\nfirst\\n\\n# Two\\nsecon
 call dirrun "index r"
 call dirrun "index r -i m1 -d 3 -s document_prefix=d: -- FAKE"
 call dirasked
-call dirsh "git -C r rev-parse HEAD\ngit -C r status --porcelain\nls -A r/.aildb\ngrep -v '^arg' r/.aildb/config\ncat r/.aildb/.gitignore\n"
+call dirsh "git -C r rev-parse HEAD\ngit -C r status --porcelain\nls -A r/.aildb\ngrep -v '^arg' r/.aildb/config | sed \"s|$FAKE|FAKE|\"\ncat r/.aildb/.gitignore\n"
 call dirhits "r"
 
 call print "# a new file, an edited one, an ignored one and a link, none committed\n"

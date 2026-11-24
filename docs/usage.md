@@ -242,7 +242,7 @@ whose provider fails leaves the configuration that was there.
 | `-i MODEL` | the model, 1 to 255 bytes: the model identifier of the snapshot. Required |
 | `-d DIMENSION` | the elements of a vector, 1 to 65536. Required |
 | `-- COMMAND [ARGUMENT...]` | the command that is the provider, everything after `--`. Required, and the last thing on the line. Its program is found now, in `PATH` or from this directory, and kept as a path from the root ([provider.md](provider.md#which-commands-are-run)); one that is no file that can be run is status 2 |
-| `-n PROVIDER` | a name for the provider; without it, the last part of the path of `COMMAND` |
+| `-n PROVIDER` | a name for the provider, under which its vectors are kept wherever its program lies; without it, the path of the program of `COMMAND` from the root, so another program is another provider ([provider.md](provider.md#the-identity-of-a-configuration)) |
 | `-r REVISION` | which weights of the model, up to 255 bytes |
 | `-s NAME=VALUE` | a setting, sent to the provider with every request; any number of times, each name once |
 | `-t MILLISECONDS` | how long one request may take, 1 to 3600000; 120000 without it |

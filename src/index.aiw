@@ -123,8 +123,6 @@ fn ixoptions i
 			ifz i<c
 				call usage
 			end
-			# the name of the provider, if none is given: the last part of
-			# the path of its program
 			call argv i as p n
 			# the program as a path from the root: the one that is run
 			# later, whatever directory and PATH a search is started with
@@ -135,20 +133,11 @@ fn ixoptions i
 				call byadd msg "the program of the provider is not a file that can be run"
 				call fail stusage
 			end
+			# the name of the provider, if none is given: the path of its
+			# program, so that another program is another provider
 			ifz nn
-				np=p
-				nn=n
-				j=n
-				label part
-				if j
-					loadb p+j-1 as ch
-					if ch!=47
-						j-=1
-						jmp part
-					end
-				end
-				np=p+j
-				nn=n-j
+				load ixprog as np
+				load ixprog+8 as nn
 			end
 			first=i
 			while i<c

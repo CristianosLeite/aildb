@@ -20,7 +20,7 @@ index
 index.lock
 manifest
 aildb	1
-provider	provider-fake
+provider	FAKE
 model	m1
 dimension	3
 timeout	120000

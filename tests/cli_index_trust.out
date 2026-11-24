@@ -107,7 +107,7 @@ arg	spread
 {"rank":1,"score":1.000000,"score_bits":"3ff0000003cc5859","path":"t.txt","start_line":1,"end_line":1}
 ls: No such file or directory
 # a program named from the directory it is in
-{"records":1,"dimension":8,"model":"m1","source_revision":null,"files":1,"embedded":0,"published":false}
+{"records":1,"dimension":8,"model":"m1","source_revision":null,"files":1,"embedded":1,"published":true}
 {"source_revision":null,"model":"m1"}
 {"rank":1,"score":1.000000,"score_bits":"3ff0000003cc5859","path":"t.txt","start_line":1,"end_line":1}
 arg	TMP/bin1/./prov

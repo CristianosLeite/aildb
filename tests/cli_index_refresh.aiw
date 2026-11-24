@@ -7,8 +7,12 @@
 # the new paths; with the last file removed the snapshot has no record.
 # Another setting of the provider is another identity: every text is
 # asked for again and the vectors of the first are removed, and so is
-# another argument of its command, while another time for a request and
-# another path of its program change nothing. A provider that fails at
+# another argument of its command, while another time for a request
+# changes nothing, nor does another path of the program of a provider
+# that was given a name. A provider without a name is its program: the
+# same program asks for nothing, and another of the same last name at
+# another path asks for every text and publishes; the two under one
+# name given with -n are one provider. A provider that fails at
 # its second request leaves the snapshot that was there, and the run
 # after it asks only for what the first did not get. Without the kept
 # vectors everything is asked for again, without the manifest nothing
@@ -26,7 +30,7 @@ fn since
 end
 call print "# three files, five chunks\n"
 call dirsh "mkdir -p p/sub\nprintf '# One\\nfirst\\n\\n# Two\\nsecond\\n' > p/a.md\nprintf 'x = 1\\n' > p/sub/b.py\nprintf 'alpha\\n\\n\\n' > p/c.txt\nprintf '# Other\\nthird\\n' > p/d.md\n"
-call dirrun "index p -i m1 -d 3 -b 2 -- FAKE"
+call dirrun "index p -i m1 -d 3 -n provider-fake -b 2 -- FAKE"
 call dirasked
 call dirsh "ls p/.aildb p/.aildb/cache\nsleep 0.05\ntouch mark\nsleep 0.05\n"
 call since
@@ -62,31 +66,31 @@ call dirsh "mv q/* p/\nrmdir q\n"
 call dirrun "index p"
 call dirasked
 call print "# another time for a request: the same identity, nothing asked\n"
-call dirrun "index p -i m1 -d 3 -b 2 -t 5000 -- FAKE"
+call dirrun "index p -i m1 -d 3 -n provider-fake -b 2 -t 5000 -- FAKE"
 call dirasked
 call dirsh "ls p/.aildb/cache\n"
 call print "# another setting: another identity, all asked, the old vectors removed\n"
-call dirrun "index p -i m1 -d 3 -b 4 -s document_prefix=d: -- FAKE"
+call dirrun "index p -i m1 -d 3 -n provider-fake -b 4 -s document_prefix=d: -- FAKE"
 call dirasked
 call dirsh "ls p/.aildb/cache\n"
 call print "# another argument of the command: another identity too\n"
-call dirrun "index p -i m1 -d 3 -b 4 -s document_prefix=d: -- FAKE spread"
+call dirrun "index p -i m1 -d 3 -n provider-fake -b 4 -s document_prefix=d: -- FAKE spread"
 call dirasked
 call dirsh "ls p/.aildb/cache\n"
 call dirhits "p"
-call print "# and another program with the same arguments: the same identity\n"
+call print "# and another program under the same name, with the same arguments: the same identity\n"
 call dirsh "ln -s / up\n"
-call dirrun "index p -i m1 -d 3 -b 4 -s document_prefix=d: -- up/FAKE spread"
+call dirrun "index p -i m1 -d 3 -n provider-fake -b 4 -s document_prefix=d: -- up/FAKE spread"
 call dirasked
 call dirsh "ls p/.aildb/cache\n"
 call print "# a provider that fails at its second request: the snapshot stays\n"
 call dirsh "cksum < p/.aildb/index\n"
 call dirsh "printf after1 > provider.fault\n"
-call dirrun "index p -i m1 -d 3 -b 3 -s document_prefix=e: -- FAKE"
+call dirrun "index p -i m1 -d 3 -n provider-fake -b 3 -s document_prefix=e: -- FAKE"
 call dirsh "rm provider.fault\ncksum < p/.aildb/index\nls p/.aildb/cache | wc -l\n"
 call dirasked
 call print "# the run after it asks for the rest\n"
-call dirrun "index p -i m1 -d 3 -b 3 -s document_prefix=e: -- FAKE"
+call dirrun "index p -i m1 -d 3 -n provider-fake -b 3 -s document_prefix=e: -- FAKE"
 call dirasked
 call dirsh "ls p/.aildb/cache | wc -l\n"
 call print "# the kept vectors lost: all asked, the snapshot the same\n"
@@ -103,7 +107,7 @@ call dirrun "index p"
 call dirasked
 call print "# a snapshot that is not the one of the manifest\n"
 call dirsh "printf 'only\\n' > only.txt\nmkdir o\nmv only.txt o/\n"
-call dirrun "index o -i m1 -d 3 -b 3 -s document_prefix=e: -- FAKE"
+call dirrun "index o -i m1 -d 3 -n provider-fake -b 3 -s document_prefix=e: -- FAKE"
 call dirasked
 call dirsh "cp o/.aildb/index p/.aildb/index\n"
 call dirrun "check p/.aildb/index"
@@ -111,3 +115,16 @@ call dirrun "index p"
 call dirasked
 call dirrun "check p/.aildb/index"
 call dirrun "index p"
+call print "# no name: the provider is its program\n"
+call dirsh "mkdir x y w\ncp \"$FAKE\" x/prov\ncp \"$FAKE\" y/prov\nprintf 'one\\n' > w/a.txt\nprintf 'two\\n' > w/b.txt\nrm -f provider.log\n"
+call dirrun "index w -i m1 -d 3 -- x/prov"
+call dirrun "index w -i m1 -d 3 -- x/prov"
+call dirsh "grep -c \"^provider.$PWD/x/prov$\" w/.aildb/config\n"
+call print "# another program of the same last name: another provider, all asked\n"
+call dirrun "index w -i m1 -d 3 -- y/prov"
+call dirasked
+call dirsh "ls w/.aildb/cache | wc -l\n"
+call print "# the two under one name: one provider\n"
+call dirrun "index w -i m1 -d 3 -n mine -- x/prov"
+call dirrun "index w -i m1 -d 3 -n mine -- y/prov"
+call dirasked
