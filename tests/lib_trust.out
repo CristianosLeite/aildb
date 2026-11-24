@@ -20,6 +20,59 @@ the key is the sum of the text
 1 0
 1 0
 1 1
+# a program that is no path from the root, and one that is not there
+0 1
+0 1
+# a program outside the directory whose bytes change: the same key
+$ /bin/sh -e step.sh
+--- stdout
+--- stderr
+--- status 0
+1 1
+# a link that is turned to another file: another key
+$ /bin/sh -e step.sh
+--- stdout
+--- stderr
+--- status 0
+1 1
+$ /bin/sh -e step.sh
+--- stdout
+--- stderr
+--- status 0
+1 0
+# a program in the directory: the key is of its bytes
+$ /bin/sh -e step.sh
+--- stdout
+--- stderr
+--- status 0
+1 for a key
+$ /bin/sh -e step.sh
+--- stdout
+the key is the sum of the text
+--- stderr
+--- status 0
+1 0
+# and one that the directory reaches by a link of its own
+$ /bin/sh -e step.sh
+--- stdout
+--- stderr
+--- status 0
+1 1
+$ /bin/sh -e step.sh
+--- stdout
+--- stderr
+--- status 0
+1 0
+# the path of a program
+1 /.../out/prog
+1 /..././out/link
+1 /.../bin/sh
+1 /.../sh
+0
+0
+0
+0
+0
 # the file of keys
 0 before
 0 added

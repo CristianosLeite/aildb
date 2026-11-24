@@ -9,8 +9,8 @@
 # configuration: XDG_CONFIG_HOME if the environment has it as a path
 # from the root, else ".config" in HOME. A line of it starts with the 64
 # digits of a key, the SHA-256 of the directory, as the kernel names it,
-# and of every argument of the command; what follows the digits on the
-# line is for a reader and is not looked at.
+# of every argument of the command and of the file its program is; what
+# follows the digits on the line is for a reader and is not looked at.
 #
 # The functions return what they found and print nothing. Every name of
 # this file starts with "trust"; a program has no var of such a name.
@@ -23,9 +23,16 @@ use "src/lib/text.aiw"
 use "src/lib/config.aiw"
 
 const trustreadlink 89
+const trustgetcwd 79
+const trustaccess 21
+const truststat 4
 buf trusttext 24        # what a key is the sum of, and the file as it is read
 buf trustlink 24        # a path in /proc
 buf trusthex 24
+buf trustroot 24        # the directory of a key, as the kernel names it
+buf trustreal 24        # and the file its program is
+buf trustbody 24        # the bytes of a program of the directory
+buf trustcand 24        # a path that may be the program of a name
 
 # Add to the bytes buffer trustb the directory of the user's
 # configuration, with no slash after it: 1, or 0 if the environment
@@ -50,27 +57,22 @@ fn trustbase trustb
 	tail byadd trustb "/.config"
 end
 
-# Add to the bytes buffer trustb the path of the directory trustdp
-# trustdn as the kernel names it, from the root and with no symbolic
-# link in it: 1, or 0 if it is no directory, if the kernel does not
-# say (no /proc), or without memory.
-fn trustdir trustdp trustdn trustb
+# Add to the bytes buffer trustb the name the kernel has for what the
+# descriptor trustfd is open on, a path from the root with no symbolic
+# link in it: 1, or 0 if the kernel does not say (no /proc) or without
+# memory. trustlink is then the path of the descriptor in /proc, with a
+# NUL byte.
+fn trustfdname trustfd trustb
 	local trustname 4096
-	# O_PATH, O_DIRECTORY and O_CLOEXEC
-	call fileopen trustdp trustdn 0x290000 0 as trustfd
-	ifslt trustfd 0
-		ret 0
-	end
 	call bycut trustlink 0
 	call byadd trustlink "/proc/self/fd/"
 	call byaddn trustlink trustfd
 	call byaddb trustlink 0 as trustok
-	trustr=0
-	if trustok
-		load trustlink as trustp
-		sys trustreadlink trustp trustname 4096 as trustr
+	ifz trustok
+		ret 0
 	end
-	sys close trustfd
+	load trustlink as trustp
+	sys trustreadlink trustp trustname 4096 as trustr
 	# a name of 4096 bytes may be one that was cut
 	if (trustr<1)|(trustr>4095)
 		ret 0
@@ -82,48 +84,239 @@ fn trustdir trustdp trustdn trustb
 	tail byadd trustb trustname trustr
 end
 
+# Add to the bytes buffer trustb the path of the directory trustdp
+# trustdn as the kernel names it, from the root and with no symbolic
+# link in it: 1, or 0 if it is no directory, if the kernel does not
+# say (no /proc), or without memory.
+fn trustdir trustdp trustdn trustb
+	# O_PATH, O_DIRECTORY and O_CLOEXEC
+	call fileopen trustdp trustdn 0x290000 0 as trustfd
+	ifslt trustfd 0
+		ret 0
+	end
+	call trustfdname trustfd trustb as trustok
+	sys close trustfd
+	ret trustok
+end
+
+# Add to the bytes buffer trustb the path trustp trustn as one from the
+# root: itself if it starts with a slash, and else after the directory
+# this process is in; an empty path is that directory. 1, or 0 if the
+# kernel does not name the directory or without memory. No link is
+# resolved and nothing is looked at.
+fn trustabs trustb trustp trustn
+	local trustcw 4096
+	trustc=0
+	if trustn
+		loadb trustp as trustc
+	end
+	if trustc!=47
+		sys trustgetcwd trustcw 4096 as trustr
+		ifslt trustr 2
+			ret 0
+		end
+		loadb trustcw as trustc
+		if trustc!=47
+			ret 0
+		end
+		call byadd trustb trustcw trustr-1 as trustok
+		ifz trustn
+			ret trustok
+		end
+		if trustr>2
+			call byaddb trustb 47
+		end
+	end
+	tail byadd trustb trustp trustn
+end
+
+# 1 if the path at trustz, with a NUL byte after it, is a regular file
+# that this process may run
+fn trustruns trustz
+	local trustst 144
+	# X_OK
+	sys trustaccess trustz 1 as trustr
+	if trustr
+		ret 0
+	end
+	sys truststat trustz trustst as trustr
+	load4 trustst+24 as trustm
+	ret (trustr==0)&(trustm&0xf000==0x8000)
+end
+
+# Add to the bytes buffer trustb the path from the root of the program
+# that the trustn bytes at trustp name, as procstart of lib/std/proc.aiw
+# finds it now: a name with a slash is a path, from this directory if it
+# does not start with one, and a name without is looked for in the
+# directories of PATH, the first that has a file of the name that can be
+# run. 1, or 0 if there is no such file, if the kernel does not name
+# this directory, or without memory. What is added is the path that is
+# then run whatever the directory and the PATH of the process that runs
+# it; its links are not resolved, so a program that looks at the name it
+# was started by sees the one the user gave.
+fn trustprog trustp trustn trustb
+	load trustb+8 as trusto
+	trusti=0
+	trusth=0
+	while trusti<trustn
+		loadb trustp+trusti as trustc
+		if trustc==47
+			trusth=1
+		end
+		trusti+=1
+	end
+	ifz trustn
+		ret 0
+	end
+	if trusth
+		call bycut trustcand 0
+		call trustabs trustcand trustp trustn
+		call byaddb trustcand 0 as trustok
+		ifz trustok
+			ret 0
+		end
+		jmp found
+	end
+	call procvar "PATH" as trusts trustl
+	ifz trusts
+		set "/usr/bin:/bin" as trusts
+		trustl=13
+	end
+	trustl+=trusts
+	# each directory of the list, an empty one being this directory
+	while trusts<=trustl
+		trustq=trusts
+		while trustq<trustl
+			loadb trustq as trustc
+			jeq trustc 58 cut
+			trustq+=1
+		end
+		label cut
+		call bycut trustcand 0
+		call trustabs trustcand trusts trustq-trusts as trustok
+		if trustok
+			call byaddb trustcand 47
+			call byadd trustcand trustp trustn
+			call byaddb trustcand 0 as trustok
+		end
+		if trustok
+			load trustcand as trustz
+			call trustruns trustz as trustok
+			if trustok
+				jmp found
+			end
+		end
+		trusts=trustq+1
+	end
+	ret 0
+	label found
+	load trustcand as trustz
+	load trustcand+8 as trustm
+	call trustruns trustz as trustok
+	ifz trustok
+		ret 0
+	end
+	tail byadd trustb trustz trustm-1
+end
+
+# add to the bytes buffer trustb the trustn bytes at trustp with their
+# length and a colon before them and a line feed after: 1, or 0 without
+# memory
+fn trustpart trustb trustp trustn
+	call byaddn trustb trustn
+	call byaddb trustb 58
+	call byadd trustb trustp trustn
+	tail byaddb trustb 10
+end
+
 # The key of the command of the configuration trustc for the directory
 # trustdp trustdn, 32 bytes written at trustout: 1, or 0 if the
-# directory has no name (trustdir) or without memory. It is the SHA-256
-# of "aildb-trust 1", the directory, the number of arguments and every
-# argument, the program first, each on a line and each string with its
-# length before it, as the identity of a configuration is written.
+# directory has no name (trustdir), if the program of the command is no
+# path from the root or cannot be opened, or without memory. It is the
+# SHA-256 of "aildb-trust 2", the directory, the number of arguments and
+# every argument, the program first, each on a line and each string
+# with its length before it, as the identity of a configuration is
+# written; then the file that the program is, as the kernel names it
+# with every link resolved; and then "file" and the digits of the
+# SHA-256 of its bytes if that file lies below the directory, or "-" if
+# it does not. So the key is of the file that would be run now: one that
+# a link on the way was turned to is another, and so is a program of the
+# directory itself whose bytes changed.
 fn trustkey trustdp trustdn trustc trustout
+	local trustsum 32
+	call bycut trustroot 0
+	call trustdir trustdp trustdn trustroot as trustok
+	ifz trustok
+		ret 0
+	end
 	call bycut trusttext 0
-	call byadd trusttext "aildb-trust 1\n"
-	load trusttext+8 as trusto
-	call trustdir trustdp trustdn trusttext as trustok
-	ifz trustok
-		ret 0
-	end
-	# the length of the directory before it
-	load trusttext+8 as trustn
-	trustn-=trusto
-	call bycut trustlink 0
-	call byaddn trustlink trustn
-	call byaddb trustlink 58
-	load trusttext as trustp
-	call byadd trustlink trustp+trusto trustn as trustok
-	ifz trustok
-		ret 0
-	end
-	call bycut trusttext trusto
-	load trustlink as trustp
-	load trustlink+8 as trustn
-	call byadd trusttext trustp trustn
-	call byaddb trusttext 10
+	call byadd trusttext "aildb-trust 2\n"
+	load trustroot as trustp
+	load trustroot+8 as trustn
+	call trustpart trusttext trustp trustn
 	call confargs trustc as trustp trustk
+	ifz trustk
+		ret 0
+	end
+	trustprg=trustp
 	call byaddn trusttext trustk
 	call byaddb trusttext 10 as trustok
 	while trustk
 		call strlen trustp as trustn
-		call byaddn trusttext trustn
-		call byaddb trusttext 58
-		call byadd trusttext trustp trustn
-		call byaddb trusttext 10 as trustok
+		call trustpart trusttext trustp trustn as trustok
 		trustp+=trustn+1
 		trustk-=1
 	end
+	ifz trustok
+		ret 0
+	end
+	loadb trustprg as trustch
+	if trustch!=47
+		ret 0
+	end
+	call strlen trustprg as trustn
+	# O_PATH, and O_CLOEXEC by fileopen
+	call fileopen trustprg trustn 0x200000 0 as trustfd
+	ifslt trustfd 0
+		ret 0
+	end
+	call bycut trustreal 0
+	call trustfdname trustfd trustreal as trustok
+	ifz trustok
+		sys close trustfd
+		ret 0
+	end
+	load trustreal as trustp
+	load trustreal+8 as trustn
+	call trustpart trusttext trustp trustn
+	load trustroot as trustrp
+	load trustroot+8 as trustrn
+	trustin=trustrn==1
+	if trustn>trustrn
+		call textprefix trustp trustn trustrp trustrn as trustsame
+		loadb trustp+trustrn as trustch
+		trustin=trustin|(trustsame&(trustch==47))
+	end
+	if trustin
+		# read through the descriptor: the file whose name was taken
+		call bycut trustbody 0
+		load trustlink as trustp
+		load trustlink+8 as trustn
+		call fileread trustp trustn-1 trustbody as trustr
+		ifslt trustr 0
+			sys close trustfd
+			ret 0
+		end
+		load trustbody as trustp
+		load trustbody+8 as trustn
+		call sha256 trustp trustn trustsum
+		call byadd trusttext "file "
+		call shahex trusttext trustsum
+		call byaddb trusttext 10 as trustok
+	else
+		call byadd trusttext "-\n" as trustok
+	end
+	sys close trustfd
 	ifz trustok
 		ret 0
 	end

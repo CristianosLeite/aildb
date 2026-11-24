@@ -20,13 +20,13 @@ TMP/p
 # a copy of the directory, its configuration with it: nothing is run
 $ aildb search c --text gamma -k 1
 status 2
-aildb: c: the configuration of this index names a provider that was not set up by you on this machine, and nothing of it was run. Its command is: FAKE spread; to allow it, name the provider yourself: aildb index c -i m1 -d 8 ... -- COMMAND
+aildb: c: the configuration of this index names a provider that was not set up by you on this machine, or whose program is no longer the file it was, and nothing of it was run. Its command is: FAKE spread; to allow it, name the provider yourself: aildb index c -i m1 -d 8 ... -- COMMAND
 $ aildb index c
 status 2
-aildb: c: the configuration of this index names a provider that was not set up by you on this machine, and nothing of it was run. Its command is: FAKE spread; to allow it, name the provider yourself: aildb index c -i m1 -d 8 ... -- COMMAND
+aildb: c: the configuration of this index names a provider that was not set up by you on this machine, or whose program is no longer the file it was, and nothing of it was run. Its command is: FAKE spread; to allow it, name the provider yourself: aildb index c -i m1 -d 8 ... -- COMMAND
 $ aildb search c --text new -k 1
 status 2
-aildb: c: the configuration of this index names a provider that was not set up by you on this machine, and nothing of it was run. Its command is: FAKE spread; to allow it, name the provider yourself: aildb index c -i m1 -d 8 ... -- COMMAND
+aildb: c: the configuration of this index names a provider that was not set up by you on this machine, or whose program is no longer the file it was, and nothing of it was run. Its command is: FAKE spread; to allow it, name the provider yourself: aildb index c -i m1 -d 8 ... -- COMMAND
 --- provider.log
 # the options given for it allow it
 $ aildb index c -i m1 -d 8 -- FAKE spread
@@ -54,11 +54,11 @@ $ aildb index c -i m1 -d 8 -- FAKE spread
 # a command changed in the file by hand
 $ aildb search p --text gamma -k 1
 status 2
-aildb: p: the configuration of this index names a provider that was not set up by you on this machine, and nothing of it was run. Its command is: FAKE spread 'it'\''s more'; to allow it, name the provider yourself: aildb index p -i m1 -d 8 ... -- COMMAND
+aildb: p: the configuration of this index names a provider that was not set up by you on this machine, or whose program is no longer the file it was, and nothing of it was run. Its command is: FAKE spread 'it'\''s more'; to allow it, name the provider yourself: aildb index p -i m1 -d 8 ... -- COMMAND
 1
 $ aildb search p --text gamma -k 1
 status 2
-aildb: p: the configuration of this index names a provider that was not set up by you on this machine, and nothing of it was run. Its command is: /bin/sh spread 'it'\''s more'; to allow it, name the provider yourself: aildb index p -i m1 -d 8 ... -- COMMAND
+aildb: p: the configuration of this index names a provider that was not set up by you on this machine, or whose program is no longer the file it was, and nothing of it was run. Its command is: /bin/sh spread 'it'\''s more'; to allow it, name the provider yourself: aildb index p -i m1 -d 8 ... -- COMMAND
 $ aildb search p --text gamma -k 1
 --- stdout
 {"source_revision":null,"model":"m1"}
@@ -70,7 +70,7 @@ query 1 m1
 # the directory moved
 $ aildb search moved --text gamma -k 1
 status 2
-aildb: moved: the configuration of this index names a provider that was not set up by you on this machine, and nothing of it was run. Its command is: FAKE spread; to allow it, name the provider yourself: aildb index moved -i m1 -d 8 ... -- COMMAND
+aildb: moved: the configuration of this index names a provider that was not set up by you on this machine, or whose program is no longer the file it was, and nothing of it was run. Its command is: FAKE spread; to allow it, name the provider yourself: aildb index moved -i m1 -d 8 ... -- COMMAND
 $ aildb search p --text gamma -k 1
 --- stdout
 {"source_revision":null,"model":"m1"}
@@ -80,9 +80,9 @@ $ aildb search p --text gamma -k 1
 --- provider.log
 query 1 m1
 # no directory of the user: nothing is allowed, and nothing can be
-aildb: p: the configuration of this index names a provider that was not set up by you on this machine, and nothing of it was run. Its command is: FAKE spread; to allow it, name the provider yourself: aildb index p -i m1 -d 8 ... -- COMMAND
-aildb: p: the configuration of this index names a provider that was not set up by you on this machine, and nothing of it was run. Its command is: FAKE spread; to allow it, name the provider yourself: aildb index p -i m1 -d 8 ... -- COMMAND
-aildb: n: the command of the provider cannot be noted as allowed: the environment has no HOME and no XDG_CONFIG_HOME that is a path from the root, or the directory has no name in /proc
+aildb: p: the configuration of this index names a provider that was not set up by you on this machine, or whose program is no longer the file it was, and nothing of it was run. Its command is: FAKE spread; to allow it, name the provider yourself: aildb index p -i m1 -d 8 ... -- COMMAND
+aildb: p: the configuration of this index names a provider that was not set up by you on this machine, or whose program is no longer the file it was, and nothing of it was run. Its command is: FAKE spread; to allow it, name the provider yourself: aildb index p -i m1 -d 8 ... -- COMMAND
+aildb: n: the command of the provider cannot be noted as allowed: the environment has no HOME and no XDG_CONFIG_HOME that is a path from the root, or the directory or the program has no name in /proc, or the program lies in the directory and cannot be read
 status 4
 .aildb
 t.txt
@@ -95,7 +95,37 @@ home/.config/aildb
 home/.config/aildb/trusted
 {"source_revision":null,"model":"m1"}
 {"rank":1,"score":1.000000,"score_bits":"3ff00000077cc02b","path":"t.txt","start_line":1,"end_line":1}
-aildb: p: the configuration of this index names a provider that was not set up by you on this machine, and nothing of it was run. Its command is: FAKE spread; to allow it, name the provider yourself: aildb index p -i m1 -d 8 ... -- COMMAND
+aildb: p: the configuration of this index names a provider that was not set up by you on this machine, or whose program is no longer the file it was, and nothing of it was run. Its command is: FAKE spread; to allow it, name the provider yourself: aildb index p -i m1 -d 8 ... -- COMMAND
 --- provider.log
 documents 1 m1
 query 1 m1
+# a program named by its name alone, then searched with another PATH and from another directory
+{"records":1,"dimension":8,"model":"m1","source_revision":null,"files":1,"embedded":1,"published":true}
+arg	TMP/bin1/prov
+arg	spread
+{"source_revision":null,"model":"m1"}
+{"rank":1,"score":1.000000,"score_bits":"3ff0000003cc5859","path":"t.txt","start_line":1,"end_line":1}
+ls: No such file or directory
+# a program named from the directory it is in
+{"records":1,"dimension":8,"model":"m1","source_revision":null,"files":1,"embedded":0,"published":false}
+{"source_revision":null,"model":"m1"}
+{"rank":1,"score":1.000000,"score_bits":"3ff0000003cc5859","path":"t.txt","start_line":1,"end_line":1}
+arg	TMP/bin1/./prov
+arg	spread
+ls: No such file or directory
+# a program of the indexed directory: allowed with the bytes it has
+2
+status 2
+aildb: q: the configuration of this index names a provider that was not set up by you on this machine, or whose program is no longer the file it was, and nothing of it was run. Its command is: TMP/q/prov spread; to allow it, name the provider yourself: aildb index q -i m1 -d 8 ... -- COMMAND
+ls: No such file or directory
+# a program that is not there
+$ aildb index q -i m1 -d 8 -- /nonexistent/provider
+--- stdout
+--- stderr
+aildb: /nonexistent/provider: the program of the provider is not a file that can be run
+--- status 2
+$ aildb index q -i m1 -d 8 -- no-such-program-of-aildb
+--- stdout
+--- stderr
+aildb: no-such-program-of-aildb: the program of the provider is not a file that can be run
+--- status 2

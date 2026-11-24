@@ -21,6 +21,7 @@ The decisions about the language AIL, its compiler and its libraries are in the 
 - [The index of a directory](architecture/index-command.md) — `aildb index`: the provider named once by options and kept in `.aildb/config`; git lists the files of a work tree and every file is taken outside one; no links, nothing of `.aildb` and `.git`; `.aildb/.gitignore`; a revision only for a clean tree with the line ends of git; `src/index.aiw` on the publication of `build`; status 7
 - [The incremental refresh of an index](architecture/incremental.md) — the key of a vector without its path, one file of vectors for an identity with a sum for each record, a manifest with the chunks of every file that is believed only for the snapshot it names and is written after it, a file unchanged by its times only if they are older than the run of the manifest, the state that says whether to publish
 - [The fixes after the review of 5eeba0b](architecture/review-5eeba0b.md) — the eight findings of the review of step 17 (user, 2026-11-24) and what each fix chose
+- [The fixes after the review of 6c707bc](architecture/review-6c707bc.md) — the six findings of the second review (user, 2026-11-24) and what each fix chose
 
 ## testing
 - [How the tests run](testing/runner.md) — `make test`, since 2026-11-22 `ail test` and `ail fmt --check`: AIL programs with expected output and status, compiled and run from the top of the repository, files in `AIL_TMP`

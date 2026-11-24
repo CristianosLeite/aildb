@@ -48,6 +48,7 @@ buf ixkey 32
 buf ixone 8
 buf ixtrust 24          # the path of the file of the commands the user allowed
 buf ixtkey 32           # and the key of the command of this index
+buf ixprog 24           # the program of the command, as a path from the root
 const ixclock 228
 # the directory that is indexed, and what a run did: the chunks, the
 # texts the provider was asked for, the files that were cut, and 1 if a
@@ -125,6 +126,15 @@ fn ixoptions i
 			# the name of the provider, if none is given: the last part of
 			# the path of its program
 			call argv i as p n
+			# the program as a path from the root: the one that is run
+			# later, whatever directory and PATH a search is started with
+			call bycut ixprog 0
+			call trustprog p n ixprog as ok
+			ifz ok
+				call about p n
+				call byadd msg "the program of the provider is not a file that can be run"
+				call fail stusage
+			end
 			ifz nn
 				np=p
 				nn=n
@@ -140,8 +150,13 @@ fn ixoptions i
 				np=p+j
 				nn=n-j
 			end
+			first=i
 			while i<c
 				call argv i as p n
+				if i==first
+					load ixprog as p
+					load ixprog+8 as n
+				end
 				call confarg ixconf p n as w
 				if w
 					call ixbadconf w
@@ -307,7 +322,7 @@ end
 # The line names the command and the options that allow it.
 fn ixnotrust
 	call about ixdp ixdn
-	call byadd msg "the configuration of this index names a provider that was not set up by you on this machine, and nothing of it was run. Its command is:"
+	call byadd msg "the configuration of this index names a provider that was not set up by you on this machine, or whose program is no longer the file it was, and nothing of it was run. Its command is:"
 	call confargs ixconf as p k
 	while k
 		call strlen p as n
@@ -339,7 +354,7 @@ fn ixconfig given
 		call ixtrusted 1 as ok
 		ifz ok
 			call about ixdp ixdn
-			call byadd msg "the command of the provider cannot be noted as allowed: the environment has no HOME and no XDG_CONFIG_HOME that is a path from the root, or the directory has no name in /proc"
+			call byadd msg "the command of the provider cannot be noted as allowed: the environment has no HOME and no XDG_CONFIG_HOME that is a path from the root, or the directory or the program has no name in /proc, or the program lies in the directory and cannot be read"
 			call fail stio
 		end
 		ixstaged=1

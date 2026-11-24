@@ -123,43 +123,75 @@ coding agent through `aildb-mcp`. So the file alone starts nothing.
 
 A command is run only if **you named it for that directory** on this
 machine: `aildb index DIRECTORY -i MODEL -d DIMENSION -- COMMAND` notes
-the command, every argument of it, as allowed for the directory, in a
-file of yours outside every indexed directory:
+the command, every argument of it and the file its program is, as
+allowed for the directory, in a file of yours outside every indexed
+directory:
 
 ```
 $XDG_CONFIG_HOME/aildb/trusted      if the variable is a path from the root
 $HOME/.config/aildb/trusted         else
 ```
 
-A line of it is the SHA-256, in 64 digits, of this text, with `<s>` and
-the numbers as in the identity above, and after a tab the directory, for
-whoever reads the file:
+**The program is found once, when you name it.** A name without a slash
+is looked for in the directories of `PATH` as they are then, and a path
+that does not start at the root is taken from the directory the command
+is in; the configuration gets the result, a path from the root, as the
+first argument of the command. A search started later in another
+directory, or with another `PATH` in which the same name is another
+program, as an MCP server may be, runs the program you named. The links
+of the path are not resolved in the configuration, so a program that
+looks at the name it was started by sees the one you gave. A program
+that is no file that can be run ends `aildb index` with status 2.
+
+A line of the file is the SHA-256, in 64 digits, of this text, with
+`<s>` and the numbers as in the identity above, and after a tab the
+directory, for whoever reads the file:
 
 ```
-aildb-trust 1
+aildb-trust 2
 <directory>
 number of arguments
 <argument>             one line for each, the program first
+<file>                 the file the program is
+file DIGITS            or a line "-"
 ```
 
 The directory is the path the kernel gives for it, from the root and
 with no symbolic link in it (`/proc/self/fd`), so it is the same under
-whatever name it was given. Before a configuration that was read from
-the file is used, by `aildb index` without options and by `aildb search
---text`, the line is looked for. If it is not there, nothing of the
-configuration is run and the command ends with status 2 and one line
+whatever name it was given. `<file>` is what the kernel gives the same
+way for the program, the file that would be run now. The last line is
+`file` and the SHA-256 of the bytes of that file if it lies below the
+directory, and `-` if it does not. Before a configuration that was read
+from the file is used, by `aildb index` without options and by `aildb
+search --text`, the line is looked for. If it is not there, nothing of
+the configuration is run and the command ends with status 2 and one line
 that names the command of the file and says how to allow it, which is
 to give the options yourself:
 
 ```
-aildb: c: the configuration of this index names a provider that was not set up by you on this machine, and nothing of it was run. Its command is: /bin/sh -c 'touch ran'; to allow it, name the provider yourself: aildb index c -i m1 -d 8 ... -- COMMAND
+aildb: c: the configuration of this index names a provider that was not set up by you on this machine, or whose program is no longer the file it was, and nothing of it was run. Its command is: /bin/sh -c 'touch ran'; to allow it, name the provider yourself: aildb index c -i m1 -d 8 ... -- COMMAND
 ```
 
 - **What takes the permission away**: an argument of the command changed
-  in the file by hand, the program among them; the directory moved or
-  copied; another machine or another user. The model, the settings, the
-  time and the number of texts may be edited: they are given to the
-  command you allowed and choose no program.
+  in the file by hand, the program among them, or a program that is no
+  path from the root; the directory moved or copied; another machine or
+  another user; a link on the way to the program that leads to another
+  file than it did, which an update of a system that names its programs
+  by links can be too; and, for a program that lies in the indexed
+  directory, any change of its bytes, as a checkout of another branch
+  makes. The model, the settings, the time and the number of texts may
+  be edited: they are given to the command you allowed and choose no
+  program.
+- **What it does not see**: the bytes of a program outside the
+  directory, which are yours or your system's, and a file that the
+  program reads, a script given to an interpreter among them: `--
+  python3 embed.py` allows `python3`, and `embed.py` is read from the
+  directory the search is started in, whatever it is then. Name such a
+  file by its path from the root and keep it outside a directory you do
+  not own; or make the script itself the program, with its first line
+  naming the interpreter, which puts its bytes under the rule above if
+  it lies in the indexed directory. Between the look at the program and
+  its start the file can be replaced by whoever can write there.
 - **Without `HOME` and `XDG_CONFIG_HOME`**, or where the kernel has no
   `/proc`, nothing is allowed and nothing can be: `aildb index` with
   options ends with status 4 before the provider is asked.

@@ -233,9 +233,8 @@ aildb: r: the provider ended with the status 3: provider-fake: the model is not 
 $ aildb index r -i m3 -d 3 -- /nonexistent/provider
 --- stdout
 --- stderr
-aildb: passed over, a file that is not text: bin.py
-aildb: r: the provider could not be started
---- status 7
+aildb: /nonexistent/provider: the program of the provider is not a file that can be run
+--- status 2
 $ aildb index r -i m3 -d 3 -- FAKE count
 --- stdout
 --- stderr

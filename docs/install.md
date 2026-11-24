@@ -116,7 +116,9 @@ The command of a configuration is run only with that line
 ([provider.md](provider.md#which-commands-are-run)), so a directory that
 came with a `.aildb/config` of its own, or one that you moved or copied,
 is searched by text after you have given `aildb index` its options there
-once.
+once. The line is of the program as it was found then, by its path from
+the root, so a later search runs that program whatever its directory
+and its `PATH` are.
 
 ## Another model
 

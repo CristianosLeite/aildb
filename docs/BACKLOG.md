@@ -584,3 +584,29 @@ each chose.
   `mcp/tests/directory.aiw` (a call in a directory with a configuration
   that came with it: a failure, and its command was not run). The tests
   keep their file in the directory of the test.
+
+### Fixes after the review of `6c707bc`
+
+A second review, of the fixes above at `6c707bc` and of the pull
+requests 33 and 34 of AIL (user, 2026-11-24, again a file `REVIEW.md`
+that is no part of the repository), had six findings; each fix is one
+commit. `.agents/knowledge/architecture/review-6c707bc.md` has what
+each chose.
+
+- [x] The line that allows a command was of its arguments as they were
+  written, and a program named without a slash or from the current
+  directory is found anew by each run: a search with another `PATH` or
+  from another directory ran another program under the same line, and
+  a program of the checkout could change at its path. `aildb index`
+  now finds the program once (`trustprog` of `src/lib/trust.aiw`) and
+  writes its path from the root into the configuration; the key,
+  `aildb-trust 2`, is also of the file that path leads to and, for a
+  program below the indexed directory, of its bytes. Tests
+  `tests/lib_trust.aiw` (the two texts against `sha256sum`; a link
+  turned to another file and a program of the directory changed give
+  another key, a program outside changed the same) and
+  `tests/cli_index_trust.aiw` (a name alone and a path from the
+  current directory, searched from another directory with a `PATH`
+  where the name is a program that leaves a file: the named one
+  answers; a program of the directory replaced is refused, status 2).
+

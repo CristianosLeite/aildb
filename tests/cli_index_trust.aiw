@@ -11,7 +11,12 @@
 # XDG_CONFIG_HOME or under HOME, one for a directory and a command and
 # no second one when the same is named again; without either variable
 # nothing is allowed and nothing can be, which is said before the
-# provider is asked.
+# provider is asked. What is allowed is the program that the name of the
+# command was at that moment: the configuration has its path from the
+# root, so a search that is started in another directory and with
+# another PATH, where the same name is another program, runs the one
+# that was named; and a program that lies in the indexed directory is
+# allowed with the bytes it had, and is not run when they are others.
 use "lib/std/io.aiw"
 use "lib/std/bytes.aiw"
 use "lib/std/file.aiw"
@@ -75,3 +80,12 @@ call dirasked
 call print "# HOME alone: the file is in .config of it\n"
 call dirsh "mkdir home\nenv -i HOME=\"$PWD/home\" GIT_CEILING_DIRECTORIES=\"$PWD\" \"$AILDB\" index n -i m1 -d 8 -- \"$FAKE\"\nfind home | sort\nenv -i HOME=\"$PWD/home\" GIT_CEILING_DIRECTORIES=\"$PWD\" \"$AILDB\" search n --text text -k 1\nenv -i HOME=\"$PWD/home\" GIT_CEILING_DIRECTORIES=\"$PWD\" \"$AILDB\" search p --text gamma -k 1 2>&1 | sed \"s|$FAKE|FAKE|\"\n"
 call dirasked
+call print "# a program named by its name alone, then searched with another PATH and from another directory\n"
+call dirsh "mkdir bin1 bin2 q\nprintf 'q text\\n' > q/t.txt\ncp \"$FAKE\" bin1/prov\nprintf '#!/bin/sh\\ntouch \"$RAN\"\\nexit 3\\n' > bin2/prov\nchmod +x bin2/prov\nexport RAN=\"$PWD/ran\" XDG_CONFIG_HOME=\"$PWD/xdg\" GIT_CEILING_DIRECTORIES=\"$PWD\"\nPATH=\"$PWD/bin1:$PATH\" \"$AILDB\" index q -i m1 -d 8 -- prov spread\ngrep '^arg' q/.aildb/config | sed \"s|$PWD|TMP|\"\ncd bin2\nPATH=\"$PWD:$PATH\" \"$AILDB\" search ../q --text 'q text' -k 1\ncd ..\nls ran 2>&1 | sed 's/^ls: .*: /ls: /'\n"
+call print "# a program named from the directory it is in\n"
+call dirsh "export RAN=\"$PWD/ran\" XDG_CONFIG_HOME=\"$PWD/xdg\" GIT_CEILING_DIRECTORIES=\"$PWD\"\ncd bin1\n\"$AILDB\" index ../q -i m1 -d 8 -- ./prov spread\ncd ../bin2\n\"$AILDB\" search ../q --text 'q text' -k 1\ncd ..\ngrep '^arg' q/.aildb/config | sed \"s|$PWD|TMP|\"\nls ran 2>&1 | sed 's/^ls: .*: /ls: /'\n"
+call print "# a program of the indexed directory: allowed with the bytes it has\n"
+call dirsh "export RAN=\"$PWD/ran\" XDG_CONFIG_HOME=\"$PWD/xdg\" GIT_CEILING_DIRECTORIES=\"$PWD\"\ncp \"$FAKE\" q/prov\n\"$AILDB\" index q -i m1 -d 8 -- q/prov spread > /dev/null 2> index.err || echo status $?\ncat index.err\n\"$AILDB\" search q --text 'q text' -k 1 2> search.err | wc -l\ncat search.err\nrm q/prov\ncp bin2/prov q/prov\nst=0\n\"$AILDB\" search q --text 'q text' -k 1 > search.out 2> search.err || st=$?\necho status $st\ncat search.out\nsed \"s|$PWD|TMP|g\" search.err\nls ran 2>&1 | sed 's/^ls: .*: /ls: /'\n"
+call print "# a program that is not there\n"
+call dirrun "index q -i m1 -d 8 -- /nonexistent/provider"
+call dirrun "index q -i m1 -d 8 -- no-such-program-of-aildb"
