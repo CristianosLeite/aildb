@@ -1,0 +1,10 @@
+append a number of bytes to the end of a dynamic string	sds.c	381
+split a string into pieces at a separator	sds.c	812
+grow the hash table when it has as many elements as slots	dict.c	300
+turn on TCP keepalive for a connection	net.c	171
+connect to a server over a unix domain socket	net.c	607
+parse a string of digits into a 64-bit integer	read.c	162
+build the protocol bytes of a command from a format string and arguments	hiredis.c	316
+send several commands at once and read their replies afterwards	README.md	308
+replace the functions that allocate memory	README.md	792
+limit how large the buffer of the reply reader may stay	README.md	597

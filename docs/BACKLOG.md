@@ -285,6 +285,18 @@ mapped pages contribute to reported peak resident memory.
   the model and the limits of a chunk. `docs/evaluation.md` has the run
   of 2026-11-22. The example stays as it was.
 
+- [x] Variants compared with the queries of `make eval` (2026-11-24):
+  first a third corpus, hiredis at `v1.2.0`, C by other authors, with
+  ten queries committed before they were embedded; then the limits of a
+  chunk, lines in common and the path before the text as options of
+  `build/chunk` (`chunkset` of `src/lib/chunk.aiw`), and the model, its
+  dimension and its prefixes as options of `build/embed`; then `make
+  eval-variants`, six variants on the three corpora, with the table in
+  `docs/evaluation.md`: smaller chunks, larger ones, ten lines of
+  overlap, the path, and mxbai-embed-large. No variant is better on all
+  three; the path before the text gains most on `ail` and `aildb` and
+  loses on `hiredis`. No default was changed.
+
 ## 16. MCP server for coding agents
 
 - [x] `aildb-mcp`, in `mcp/`: a server of the Model Context Protocol

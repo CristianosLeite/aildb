@@ -243,17 +243,17 @@ notes.txt	1	1	text
 $ chunk . meta.tsv
 --- stdout
 --- stderr
-usage: chunk [-c] ROOT META TEXT < LIST
+usage: chunk [-c] [-n LINES] [-b BYTES] [-o LINES] [-p] ROOT META TEXT < LIST
 --- status 2
 $ chunk -c . meta.tsv
 --- stdout
 --- stderr
-usage: chunk [-c] ROOT META TEXT < LIST
+usage: chunk [-c] [-n LINES] [-b BYTES] [-o LINES] [-p] ROOT META TEXT < LIST
 --- status 2
 $ chunk -c . meta.tsv text.jsonl more
 --- stdout
 --- stderr
-usage: chunk [-c] ROOT META TEXT < LIST
+usage: chunk [-c] [-n LINES] [-b BYTES] [-o LINES] [-p] ROOT META TEXT < LIST
 --- status 2
 $ chunk . meta.tsv text.jsonl < list.txt
 --- stdout
@@ -295,3 +295,125 @@ $ chunk . none/meta.tsv text.jsonl < list.txt
 --- stderr
 chunk: cannot write none/meta.tsv
 --- status 4
+
+# the options of the evaluation: other limits, lines in common, the path in the text
+$ chunk -n 5 . meta.tsv text.jsonl < list.txt
+--- stdout
+1 files, 3 chunks
+--- stderr
+--- status 0
+--- meta.tsv
+twelve.txt	1	5	text
+twelve.txt	6	10	text
+twelve.txt	11	12	text
+$ chunk -b 30 . meta.tsv text.jsonl < list.txt
+--- stdout
+1 files, 3 chunks
+--- stderr
+--- status 0
+--- meta.tsv
+twelve.txt	1	4	text
+twelve.txt	5	8	text
+twelve.txt	9	12	text
+$ chunk -n 5 -o 2 . meta.tsv text.jsonl < list.txt
+--- stdout
+1 files, 4 chunks
+--- stderr
+--- status 0
+--- meta.tsv
+twelve.txt	1	5	text
+twelve.txt	4	8	text
+twelve.txt	7	11	text
+twelve.txt	10	12	text
+$ chunk -n 5 -o 9 . meta.tsv text.jsonl < list.txt
+--- stdout
+1 files, 8 chunks
+--- stderr
+--- status 0
+--- meta.tsv
+twelve.txt	1	5	text
+twelve.txt	2	6	text
+twelve.txt	3	7	text
+twelve.txt	4	8	text
+twelve.txt	5	9	text
+twelve.txt	6	10	text
+twelve.txt	7	11	text
+twelve.txt	8	12	text
+$ chunk -n 5 -b 30 -o 3 . meta.tsv text.jsonl < list.txt
+--- stdout
+1 files, 9 chunks
+--- stderr
+--- status 0
+--- meta.tsv
+twelve.txt	1	4	text
+twelve.txt	2	5	text
+twelve.txt	3	6	text
+twelve.txt	4	7	text
+twelve.txt	5	8	text
+twelve.txt	6	9	text
+twelve.txt	7	10	text
+twelve.txt	8	11	text
+twelve.txt	9	12	text
+$ chunk -n 5 -p . meta.tsv text.jsonl < list.txt
+--- stdout
+1 files, 3 chunks
+--- stderr
+--- status 0
+--- meta.tsv
+twelve.txt	1	5	text
+twelve.txt	6	10	text
+twelve.txt	11	12	text
+--- text.jsonl
+"twelve.txt\u000aline 1\u000aline 2\u000aline 3\u000aline 4\u000aline 5"
+"twelve.txt\u000aline 6\u000aline 7\u000aline 8\u000aline 9\u000aline 10"
+"twelve.txt\u000aline 11\u000aline 12"
+$ chunk -n 3 -o 2 . meta.tsv text.jsonl < list.txt
+--- stdout
+1 files, 4 chunks
+--- stderr
+--- status 0
+--- meta.tsv
+gaps.txt	1	1	text
+gaps.txt	4	6	text
+gaps.txt	5	7	text
+gaps.txt	6	8	text
+$ chunk -c -n 3 -o 1 -p . meta.tsv text.jsonl < list.txt
+--- stdout
+1 files, 3 chunks
+--- stderr
+--- status 0
+--- meta.tsv
+sec.md	1	3	markdown
+sec.md	3	5	markdown
+sec.md	6	7	markdown
+--- text.jsonl
+"sec.md\u000a# One\u000aa\u000ab"
+"sec.md\u000ab\u000ac\u000ad"
+"sec.md\u000a# Two\u000ae"
+
+# options that are wrong
+$ chunk -x . meta.tsv text.jsonl < list.txt
+--- stdout
+--- stderr
+usage: chunk [-c] [-n LINES] [-b BYTES] [-o LINES] [-p] ROOT META TEXT < LIST
+--- status 2
+$ chunk -n . meta.tsv text.jsonl < list.txt
+--- stdout
+--- stderr
+usage: chunk [-c] [-n LINES] [-b BYTES] [-o LINES] [-p] ROOT META TEXT < LIST
+--- status 2
+$ chunk -n five . meta.tsv text.jsonl < list.txt
+--- stdout
+--- stderr
+usage: chunk [-c] [-n LINES] [-b BYTES] [-o LINES] [-p] ROOT META TEXT < LIST
+--- status 2
+$ chunk -n 5 . meta.tsv < list.txt
+--- stdout
+--- stderr
+usage: chunk [-c] [-n LINES] [-b BYTES] [-o LINES] [-p] ROOT META TEXT < LIST
+--- status 2
+$ chunk -b 2000000 . meta.tsv text.jsonl < list.txt
+--- stdout
+--- stderr
+usage: chunk [-c] [-n LINES] [-b BYTES] [-o LINES] [-p] ROOT META TEXT < LIST
+--- status 2
