@@ -52,9 +52,9 @@ for review.
   for JSON, the numbers and HTTP: what a program first needs of a general kind is a
   library of AIL, and the user is asked before it is written in the program. The file
   and its test, checked against `hashlib` of Python, are the pull request 33 of the AIL
-  repository; the branch `sha-from-ail` removes them here. Until a version of AIL has
-  the library, that branch is built by the command of the AIL branch alone and the line
-  `ail` of `Ailfile` cannot name what it needs.
+  repository; the branch `sha-from-ail` removes them here. AIL 0.1.2 (user, 2026-11-24)
+  is the first version with the library, and `Ailfile` asks for it since the branch
+  `review-fixes`.
 - **The format of a snapshot is not changed** (agent, 2026-11-24): its model identifier
   stays the model, and the identity is in the manifest and in the name of the file of
   kept vectors. Rejected: the identity in the header, a version 2 of the format for

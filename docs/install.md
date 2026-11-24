@@ -22,7 +22,7 @@ providers `aildb-llama` and `aildb-ollama`, and `aildb-mcp`. They are put
 where `PATH` finds them, or named by their whole paths below.
 
 From the sources, with [AIL](https://github.com/CristianosLeite/ail)
-0.1.1 or later installed: `ail build` in a clone makes `build/aildb`,
+0.1.2 or later installed: `ail build` in a clone makes `build/aildb`,
 `build/aildb-llama` and `build/aildb-ollama`, and `ail build` in `mcp/`
 makes `mcp/build/aildb-mcp`. The first build fetches the package
 ail-extensions from the network.

@@ -81,12 +81,5 @@ the one of the review of `acb1a70` all (`BACKLOG.md`); their choices
 wait for the user's review
 (`.agents/knowledge/status/open-items.md`).
 
-- [ ] The AIL that `Ailfile` asks for cannot build the sources (all
-  five reviews): they use `lib/std/sha.aiw` and `procheld` of
-  `lib/std/proc.aiw`, the pull requests 33 and 34 of AIL, which are in
-  no version. The version is to be 0.1.2, with both pull requests, the
-  second commit of 34 among them (user, 2026-11-24); it is the user's
-  to give. When it is there and its archive is checked: the
-  lines `ail` of `Ailfile` and `mcp/Ailfile` and the version in
-  `docs/install.md` are raised to it, and `make test` on GitHub, which
-  installs that release, is the check.
+Nothing of them is open: the AIL that `Ailfile` asks for is 0.1.2
+since 2026-11-24 (`BACKLOG.md`).

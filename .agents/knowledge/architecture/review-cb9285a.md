@@ -124,7 +124,10 @@ was chosen by the agent and is for the user to review.
   guide are raised after the archive of that version is checked. On 2026-11-24 the
   two pull requests are open and no such version exists, so nothing was raised: a
   version is the user's to give, and the test on GitHub fails for the branch until
-  then.
+  then. (Settled the same day: the user merged both and had the version published,
+  the tag `v0.1.2` at `4c452d1` of AIL; the archive of its release was checked
+  against its `.sha256`, `make test` passes with its command, and the two manifests,
+  `docs/install.md` and `README.md` name 0.1.2.)
 
 ## What was checked
 

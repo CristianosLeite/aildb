@@ -382,8 +382,7 @@ directory, its configuration, its manifest and its kept vectors are in
   2026-11-24): `src/lib/sha.aiw` and its test went to the AIL
   repository as `lib/std/sha.aiw` and `tests/lib_sha_sums` (its pull
   request 33), and `src/lib/config.aiw` and `src/index.aiw` name that
-  file. No version of AIL has it yet, so the line `ail` of `Ailfile`
-  still says 0.1.1 and is raised when the user gives the version.
+  file. AIL 0.1.2 is the first version that has it.
 - [x] The embedding provider interface: two operations, `documents` for
   a batch of chunks and `query` for one query, in a request of JSON that
   carries the model, its revision, the dimension and the settings, so
@@ -815,3 +814,14 @@ A fifth review, of the fixes above at `acb1a70` (user, 2026-11-24,
   the fix the setup wrote the file there and ran the provider) and
   `tests/lib_trust.aiw` (`trustwithin` for paths that are and are not
   there, through links both ways).
+
+### The version of AIL
+
+- [x] The AIL that `Ailfile` asked for could not build the sources (all
+  five reviews): they use `lib/std/sha.aiw` and `procheld` of
+  `lib/std/proc.aiw`, which AIL 0.1.1 has not. AIL 0.1.2 has both (user,
+  2026-11-24: its tag `v0.1.2` at `4c452d1`, with the pull requests 33
+  and 34, `880195c` among them), and the lines `ail` of `Ailfile` and
+  `mcp/Ailfile` and the version in `docs/install.md` and `README.md`
+  name it. The archive of its release was checked against its
+  `.sha256` and `make test` passes with the command of that archive.
