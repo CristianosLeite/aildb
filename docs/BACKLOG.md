@@ -676,3 +676,23 @@ chose.
   the change when it is asked; on the code before the fix the vectors
   were written into the directory outside and a file of it was
   removed.
+- [x] A change of the configuration that was killed after its snapshot
+  had its name was ended by the next run, but the manifest was still
+  that of the older snapshot, so that run looked at every file and
+  published the same snapshot again (the review: the inode of the
+  snapshot changed), against what `docs/index.md` said. The manifest
+  of a snapshot is now written to `manifest.new` when the snapshot is
+  whole in its temporary file and before it has its name (`ixbefore`,
+  which `publish` of `src/main.aiw` calls), and renamed after, before
+  `config.new`. `ixrecover` gives a `manifest.new` that is of the
+  snapshot which is there its name and removes another; `config.new`
+  is taken only if the manifest is of the snapshot and names its
+  identity, so a run that ended before its snapshot had its name is
+  undone whole, and the case of no manifest is no longer a guess. An
+  ordinary run that is killed after the rename is ended the same way.
+  Tests `tests/cli_search_text.aiw` (after the kill at stop 5 the next
+  search asks for its query alone and the snapshot has the inode it
+  had; on the code before the fix it had another; a change killed at
+  stop 2 leaves `config`, `index` and `manifest` the bytes they were)
+  and `tests/kill_index.aiw` (the run after a kill at stop 5 and at
+  stop 3 now prints `"published":false`).

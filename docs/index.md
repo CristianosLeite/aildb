@@ -263,12 +263,16 @@ The numbers and digits above are an example of the layout, not of a run.
 A path that `build` would not take, with a control byte in it, has no
 line: it is passed over by every run.
 
-The manifest is written after the snapshot it is of, and a run believes it
-only when its line `snapshot` is the snapshot that is there. So whatever
-stopped a run between the two, a kill or a full disk, the next run sees a
-manifest of another snapshot, takes it for none, and looks at every file
-again; it still has the kept vectors, and asks the provider for nothing it
-got before.
+A run believes a manifest only when its line `snapshot` is the snapshot
+that is there. The manifest of a new snapshot is written to
+`manifest.new` when the snapshot is whole in its temporary file, before
+it has its name, and gets the name `manifest` after. So a run that ends
+between the two, killed, has left what says that its snapshot was
+published: the next run that takes the lock gives `manifest.new` its
+name and publishes nothing. A `manifest.new` of a snapshot that never
+got its name is removed. If no manifest is of the snapshot, a file that
+was lost, the next run looks at every file again; it still has the kept
+vectors, and asks the provider for nothing it got before.
 
 ## The vectors that are kept
 
@@ -300,34 +304,40 @@ vectors that no chunk used, when a run ends that had such.
   with status 5 at once, having changed nothing. Runs of two directories
   do not meet.
 - **A run that is killed** leaves, before the rename, the snapshot and
-  the manifest that were there, and a temporary file that the next run
-  removes; after the rename, the new snapshot and the manifest of the old
-  one, which the next run takes for none. In both the next run publishes
-  a snapshot of the files as they are then and writes its manifest.
+  the manifest that were there, with a temporary file and perhaps a
+  `manifest.new` that the next run with the lock removes; that run
+  publishes a snapshot of the files as they are then. After the rename it
+  leaves the new snapshot with its manifest in `manifest.new`, which the
+  next run with the lock gives its name: nothing is published again, and
+  the snapshot stays the file it is.
 - **A configuration and its snapshot change together.** Options that
   name another provider are a configuration that is not `config` until a
   snapshot of it has its name. When the provider has answered for every
   text, the configuration is written whole to `config.new`, and the
-  command is noted as allowed; then the snapshot is published; then
-  `config.new` takes the name `config`. So:
-  - a provider that fails, and a configuration that cannot be written,
-    end the run before anything is published: `config` and `index` are
-    what they were, and a search by text goes on with the old provider.
-    The vectors that the new one gave are kept, and the same options
-    given again ask for the rest;
-  - a run that ends between the snapshot and the last rename, killed or
-    because the rename failed, leaves the new snapshot, the old `config`
-    and `config.new`. The next run that takes the lock, a search by text
-    among them, ends what was begun: `config.new` takes the name
-    `config`, and nothing is embedded or published for it;
-  - a run that ends after `config.new` was written and before the
-    snapshot has its name leaves `config.new` with the old snapshot. The
-    next run tells the two apart by the manifest: if the manifest is of
-    the snapshot that is there and names another identity than
-    `config.new` has, the snapshot is the old one and `config.new` is
-    removed. If no manifest is of the snapshot, nothing says which
-    configuration it is of, and the one of `config.new`, which is what
-    you asked for last, is taken; the run then makes the snapshot of it.
+  command is noted as allowed; then the snapshot is written and its
+  manifest, to `manifest.new`; then the snapshot gets its name; then
+  `manifest.new` and `config.new` get theirs, in that order. So:
+  - a provider that fails, and a configuration or a manifest that cannot
+    be written, end the run before anything is published: `config` and
+    `index` are what they were, and a search by text goes on with the
+    old provider. The vectors that the new one gave are kept, and the
+    same options given again ask for the rest;
+  - a run that ends after the snapshot has its name and before the last
+    rename, killed or because a rename failed, leaves the new snapshot,
+    the old `config`, and `config.new` with or without `manifest.new`.
+    The next run that takes the lock, a search by text among them, ends
+    what was begun: a `manifest.new` that is of the snapshot which is
+    there takes the name `manifest`, and `config.new` takes the name
+    `config` because the manifest is then of that snapshot and names
+    its identity. Nothing is embedded and nothing is published for it:
+    the snapshot is the file the killed run published;
+  - a run that ends before the snapshot has its name leaves
+    `config.new`, perhaps `manifest.new` and the temporary file, with
+    the old snapshot. No manifest of the snapshot that is there names
+    the identity of `config.new`, so the next run that takes the lock
+    removes them: the index is what it was before the run, and the
+    options are to be given again. A search by text that finds the
+    index fresh takes no lock and leaves them there until a run does.
 
   `aildb check` of `.aildb/index` in the second case reports the new
   model while `config` still names the old one, until that next run.

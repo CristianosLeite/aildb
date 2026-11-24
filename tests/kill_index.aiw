@@ -3,9 +3,10 @@
 # without asking the provider again for what the killed one got. Killed
 # before its snapshot has its name, as a first index and over an older
 # one, the directory has no snapshot or the older one with its manifest;
-# killed after the snapshot has its name and before the manifest is
-# written, it has the new snapshot and the manifest of the older one,
-# which the next run finds out and replaces. While a run is stopped, a
+# killed after the snapshot has its name and before its manifest has,
+# it has the new snapshot, the manifest of the older one and the one of
+# the new in manifest.new, which the next run gives its name without
+# publishing anything. While a run is stopped, a
 # second run of the same directory ends with the status of a build in
 # progress, and a run of another directory goes on. Last, a run that is
 # killed while its provider works: the provider ends with it.

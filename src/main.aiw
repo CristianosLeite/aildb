@@ -515,6 +515,8 @@ fn publish vec count dim vp vn
 		call snapwhy msg snap r
 		call giveup stio
 	end
+	# what an index of a directory writes before its snapshot has its name
+	call ixbefore
 	call hookstop 2
 	sys rename tp dp as r
 	if r

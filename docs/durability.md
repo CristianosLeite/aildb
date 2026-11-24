@@ -141,6 +141,8 @@ checked against something before it is believed, the manifest against the
 size and the sums of the snapshot that is there and each kept vector
 against its own sum, so what a loss of power makes of them is at worst a
 file that is taken for none, and the next run does the work again. The
-manifest is written after the snapshot is published and flushed, never
-before: there is no moment at which a manifest is of a snapshot that is
-not there yet.
+manifest of a new snapshot is written to `manifest.new` before the
+snapshot has its name and gets the name `manifest` after, so the file
+named `manifest` is never of a snapshot that is not there yet; a
+`manifest.new` that a run left is believed by the next one only if it is
+of the snapshot that is there, and removed if it is not.

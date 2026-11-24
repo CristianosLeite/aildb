@@ -298,6 +298,7 @@ config.new
 index
 index.lock
 manifest
+manifest.new
 p/.aildb/config:model	m3
 p/.aildb/config.new:model	m5
 $ aildb check p/.aildb/index
@@ -319,9 +320,43 @@ index
 index.lock
 manifest
 model	m5
+the snapshot is the file that the run published
 $ aildb index p
 --- stdout
 {"records":8,"dimension":8,"model":"m5","source_revision":null,"files":7,"embedded":0,"published":false}
 --- stderr
 --- status 0
 --- provider.log
+# a change killed when its snapshot is written and has no name yet: the index is what it was
+--- provider.log
+documents 8 m6
+cache
+config
+config.new
+index
+index.N.tmp
+index.lock
+manifest
+manifest.new
+$ aildb search p --text 'last' -k 1
+--- stdout
+{"source_revision":null,"model":"m5"}
+{"rank":1,"score":1.000000,"score_bits":"3feffffffca0b060","path":"g.txt","start_line":1,"end_line":1}
+--- stderr
+--- status 0
+--- provider.log
+query 1 m5
+the configuration, the snapshot and the manifest are what they were
+# and the next run that takes the lock removes what the killed one left
+$ aildb index p
+--- stdout
+{"records":8,"dimension":8,"model":"m5","source_revision":null,"files":7,"embedded":0,"published":false}
+--- stderr
+--- status 0
+--- provider.log
+cache
+config
+index
+index.lock
+manifest
+the configuration, the snapshot and the manifest are what they were

@@ -208,10 +208,30 @@ sys kill pid 9
 call procwait pid 0 as x
 call fileunlink "aildb.stopped"
 call dirasked
-call dirsh "ls p/.aildb\ngrep model p/.aildb/config p/.aildb/config.new\n"
+call dirsh "ls p/.aildb\ngrep model p/.aildb/config p/.aildb/config.new\nstat -c %i p/.aildb/index > inode.kept\n"
 call dirrun "check p/.aildb/index"
 call find "p" "last" "-k 1"
 call dirasked
-call dirsh "ls p/.aildb\ngrep model p/.aildb/config\n"
+call dirsh "ls p/.aildb\ngrep model p/.aildb/config\nstat -c %i p/.aildb/index | cmp - inode.kept && echo the snapshot is the file that the run published\n"
 call dirrun "index p"
 call dirasked
+call print "# a change killed when its snapshot is written and has no name yet: the index is what it was\n"
+call dirsh "cp p/.aildb/config config.kept\ncp p/.aildb/index index.kept\ncp p/.aildb/manifest manifest.kept\n"
+call filewrite "aildb.hook" "stop 2"
+call dirhooks 1
+call dirspawn "index p -i m6 -d 8 -- FAKE spread" as pid
+call cmdawait "aildb.stopped" 5000 as r
+call fileunlink "aildb.hook"
+call dirhooks 0
+sys kill pid 9
+call procwait pid 0 as x
+call fileunlink "aildb.stopped"
+call dirasked
+call dirsh "ls p/.aildb | sed 's/index\\.[0-9a-f]*\\.tmp/index.N.tmp/'\n"
+call find "p" "last" "-k 1"
+call dirasked
+call dirsh "cmp config.kept p/.aildb/config && cmp index.kept p/.aildb/index && cmp manifest.kept p/.aildb/manifest && echo the configuration, the snapshot and the manifest are what they were\n"
+call print "# and the next run that takes the lock removes what the killed one left\n"
+call dirrun "index p"
+call dirasked
+call dirsh "ls p/.aildb\ncmp config.kept p/.aildb/config && cmp index.kept p/.aildb/index && cmp manifest.kept p/.aildb/manifest && echo the configuration, the snapshot and the manifest are what they were\n"

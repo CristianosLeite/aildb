@@ -79,6 +79,9 @@ var ixroot
 var ixcroot
 # 1 once this process holds the lock of the index
 var ixlocked
+# 1 while a run of index publishes its snapshot, and 1 once the manifest
+# of that snapshot is written to .aildb/manifest.new
+var ixrun ixmanstaged
 
 fn nomem
 	call bycut msg 0
@@ -737,18 +740,80 @@ fn ixcommit
 	ixstaged=0
 end
 
-# End what a run began that left .aildb/config.new: the lock is held, so
-# no run is between the two. That file was written before a snapshot of
-# its configuration was published and renamed after, so the snapshot
-# that is there is of one of the two configurations. It is of the old
-# one if the manifest is of that snapshot and names another identity
-# than config.new has: the run ended before it published, and
-# config.new is removed. Else the snapshot was published, or nothing
-# says which it is of, and config.new takes the place of config: what
-# the user asked for last. A config.new that is no configuration is
-# removed.
+# 1 if the manifest that ixman holds is one, and of the snapshot that is
+# at its name now, by its size and its two sums. snap is not left open.
+fn ixofsnap
+	call manvalid ixman as ok
+	ifz ok
+		ret 0
+	end
+	if ixopen
+		call snapclose snap
+	end
+	ixopen=0
+	ixmanok=0
+	load dst as p
+	load dst+8 as n
+	call snapopen snap p n-1 as r
+	if r
+		ret 0
+	end
+	load snap as a
+	load snap+8 as size
+	load4 a+96 as vsum
+	load4 a+100 as msum
+	call snapclose snap
+	load ixman+72 as x
+	load ixman+80 as y
+	load ixman+88 as z
+	ret (x==size)&(y==msum)&(z==vsum)
+end
+
+# End what a run began that left .aildb/manifest.new or
+# .aildb/config.new: the lock is held, so no run is between two steps.
+# A run writes config.new, then the snapshot to its temporary file, then
+# manifest.new, which says of which snapshot it is; then the snapshot
+# gets its name, and after that manifest.new and config.new get theirs,
+# in that order. So what was left says how far the run came:
+#
+# - manifest.new that is of the snapshot which is there: the snapshot
+#   was published. It takes the name manifest, and nothing has to be
+#   published again.
+# - manifest.new that is of another snapshot, or no manifest: the run
+#   ended before its snapshot had its name. It is removed.
+# - config.new, after that: if the manifest is of the snapshot that is
+#   there and names the identity of config.new, the snapshot is of that
+#   configuration, and config.new takes the name config. Else the
+#   snapshot is of the old one, or there is none, and config.new is
+#   removed: the index is what it was before the run.
 fn ixrecover
 	local id 32
+	call ixin ixother "manifest.new" as q m
+	# O_NOFOLLOW
+	call fileopen q m 0x20000 0 as fd
+	ifsge fd 0
+		sys close fd
+		call manfree ixman
+		call manopen ixman q m as r
+		take=0
+		ifz r
+			call ixofsnap as take
+		end
+		call manfree ixman
+		call ixin ixother "manifest.new" as q m
+		if take
+			call ixin ixpath "manifest" as p n
+			sys rename q p as r
+			if r
+				call about p n
+				call byadd msg "cannot write: "
+				call oserr r
+				call fail stio
+			end
+		else
+			call fileunlink q m
+		end
+	end
 	call ixin ixother "config.new" as q m
 	call bycut ixcfg 0
 	call fileread q m ixcfg as r
@@ -760,7 +825,6 @@ fn ixrecover
 	call confparse ixconf2 a an as w line
 	take=0
 	ifz w
-		take=1
 		call confident ixconf2 id as ok
 		call bycut ixhex 0
 		call shahex ixhex id as x
@@ -770,30 +834,18 @@ fn ixrecover
 		call ixin ixpath "manifest" as p n
 		call manfree ixman
 		call manopen ixman p n as r
-		call manvalid ixman as ok
-		if (r==0)&ok
-			load dst as p
-			load dst+8 as n
-			call snapopen snap p n-1 as r
-			ifz r
-				load snap as a
-				load snap+8 as size
-				load4 a+96 as vsum
-				load4 a+100 as msum
-				load ixman+72 as x
-				load ixman+80 as y
-				load ixman+88 as z
-				if (x==size)&(y==msum)&(z==vsum)
-					load ixman+64 as h
-					load ixhex as x
-					call texteq h 64 x 64 as take
-				end
-				call snapclose snap
-			end
+		ifz r
+			call ixofsnap as take
+		end
+		if take
+			load ixman+64 as h
+			load ixhex as x
+			call texteq h 64 x 64 as take
 		end
 		call manfree ixman
 	end
 	call conffree ixconf2
+	call ixin ixother "config.new" as q m
 	if take
 		call ixin ixpath "config" as p n
 		sys rename q p as r
@@ -1463,42 +1515,74 @@ fn ixgather
 end
 
 # Write the manifest of the snapshot that snap is, with the lines of
-# ixnew: to a file beside it that then takes its place. new says that
-# the snapshot was published by this run; if it was not and the lines
-# are those of the manifest that is there, nothing is written.
-fn ixwrite new
-	start=ixstarted
-	ifz new
-		load ixman+104 as p
-		load ixman as q
-		load ixman+8 as n
-		p+=65
-		load ixnew as a
-		load ixnew+8 as an
-		call texteq p q+n-p a an as same
-		if same
-			ret 0
-		end
-	end
+# ixnew, whole to .aildb/manifest.new: 0, or the error of the kernel.
+fn ixmanstage
 	load snap as a
 	load snap+8 as size
 	load4 a+96 as vsum
 	load4 a+100 as msum
 	call bycut ixcfg 0
-	call manhead ixcfg ixidhex size msum vsum start ixstatehex
+	call manhead ixcfg ixidhex size msum vsum ixstarted ixstatehex
 	load ixnew as a
 	load ixnew+8 as an
 	call byadd ixcfg a an as ok
 	ifz ok
 		call nomem
 	end
-	call ixin ixpath "manifest" as p n
 	call ixin ixother "manifest.new" as q m
 	load ixcfg as a
 	load ixcfg+8 as an
-	call ixsave q m a an as r
+	tail ixsave q m a an
+end
+
+# .aildb/manifest.new takes the name manifest: 0, or the error of the
+# kernel
+fn ixmancommit
+	call ixin ixpath "manifest" as p n
+	call ixin ixother "manifest.new" as q m
+	sys rename q p as r
+	ret r
+end
+
+# What publish of src/main.aiw calls when the snapshot is whole in its
+# temporary file, read back as snap, and has not got its name yet: in a
+# run of index the manifest of that snapshot is written to manifest.new.
+# A run that ends after the snapshot has its name has then left what
+# says so, and the next run ends it without publishing again
+# (ixrecover). A manifest that cannot be written ends the run with the
+# snapshot that was there.
+fn ixbefore
+	ifz ixrun
+		ret 0
+	end
+	call ixmanstage as r
+	if r
+		call ixin ixother "manifest.new" as q m
+		call about q m
+		call byadd msg "cannot write: "
+		call oserr r
+		call giveup stio
+	end
+	ixmanstaged=1
+end
+
+# The snapshot that is there has no new name, and the lines of ixnew are
+# its manifest: if they are not those of the manifest that is there, it
+# is written, to a file beside it that then takes its place.
+fn ixwrite
+	load ixman+104 as p
+	load ixman as q
+	load ixman+8 as n
+	p+=65
+	load ixnew as a
+	load ixnew+8 as an
+	call texteq p q+n-p a an as same
+	if same
+		ret 0
+	end
+	call ixmanstage as r
 	ifz r
-		sys rename q p as r
+		call ixmancommit as r
 	end
 	if r
 		# the next run finds no manifest of the snapshot and looks at
@@ -1610,7 +1694,7 @@ fn ixrefresh
 	if same
 		call ixstage
 		call ixcommit
-		call ixwrite 0
+		call ixwrite
 	else
 		call ixgather
 		# the strings of the snapshot start with the model and the revision
@@ -1651,11 +1735,18 @@ fn ixrefresh
 		# be written leaves the snapshot that was there
 		call ixstage
 		call hookstop 4
+		# publish calls ixbefore, which writes the manifest of the snapshot
+		# before it has its name
+		ixrun=1
 		call publish vec count dim "the provider"
+		ixrun=0
 		call hookstop 5
-		call ixcommit
 		ixpublished=1
-		call ixwrite 1
+		call ixmancommit as r
+		if r
+			call ixwarn "the manifest could not be written: " r
+		end
+		call ixcommit
 	end
 	call cacheclose ixcache as r
 	if r
