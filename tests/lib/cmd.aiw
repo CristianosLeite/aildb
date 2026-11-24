@@ -10,6 +10,9 @@
 # without a directory, and a program by its name alone: "aildb check x"
 # starts build/aildb of the repository.
 #
+# cmdshow takes a command as one line, whose arguments end at a space;
+# cmdbegin, cmdadd and cmdshowv take one whose arguments have spaces.
+#
 # Every name of this file starts with "cmd"; a test has no var of such a
 # name (see lib/std/io.aiw).
 
@@ -23,7 +26,7 @@ buf cmdse 24
 buf cmdline 4096        # the arguments of cmdargs, a NUL after each
 buf cmdargv 520         # their addresses, 64 at most, and a 0
 buf cmdnames 24         # the names of cmdstaged
-var cmdhomen
+var cmdhomen cmdused cmdcount
 
 sys cmdgetcwd cmdhome 4096 as cmdr
 ifsle cmdr 0
@@ -114,7 +117,17 @@ fn cmdargs cmdp cmdn
 	ifz cmdk
 		ret 0
 	end
+	tail cmdprog
+end
+
+# The arguments at cmdargv with the program found: a first argument
+# without a slash is a program of build/ in the repository, and is given
+# by its whole path. The result is cmdargv, or 0 if there is no argument.
+fn cmdprog
 	load cmdargv as cmdq
+	ifz cmdq
+		ret 0
+	end
 	cmdi=0
 	label slash
 	loadb cmdq+cmdi as cmdc
@@ -130,6 +143,68 @@ fn cmdargs cmdp cmdn
 	call bycopy cmdexe+cmdhomen+7 cmdq cmdi+1
 	store cmdargv cmdexe
 	ret cmdargv
+end
+
+# Start the arguments of a command that cmdshowv is to run: none yet.
+fn cmdbegin
+	cmdused=0
+	cmdcount=0
+	store cmdargv 0
+end
+
+# Add the argument of the cmdn bytes at cmdp to them, which may have
+# spaces and may be empty, but has no NUL byte: 1, or 0 if there are 64
+# already or the arguments would be more than 4095 bytes.
+fn cmdadd cmdp cmdn
+	if (cmdcount>=64)|(cmdused+cmdn>4094)
+		ret 0
+	end
+	call bycopy cmdline+cmdused cmdp cmdn
+	storeb cmdline+cmdused+cmdn 0
+	store cmdargv+cmdcount*8 cmdline+cmdused
+	cmdcount+=1
+	store cmdargv+cmdcount*8 0
+	cmdused+=cmdn+1
+	ret 1
+end
+
+# Run the arguments of cmdbegin and cmdadd as cmdshow runs a line, and
+# print the same; an argument that is empty or has a space is printed
+# between two "'". The first one is a program as cmdargs finds it.
+fn cmdshowv
+	call print "$"
+	cmdk=0
+	label each
+	load cmdargv+cmdk*8 as cmdq
+	if cmdq
+		call print " "
+		call strlen cmdq as cmdl
+		cmdw=cmdl
+		cmdi=0
+		while cmdi<cmdl
+			loadb cmdq+cmdi as cmdc
+			if cmdc==32
+				cmdw=0
+			end
+			cmdi+=1
+		end
+		if cmdw
+			call print cmdq cmdl
+		else
+			call print "'"
+			call print cmdq cmdl
+			call print "'"
+		end
+		cmdk+=1
+		jmp each
+	end
+	call print "\n"
+	cmds=-2000
+	call cmdprog as cmdav
+	if cmdav
+		call cmdrun cmdav -1 cmdso cmdse as cmds
+	end
+	tail cmdtold cmds
 end
 
 # Run a command line with /dev/null as its stdin and print the line, what
@@ -163,6 +238,12 @@ fn cmdshowin cmdp cmdn cmdq cmdm
 	if cmdin!=-1
 		sys close cmdin
 	end
+	tail cmdtold cmds
+end
+
+# print what the program of the last cmdrun wrote to stdout and to stderr
+# and how it ended, which is cmds, the result
+fn cmdtold cmds
 	call print "--- stdout\n"
 	load cmdso as cmdq
 	load cmdso+8 as cmdl
