@@ -13,12 +13,23 @@ buf av 104              # their addresses
 buf so 24               # what the command printed
 buf se 24               # and what it said
 data mname "aildb\0"
-# zn: the bytes of zs that are taken, set to 0 before the first arg of
-# a command; ms: the milliseconds a command may take, 0 for no limit
-var zn ms
+# zn: the bytes of zs that are taken; zbad: 1 if an argument of the
+# command had no room; ms: the milliseconds a command may take, 0 for no
+# limit
+var zn zbad ms
 
-# add the n bytes at p to the arguments of the command as number k
+# Add the n bytes at p to the arguments of the command as number k; the
+# number 0 starts a command. An argument that zs or av has no room for
+# is not added, and run then starts nothing.
 fn arg k p n
+	ifz k
+		zn=0
+		zbad=0
+	end
+	if (k>11)|(n>8191)|(zn+n+1>8192)
+		zbad=1
+		ret 0
+	end
 	call bycopy zs+zn p n
 	storeb zs+zn+n 0
 	store av+k*8 zs+zn
@@ -46,12 +57,16 @@ end
 
 # Run the command of av with the n bytes at p as its stdin: its status
 # as procwait gives it, with so and se what it wrote; -1000 if it took
-# longer than ms, and -2000 if it could not be started.
+# longer than ms, -2000 if it could not be started, and -3000 if its
+# arguments had no room, after which nothing was started.
 fn run p n
 	# nothing of the command before this one is left to be read as
 	# what this one said, should it not be started
 	call bycut so 0
 	call bycut se 0
+	if zbad
+		ret 0-3000
+	end
 	call memfile p n as in
 	call memfile 0 0 as out
 	call memfile 0 0 as err

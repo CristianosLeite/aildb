@@ -494,3 +494,19 @@ directory, its configuration, its manifest and its kept vectors are in
   searched the directory `docs` of a clone with `aildb-llama` and
   llama.cpp `b12676` (`docs/install.md`). Not run: the steps with an
   archive of a release, which no release has yet.
+
+### Fixes after the review of `5eeba0b`
+
+A review of step 17 at `5eeba0b`, in a file `REVIEW.md` that is no part
+of the repository (user, 2026-11-24), had eight findings; each fix is
+one commit. `.agents/knowledge/architecture/review-5eeba0b.md` has what
+each chose.
+
+- [x] The arguments that `aildb-mcp -d` gives the command were written
+  into 8192 bytes without a look at the room, and a directory, a query
+  and two filters, each within its limit, are up to 9286: `arg` of
+  `mcp/src/run.aiw` adds nothing that has no room, `run` then starts
+  nothing, and the call is a failure that says so. Tests
+  `mcp/tests/run.aiw` (8192 bytes run, 8193 not, thirteen arguments
+  not, the command after them run) and `mcp/tests/directory.aiw` (such
+  a call, and the next one served).

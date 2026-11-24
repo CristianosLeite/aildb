@@ -116,6 +116,12 @@ search that takes longer than `MS`, and whatever `aildb search` said when
 it did not end with status 0: a snapshot that is gone or damaged, and a
 vector that is not of the dimension of the snapshot.
 
+The arguments of the command have room for 8192 bytes, a byte after each
+with them. With `-d`, a directory of up to 2000 bytes, a query of up to
+4000, a `path_prefix` of up to 2000 and a `language` of up to 255 are
+each taken and may be more than that together: such a call is a failure
+that says so, and no command is started.
+
 **A call starts the command anew**, so each search opens the snapshot
 that is at the path then: after `aildb build` has published another one,
 the next call searches it, with nothing to reload. The server keeps

@@ -205,3 +205,35 @@ call refused "-d p -e http://127.0.0.1:1"
 call refused "-d p -p prefix"
 call refused "-d"
 call refused "-d p -t 0"
+call print "\n# a directory, a query and filters that are each within their limit\n# and have no room together: a failure of the call, and the next is served\n"
+buf big 24
+# add k times the n bytes at p to big
+fn times k p n
+	while k
+		call byadd big p n
+		k-=1
+	end
+end
+call byadd big "-d p"
+call times 998 "/."
+load big as q
+load big+8 as m
+call start q m as pid
+call ask "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2025-11-25\",\"capabilities\":{},\"clientInfo\":{\"name\":\"test\",\"version\":\"0\"}}}"
+call say "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}"
+call bycut big 0
+call byadd big "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\""
+call times 4000 "q"
+call byadd big "\",\"path_prefix\":\""
+call times 2000 "x"
+call byadd big "\",\"language\":\""
+call times 255 "l"
+call byadd big "\"}}}\n"
+call print "> a query of 4000 bytes, a path_prefix of 2000 and a language of 255\n"
+load big as q
+load big+8 as m
+load4 pend+4 as wr
+call fdwrite wr q m
+call hear
+call ask "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"new\",\"k\":1}}}"
+call finish pid
