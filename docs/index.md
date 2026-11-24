@@ -56,6 +56,16 @@ left alone when it is, so a line taken out of it stays out.
   a file that the link leads to is taken where it is, if it is in the
   tree. A pipe, a socket and a device are not taken. A file that git
   knows and that is no longer on disk is not taken.
+- **No link on the way to a file either.** Git names a file it knows by
+  the path it had, and a directory of that path may since have become a
+  symbolic link, to anywhere. So a path is not handed to the kernel
+  whole: each part is opened from the one before it, from the indexed
+  directory on, and a part that is a link ends it
+  (`src/lib/below.aiw`). Such a file is not taken, as one that is gone
+  is not. The file that is read is opened the same way and is the one
+  the kernel then says is a regular file, so a file that is replaced by
+  a link or a pipe between the listing and the reading is not read
+  through. The indexed directory itself may be named through links.
 - **The bytes are those on disk** when the command reads the file: an
   edit that is not committed, and not even saved to git's index, is what
   is indexed.
@@ -278,7 +288,10 @@ commit, options that replace the configuration, wrong usage, a
 configuration that cannot be read, and three providers that fail, after
 which `check` prints what it printed before. `tests/cli_index_plain.aiw`
 does it in a directory that is in no work tree, with hidden files, links,
-a pipe and a directory named `.git`. `tests/lib_tree.aiw` is the listing
+a pipe and a directory named `.git`; and `tests/cli_index.aiw` ends with
+a directory of a file git knows that became a link to a directory
+outside, whose file is not taken. `tests/lib_below.aiw` is the opening of
+a path part by part. `tests/lib_tree.aiw` is the listing
 and the revision alone, with line ends on disk that are not those of git.
 
 `tests/cli_index_refresh.aiw` counts what the provider is asked, from the

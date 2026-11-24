@@ -253,3 +253,16 @@ config
 index
 index.lock
 manifest
+# a directory of files that git knows becomes a link to one outside
+$ aildb index r
+--- stdout
+{"records":3,"dimension":2,"model":"m2","source_revision":"c609d70081a49b49e0e145beaa78aaae4ede511d","files":3,"embedded":0,"published":false}
+--- stderr
+--- status 0
+sub/b.py
+sub/b.py
+$ aildb index r
+--- stdout
+{"records":2,"dimension":2,"model":"m2","source_revision":null,"files":2,"embedded":0,"published":true}
+--- stderr
+--- status 0

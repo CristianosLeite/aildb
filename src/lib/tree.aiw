@@ -18,6 +18,7 @@ use "lib/std/file.aiw"
 use "lib/std/proc.aiw"
 use "src/lib/text.aiw"
 use "src/lib/run.aiw"
+use "src/lib/below.aiw"
 
 const treenewfstatat 262
 
@@ -77,22 +78,29 @@ end
 # following a symbolic link: written to the 32 bytes at treest are what
 # it is (a constant above), its size, and the nanoseconds of its last
 # change of contents and of its last change of anything. 0, or the error
-# of the kernel.
+# of the kernel. A path below the directory is walked part by part
+# (src/lib/below.aiw), so one that has a symbolic link before its last
+# part is an error, not what the link leads to.
 fn treestat treedp treedn treepp treepn treest
 	local trees 144
-	call bycut treefull 0
-	call byadd treefull treedp treedn
 	if treepn
-		call byaddb treefull 47
-		call byadd treefull treepp treepn
+		call belowopen treedp treedn treepp treepn belowlook as treefd
+		ifslt treefd 0
+			ret treefd
+		end
+		sys fstat treefd trees as treer
+		sys close treefd
+	else
+		call bycut treefull 0
+		call byadd treefull treedp treedn
+		call byaddb treefull 0 as treeok
+		ifz treeok
+			ret -12
+		end
+		load treefull as treep
+		# AT_FDCWD and AT_SYMLINK_NOFOLLOW
+		sys treenewfstatat -100 treep trees 0x100 as treer
 	end
-	call byaddb treefull 0 as treeok
-	ifz treeok
-		ret -12
-	end
-	load treefull as treep
-	# AT_FDCWD and AT_SYMLINK_NOFOLLOW
-	sys treenewfstatat -100 treep trees 0x100 as treer
 	ifslt treer 0
 		ret treer
 	end

@@ -90,3 +90,28 @@ was chosen by the agent and is for the user to review.
   same identity; the revision is the line for it, as before.
 - **Checked.** The eleven identities of `tests/lib_config.aiw` are those `hashlib` of
   Python gives for the text of `docs/provider.md` (2026-11-24).
+
+## A symbolic link before the last part of a path (P2)
+
+- **Finding.** `AT_SYMLINK_NOFOLLOW` of `treestat` holds for the last part of a path
+  only. `git ls-files --cached` names a file by the path it had, so after `sub` became
+  a link to a directory outside, `sub/b.py` was a regular file to `treestat` and was
+  read from outside. The read was by name too, after the look, so a file replaced in
+  between was read as whatever it had become.
+- **Decision (agent, 2026-11-24).** `src/lib/below.aiw`, `belowopen`: the directory is
+  opened as it is named, and each part of the path from the one before it with
+  `openat` and `O_NOFOLLOW` (`O_PATH` and `O_DIRECTORY` on the way). `treestat` asks
+  `fstat` of that descriptor; the sum of a file in `src/index.aiw` and
+  `chunkreadmax` of the chunker read a descriptor opened the same way, with
+  `O_NONBLOCK` and a check that it is a regular file. A file that fails this is not
+  taken, like one that is gone.
+- **Rejected.** `openat2` with `RESOLVE_NO_SYMLINKS` and `RESOLVE_BENEATH`: one call
+  instead of one a part, but Linux 5.6 or later and a filter of system calls that lets
+  it through, which the container of `make dist-check` need not have. A part `..` is
+  refused instead of resolved, because going up from a descriptor can leave the
+  directory when a directory is moved meanwhile.
+- **Not changed.** The walk of a directory that is no work tree lists a directory by
+  its name; what it lists is then looked at part by part, so names from a directory
+  that was swapped for a link are refused one by one. `chunkcorpus`, the `-c` of
+  `build/chunk` for the corpora of the example, reads by name as it did: its files are
+  an archive of a revision that the scripts unpack.

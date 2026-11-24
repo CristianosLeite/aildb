@@ -8,6 +8,8 @@ B.txt: kind 1, 2 bytes
 sub: kind 2
 link.txt: kind 3
 dir: kind 3
+dir/b.txt: error 20
+sub/b.txt: kind 1, 1 bytes
 pipe: kind 4
 none: error 2
 o/p: revision 0

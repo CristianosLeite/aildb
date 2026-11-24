@@ -6,6 +6,7 @@
 use "lib/std/bytes.aiw"
 use "lib/std/file.aiw"
 use "src/lib/text.aiw"
+use "src/lib/below.aiw"
 use "lib/std/sha.aiw"
 use "src/lib/chunk.aiw"
 use "src/lib/config.aiw"
@@ -513,17 +514,15 @@ fn ixlook p l
 			max=chunkmaxpdf
 		end
 		if size<=max
-			call bycut ixpath 0
-			call byadd ixpath ixdp ixdn
-			call byaddb ixpath 47
-			call byadd ixpath p l as ok
-			ifz ok
-				call nomem
-			end
-			load ixpath as q
-			load ixpath+8 as m
+			# the file that is opened is the one that was looked at, or
+			# no file: no link is followed on the way to it
 			call bycut ixbody 0
-			call fileread q m ixbody as r
+			call belowopen ixdp ixdn p l belowread as fd
+			r=fd
+			ifsge fd 0
+				call filereadfd fd ixbody as r
+				sys close fd
+			end
 			ifsge r 0
 				load ixbody as q
 				load ixbody+8 as m

@@ -3,7 +3,8 @@
 # the files git knows and those it does not ignore, a new one too, and
 # none of a directory that git ignores; never a symbolic link or what it
 # leads to, a file that was removed, or anything in .aildb and .git.
-# treestat says what a path is without following a link, and treerev
+# treestat says what a path is without following a link, in its last
+# part or before it, and treerev
 # gives the revision of git that the files are, only when they are one.
 # A directory that is in no work tree is listed by tests/cli_index_plain,
 # which can tell git where to stop looking for one.
@@ -107,6 +108,8 @@ call stat "o/p" "B.txt"
 call stat "o/p" "sub"
 call stat "o/p" "link.txt"
 call stat "o/p" "dir"
+call stat "o/p" "dir/b.txt"
+call stat "o/p" "sub/b.txt"
 call stat "o/p" "pipe"
 call stat "o/p" "none"
 call rev "o/p"

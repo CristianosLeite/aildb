@@ -1,0 +1,107 @@
+# src/lib/below.aiw -- a file below a directory, opened with no symbolic
+# link on the way to it. The directory itself is opened as the caller
+# names it, through whatever links its path has; from there on each part
+# of the path is opened from the one before it, and a part that is a
+# symbolic link ends the walk, the last one too. So a path that a
+# listing gave cannot lead out of the directory by a link that took the
+# place of one of its parts since, and what is read is the file that
+# was opened and looked at, not one that is at its name afterwards.
+#
+# The functions return what they found and print nothing. Every name of
+# this file starts with "below"; a program has no var of such a name.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+
+const belowopenat 257
+# how the last part is opened
+const belowlook 0       # to be asked what it is, with fstat: nothing of it can be read
+const belowread 1       # to be read: it is a regular file, or the result is an error
+
+buf belowpart 24        # one part of a path, with a NUL byte
+
+# Open what is at the path belowpp belowpn below the directory belowdp
+# belowdn, in the way belowhow, a constant above: a descriptor, which
+# the caller closes, or the error of the kernel negated. A part that is
+# a symbolic link is -40 or -20, a part "..", an empty one or an empty
+# path -22, and for belowread a directory -21 and whatever else is no
+# regular file -22.
+fn belowopen belowdp belowdn belowpp belowpn belowhow
+	local belowst 144
+	ifz belowpn
+		ret -22
+	end
+	# O_PATH, O_DIRECTORY and O_CLOEXEC
+	call fileopen belowdp belowdn 0x290000 0 as belowfd
+	ifslt belowfd 0
+		ret belowfd
+	end
+	belowi=0
+	label part
+	belowj=belowi
+	label byte
+	if belowj<belowpn
+		loadb belowpp+belowj as belowc
+		if belowc!=47
+			belowj+=1
+			jmp byte
+		end
+	end
+	call belowdots belowpp+belowi belowj-belowi as belowup
+	if (belowj==belowi)|belowup
+		sys close belowfd
+		ret -22
+	end
+	call bycut belowpart 0
+	call byadd belowpart belowpp+belowi belowj-belowi
+	call byaddb belowpart 0 as belowok
+	ifz belowok
+		sys close belowfd
+		ret -12
+	end
+	load belowpart as belowq
+	# a directory on the way: O_PATH, O_NOFOLLOW, O_DIRECTORY, O_CLOEXEC
+	belowflags=0x2b0000
+	if belowj>=belowpn
+		# the last part: O_PATH, O_NOFOLLOW, O_CLOEXEC
+		belowflags=0x2a0000
+		if belowhow==belowread
+			# O_RDONLY, O_NOFOLLOW, O_CLOEXEC, and O_NONBLOCK so that a
+			# pipe with nobody writing does not keep the program
+			belowflags=0xa0800
+		end
+	end
+	sys belowopenat belowfd belowq belowflags 0 as belownext
+	sys close belowfd
+	ifslt belownext 0
+		ret belownext
+	end
+	belowfd=belownext
+	if belowj<belowpn
+		belowi=belowj+1
+		jmp part
+	end
+	if belowhow==belowread
+		sys fstat belowfd belowst as belowr
+		load4 belowst+24 as belowm
+		belowm=belowm&0xf000
+		if (belowr!=0)|(belowm!=0x8000)
+			sys close belowfd
+			if belowm==0x4000
+				ret -21
+			end
+			ret -22
+		end
+	end
+	ret belowfd
+end
+
+# 1 if the belown bytes at belowp are ".."
+fn belowdots belowp belown
+	if belown!=2
+		ret 0
+	end
+	loadb belowp as belowa
+	loadb belowp+1 as belowb
+	ret (belowa==46)&(belowb==46)
+end

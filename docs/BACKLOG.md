@@ -544,3 +544,16 @@ each chose.
   `tests/cli_index_refresh.aiw` (an argument more asks for every text
   and publishes; the same arguments under another path of the program
   ask for nothing).
+- [x] `treestat` asked the kernel about a whole path without following
+  its last part, which says nothing of the parts before it: a directory
+  of a file git knows that became a symbolic link led the index out of
+  the directory, and the file was then read by its name. A path below
+  the indexed directory is now opened part by part with no link
+  followed (`src/lib/below.aiw`), for the look at a file, for its sum
+  and for the chunker, and what is read is a descriptor that the kernel
+  says is a regular file. A part `..` is refused there, so a list
+  given to `build/chunk` without `-c` with such a path has it passed
+  over. Tests `tests/lib_below.aiw`, `tests/lib_tree.aiw` (a path
+  through a link to a directory) and `tests/cli_index.aiw` (a tracked
+  directory moved out and linked back: its file is not taken and the
+  provider not asked).
