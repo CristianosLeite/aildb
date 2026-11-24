@@ -47,7 +47,7 @@ timeout	120000
 batch	32
 set	document_prefix	search_document: 
 set	query_prefix	search_query: 
-arg	aildb-ollama
+arg	/usr/local/bin/aildb-ollama
 ```
 
 | Line | Is |
@@ -60,7 +60,8 @@ arg	aildb-ollama
 | `timeout` | the milliseconds one request may take, 1 to 3600000; 120000 if the line is left out |
 | `batch` | the most texts of one request for documents, 1 to 1024; 32 if the line is left out |
 | `set` | a setting: a name, a tab and a value. The name is 1 to 255 bytes and is there once; the value is up to 4095 bytes and may be empty. Any number of lines |
-| `arg` | an argument of the command that is the provider, up to 4095 bytes; the first is the program. At least one line, in their order |
+| `arg` | an argument of the command that is the provider, up to 4095 bytes; the first is the program, a path from the root. At least one line, in their order |
+| `file` | a file the command depends on, a path from the root of up to 4095 bytes, as `-f` and `-x` of `aildb index` found it. Up to 64 lines, or none |
 
 Every value is a string as a snapshot holds one: well-formed UTF-8
 without control bytes. The file ends with a line feed. Lines of the
@@ -134,9 +135,9 @@ coding agent through `aildb-mcp`. So the file alone starts nothing.
 
 A command is run only if **you named it for that directory** on this
 machine: `aildb index DIRECTORY -i MODEL -d DIMENSION -- COMMAND` notes
-the command, every argument of it and the file its program is, as
-allowed for the directory, in a file of yours outside every indexed
-directory:
+the command, every argument of it, the file its program is and the
+files you say it depends on, as allowed for the directory, in a file of
+yours outside every indexed directory:
 
 ```
 $XDG_CONFIG_HOME/aildb/trusted      if the variable is a path from the root
@@ -154,25 +155,51 @@ of the path are not resolved in the configuration, so a program that
 looks at the name it was started by sees the one you gave. A program
 that is no file that can be run ends `aildb index` with status 2.
 
+**What else the command runs or reads, you name.** aildb does not guess
+which arguments are files. `-f FILE` names a file that the command
+depends on, a script given to an interpreter or a model file, and `-x
+PROGRAM` a program that the command runs; both are found once, like the
+program of the command (`-f` from the directory the command is in, `-x`
+in `PATH` if it has no slash), and the configuration gets a line `file`
+with the path from the root. An argument of the command that is the same
+bytes as what `-f` or `-x` was given becomes that path, so the command
+is run with it whatever directory and `PATH` a search has:
+
+```
+aildb index . -i m -d 384 -f embed.py -- python3 embed.py
+aildb index . -i m -d 768 -x llama-embedding -- aildb-llama -m ~/m.gguf -x llama-embedding
+```
+
+write `arg /usr/bin/python3`, `arg /home/me/project/embed.py` and `file
+/home/me/project/embed.py`, and for the second `arg
+/opt/llama.cpp/bin/llama-embedding` after `arg -x` with a line `file` of
+the same path. Each such file is allowed as the program is: by the file
+its path leads to, and by its bytes if it lies in the indexed directory.
+
 A line of the file is the SHA-256, in 64 digits, of this text, with
 `<s>` and the numbers as in the identity above, and after a tab the
 directory, for whoever reads the file:
 
 ```
-aildb-trust 2
+aildb-trust 3
 <directory>
 number of arguments
 <argument>             one line for each, the program first
 <file>                 the file the program is
+file DIGITS            or a line "-"
+number of files        the lines "file" of the configuration
+<path>                 for each of them: its path as the line has it,
+<file>                 the file that path is,
 file DIGITS            or a line "-"
 ```
 
 The directory is the path the kernel gives for it, from the root and
 with no symbolic link in it (`/proc/self/fd`), so it is the same under
 whatever name it was given. `<file>` is what the kernel gives the same
-way for the program, the file that would be run now. The last line is
-`file` and the SHA-256 of the bytes of that file if it lies below the
-directory, and `-` if it does not. Before a configuration that was read
+way for the program, or for a file the command depends on: the file
+that would be run or read now. The line after it is `file` and the
+SHA-256 of the bytes of that file if it lies below the directory, and
+`-` if it does not. Before a configuration that was read
 from the file is used, by `aildb index` without options and by `aildb
 search --text`, the line is looked for. If it is not there, nothing of
 the configuration is run and the command ends with status 2 and one line
@@ -180,29 +207,30 @@ that names the command of the file and says how to allow it, which is
 to give the options yourself:
 
 ```
-aildb: c: the configuration of this index names a provider that was not set up by you on this machine, or whose program is no longer the file it was, and nothing of it was run. Its command is: /bin/sh -c 'touch ran'; to allow it, name the provider yourself: aildb index c -i m1 -d 8 ... -- COMMAND
+aildb: c: the configuration of this index names a provider that was not set up by you on this machine, or whose program or a file it depends on is no longer the file it was, and nothing of it was run. Its command is: /bin/sh -c 'touch ran'; to allow it, name the provider yourself: aildb index c -i m1 -d 8 ... -- COMMAND
 ```
 
 - **What takes the permission away**: an argument of the command changed
   in the file by hand, the program among them, or a program that is no
-  path from the root; the directory moved or copied; another machine or
-  another user; a link on the way to the program that leads to another
-  file than it did, which an update of a system that names its programs
-  by links can be too; and, for a program that lies in the indexed
-  directory, any change of its bytes, as a checkout of another branch
-  makes. The model, the settings, the time and the number of texts may
+  path from the root; a line `file` changed, added or taken out; the
+  directory moved or copied; another machine or another user; a link on
+  the way to the program, or to a file the command depends on, that
+  leads to another file than it did, which an update of a system that
+  names its programs by links can be too; such a file that is gone; and,
+  for a program or a file that lies in the indexed directory, any change
+  of its bytes, as a checkout of another branch makes. A file of the
+  directory that is named is read whole for every search, so a model
+  file of gigabytes is better kept outside it. The model, the settings, the time and the number of texts may
   be edited: they are given to the command you allowed and choose no
   program.
-- **What it does not see**: the bytes of a program outside the
-  directory, which are yours or your system's, and a file that the
-  program reads, a script given to an interpreter among them: `--
-  python3 embed.py` allows `python3`, and `embed.py` is read from the
-  directory the search is started in, whatever it is then. Name such a
-  file by its path from the root and keep it outside a directory you do
-  not own; or make the script itself the program, with its first line
-  naming the interpreter, which puts its bytes under the rule above if
-  it lies in the indexed directory. Between the look at the program and
-  its start the file can be replaced by whoever can write there.
+- **What it does not see**: the bytes of a program or a file outside
+  the directory, which are yours or your system's, and a file that the
+  command reads and you did not name: `-- python3 embed.py` without `-f
+  embed.py` allows `python3` and the word `embed.py`, which is then read
+  from the directory the search is started in, whatever it is there.
+  What a named file reads in turn, a module that a script imports, is
+  named too or is not seen. Between the look at a file and its use it
+  can be replaced by whoever can write there.
 - **Without `HOME` and `XDG_CONFIG_HOME`**, or where the kernel has no
   `/proc`, nothing is allowed and nothing can be: `aildb index` with
   options ends with status 4 before the provider is asked.
@@ -315,15 +343,24 @@ aildb.
 ## `aildb-llama`: a model file, run by llama.cpp
 
 ```
-aildb-llama -m MODEL [-x PROGRAM] [-- ARGUMENT...]
+aildb-llama -m MODEL -x PROGRAM [-- ARGUMENT...]
 ```
 
-`MODEL` is a model file of llama.cpp (GGUF). For each request the
-program `llama-embedding` of llama.cpp is started once, found in `PATH`,
-or `PROGRAM`:
+`MODEL` is a model file of llama.cpp (GGUF) and `PROGRAM` the program
+`llama-embedding` of llama.cpp, by its path from the root. The adapter
+looks for no program in `PATH` or in the current directory, which would
+be those of each search: a name that is no path from the root, and no
+`-x`, end it with status 2 and a line that says so. `aildb index` finds
+the program once and writes the path, and allows the command with it:
 
 ```
-llama-embedding -m MODEL -f /dev/stdin --embd-separator SEPARATOR --embd-output-format json --embd-normalize -1 ARGUMENT...
+aildb index DIRECTORY -i MODEL -d DIMENSION -x llama-embedding -- aildb-llama -m FILE -x llama-embedding
+```
+
+For each request the program is started once:
+
+```
+PROGRAM -m MODEL -f /dev/stdin --embd-separator SEPARATOR --embd-output-format json --embd-normalize -1 ARGUMENT...
 ```
 
 Its stdin is the texts of the request, each after the value of the
@@ -376,9 +413,12 @@ revision	970aa74c0a90
 dimension	768
 set	document_prefix	search_document: 
 set	query_prefix	search_query: 
-arg	aildb-llama
+arg	/usr/local/bin/aildb-llama
 arg	-m
 arg	/home/me/models/nomic-embed-text-v1.5.f16.gguf
+arg	-x
+arg	/opt/llama.cpp/build/bin/llama-embedding
+file	/opt/llama.cpp/build/bin/llama-embedding
 ```
 
 ## `aildb-ollama`: a model that Ollama serves
@@ -435,7 +475,12 @@ signal. `tests/adapter_llama.aiw` runs `aildb-llama` with
 prints in the layout the real one printed on 2026-11-24, and
 `tests/adapter_ollama.aiw` runs `aildb-ollama` against the service of
 the example's test. `tests/cli_index_trust.aiw` is the rule of which
-commands are run, with `tests/lib_trust.aiw` for its key and its file;
+commands are run, with `tests/lib_trust.aiw` for its key and its file:
+among its cases a script given to `/bin/sh` and named with `-f`, which
+is searched from another directory and refused once its bytes change,
+and `aildb-llama` with `-x llama-embedding`, found in one `PATH` and
+searched with another in which that name is a program that leaves a
+file, which is not run;
 `tests/kill_index.aiw` kills a run whose provider hangs and finds the
 provider gone. `make dist-check` on the archive of `d07892b`
 (2026-11-24, in `debian:stable-slim`, where `HOME` is `/root`) indexed

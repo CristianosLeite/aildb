@@ -50,6 +50,7 @@ buf ixone 8
 buf ixtrust 24          # the path of the file of the commands the user allowed
 buf ixtkey 32           # and the key of the command of this index
 buf ixprog 24           # the program of the command, as a path from the root
+buf ixgiven 24          # the files of -f and -x as they were written, a NUL byte after each
 buf ixbase 24           # the path of the open directory .aildb, in /proc
 buf ixseen 24           # the names in .aildb, and in its directory cache
 buf ixcbase 24          # the path of the open directory .aildb/cache, in /proc
@@ -356,6 +357,27 @@ fn ixsave p n a an
 	ret e
 end
 
+# The argument p n of the command as the configuration gets it: if it
+# is, byte for byte, what -f or -x was given, the path from the root of
+# that file, and else itself.
+fn ixdeclared p n
+	load ixgiven as g
+	load ixgiven+8 as gn
+	call conffiles ixconf as f k
+	o=0
+	while o<gn
+		call strlen g+o as l
+		call strlen f as fl
+		call texteq p n g+o l as is
+		if is
+			ret f fl
+		end
+		o+=l+1
+		f+=fl+1
+	end
+	ret p n
+end
+
 # end the program for a configuration that the options do not make: the
 # reason w of src/lib/config.aiw
 fn ixbadconf w
@@ -377,6 +399,7 @@ fn ixoptions i
 		ret 0
 	end
 	call confinit ixconf
+	call bycut ixgiven 0
 	seen=0
 	np=0
 	nn=0
@@ -411,6 +434,8 @@ fn ixoptions i
 				if i==first
 					load ixprog as p
 					load ixprog+8 as n
+				else
+					call ixdeclared p n as p n
 				end
 				call confarg ixconf p n as w
 				if w
@@ -439,6 +464,37 @@ fn ixoptions i
 			call confadd ixconf q k q+k+1 m-k-1 as w
 			if w
 				call ixbadconf w
+			end
+			jmp option
+		end
+		if (y==102)|(y==120)
+			# a file the command depends on, and a program it runs: the
+			# path from the root that the name is now
+			call bycut ixprog 0
+			if y==102
+				call trustfile q m ixprog as ok
+			else
+				call trustprog q m ixprog as ok
+			end
+			ifz ok
+				call about q m
+				if y==102
+					call byadd msg "a file of the provider that is no file that can be read"
+				else
+					call byadd msg "a program of the provider that is no file that can be run"
+				end
+				call fail stusage
+			end
+			load ixprog as a
+			load ixprog+8 as an
+			call conffile ixconf a an as w
+			if w
+				call ixbadconf w
+			end
+			call byadd ixgiven q m
+			call byaddb ixgiven 0 as ok
+			ifz ok
+				call nomem
 			end
 			jmp option
 		end
@@ -577,7 +633,7 @@ end
 # The line names the command and the options that allow it.
 fn ixnotrust
 	call about ixdp ixdn
-	call byadd msg "the configuration of this index names a provider that was not set up by you on this machine, or whose program is no longer the file it was, and nothing of it was run. Its command is:"
+	call byadd msg "the configuration of this index names a provider that was not set up by you on this machine, or whose program or a file it depends on is no longer the file it was, and nothing of it was run. Its command is:"
 	call confargs ixconf as p k
 	while k
 		call strlen p as n
@@ -609,7 +665,7 @@ fn ixconfig given
 		call ixtrusted 1 as ok
 		ifz ok
 			call about ixdp ixdn
-			call byadd msg "the command of the provider cannot be noted as allowed: the environment has no HOME and no XDG_CONFIG_HOME that is a path from the root, or the directory or the program has no name in /proc, or the program lies in the directory and cannot be read"
+			call byadd msg "the command of the provider cannot be noted as allowed: the environment has no HOME and no XDG_CONFIG_HOME that is a path from the root, or the directory, the program or a file it depends on has no name in /proc, or one of them lies in the directory and cannot be read"
 			call fail stio
 		end
 		ixstaged=1

@@ -60,3 +60,34 @@ was chosen by the agent and is for the user to review.
 - **Left as it is.** A search that finds the index fresh takes no lock, so what a
   killed run left (`config.new`, `manifest.new`, the temporary file) stays until a
   run takes the lock; the test shows both moments.
+
+## What a command runs and reads besides its program (P1)
+
+- **Finding.** The key bound the program of the command; `aildb-llama` still looked
+  for `llama-embedding` in the `PATH` of each search, and a relative `-x` came from
+  the directory of each search. With the review came the user's word on the open
+  question of the second one, a script given to an interpreter: the files that affect
+  execution are to be listed explicitly, found when the command is allowed, and bound
+  to their bytes if they are of the checkout; which arguments are files is not to be
+  guessed.
+- **Decision (agent, 2026-11-24, on that word).** `aildb index -f FILE` (a file, from
+  the current directory) and `-x PROGRAM` (a program, found as the shell would) name
+  what the command depends on. Each becomes a line `file` of the configuration, a path
+  from the root, and the key (`aildb-trust 3`) has for each what it has for the
+  program. An argument of the command that is byte for byte what the option was given
+  is replaced by the path: that is not a guess, the user wrote the same word twice,
+  and it is what makes the script or the program the same file for every search.
+- **`aildb-llama` looks for nothing.** It takes `-x` as a path from the root and
+  refuses anything else with status 2, so the gap cannot be left open by leaving the
+  option out; the cost is a longer first command (`-x llama-embedding` twice) and that
+  the adapter cannot be run by hand with a bare name. Rejected: an operation of the
+  protocol by which a provider tells aildb its files at setup, which every provider
+  would have to answer and which runs the command before it is allowed.
+- **A file of the directory is read for every search**, in blocks of 65536 bytes, as
+  the program of the directory is: a model file of gigabytes that is named with `-f`
+  and lies in the indexed directory costs that time each search; outside the directory
+  only its path is looked at. Said in `docs/provider.md`.
+- **Not covered.** What a named file reads in turn; the model file of `aildb-llama`
+  when it is given by a relative path and not named with `-f` (it is then looked for
+  from the directory of each search, and a search from elsewhere fails with status 7).
+  The adapter does not refuse a relative `-m`; for the user to decide.

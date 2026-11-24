@@ -17,6 +17,12 @@
 # another PATH, where the same name is another program, runs the one
 # that was named; and a program that lies in the indexed directory is
 # allowed with the bytes it had, and is not run when they are others.
+# A file that the command depends on is named with -f, a script given to
+# an interpreter here: the argument that names it becomes its path from
+# the root, and it is allowed with the bytes it had. A program that the
+# command runs is named with -x and found once: aildb-llama, with
+# build/llama-fake as llama-embedding, runs the one that was found then
+# when a search has another PATH.
 use "lib/std/io.aiw"
 use "lib/std/bytes.aiw"
 use "lib/std/file.aiw"
@@ -89,3 +95,14 @@ call dirsh "export RAN=\"$PWD/ran\" XDG_CONFIG_HOME=\"$PWD/xdg\" GIT_CEILING_DIR
 call print "# a program that is not there\n"
 call dirrun "index q -i m1 -d 8 -- /nonexistent/provider"
 call dirrun "index q -i m1 -d 8 -- no-such-program-of-aildb"
+call print "# a script given to an interpreter, named as a file the command depends on\n"
+call dirsh "export RAN=\"$PWD/ran\" XDG_CONFIG_HOME=\"$PWD/xdg\" GIT_CEILING_DIRECTORIES=\"$PWD\"\nmkdir s\nprintf 's text\\n' > s/t.txt\nprintf 'exec \"%s\" spread\\n' \"$FAKE\" > s/embed.sh\ncd s\n\"$AILDB\" index . -i m1 -d 8 -n fake -f embed.sh -- /bin/sh embed.sh\ncd ..\ngrep -E '^(arg|file)' s/.aildb/config | sed \"s|$PWD|TMP|\"\nmkdir -p elsewhere\ncd elsewhere\n\"$AILDB\" search ../s --text 's text' -k 1\ncd ..\nprintf 'touch \"$RAN\"\\nexit 3\\n' > s/embed.sh\nst=0\n\"$AILDB\" search s --text 's text' -k 1 > search.out 2> search.err || st=$?\necho status $st\ncat search.out\nsed \"s|$PWD|TMP|g\" search.err\nls ran 2>&1 | sed 's/^ls: .*: /ls: /'\n"
+call dirasked
+call print "# a file that is not there, and one that is a directory\n"
+call dirrun "index s -i m1 -d 8 -f s/none -- /bin/sh s/none"
+call dirrun "index s -i m1 -d 8 -f s -- /bin/sh s"
+call dirrun "index s -i m1 -d 8 -x no-such-program-of-aildb -- /bin/sh"
+call print "# aildb-llama with the program it runs found once: a search with another PATH runs the same\n"
+call dirsh "export RAN=\"$PWD/ran\" XDG_CONFIG_HOME=\"$PWD/xdg\" GIT_CEILING_DIRECTORIES=\"$PWD\"\nB=$(dirname \"$AILDB\")\nmkdir l lbin1 lbin2\nprintf 'l text\\n' > l/t.txt\ncp \"$B/llama-fake\" lbin1/llama-embedding\nprintf '#!/bin/sh\\ntouch \"$RAN\"\\nexit 3\\n' > lbin2/llama-embedding\nchmod +x lbin2/llama-embedding\nPATH=\"$PWD/lbin1:$PATH\" \"$AILDB\" index l -i m1 -d 3 -n llama -x llama-embedding -- \"$B/aildb-llama\" -m model.gguf -x llama-embedding\ngrep -E '^(arg|file)' l/.aildb/config | sed -e \"s|$PWD|TMP|\" -e \"s|$B|BUILD|\"\ncd lbin2\nPATH=\"$PWD:$PATH\" \"$AILDB\" search ../l --text 'l text' -k 1\ncd ..\nls ran 2>&1 | sed 's/^ls: .*: /ls: /'\n"
+call print "# and without the program named: the adapter looks for none\n"
+call dirsh "export XDG_CONFIG_HOME=\"$PWD/xdg\" GIT_CEILING_DIRECTORIES=\"$PWD\"\nB=$(dirname \"$AILDB\")\nst=0\nPATH=\"$PWD/lbin1:$PATH\" \"$AILDB\" index l -i m2 -d 3 -n llama -- \"$B/aildb-llama\" -m model.gguf > index.out 2> index.err || st=$?\necho status $st\ncat index.out\ncat index.err\n"

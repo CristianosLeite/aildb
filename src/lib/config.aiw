@@ -15,7 +15,7 @@ use "lib/std/bytes.aiw"
 use "src/lib/text.aiw"
 use "lib/std/sha.aiw"
 
-const confsize 160
+const confsize 192
 # where the configuration has what: three strings, each the offset in its
 # bytes and the length, for confstr and confput, and three numbers, for
 # load and store
@@ -28,7 +28,8 @@ const confbatch 88      # the most texts of a request
 # besides: the bytes of the strings at 0, the settings at 96 (a name, a
 # NUL byte, a value, a NUL byte) with their number at 120, and the
 # arguments of the command at 128 (a NUL byte after each) with their
-# number at 152
+# number at 152, and the files the command depends on at 160 (a NUL byte
+# after each) with their number at 184
 
 # the numbers of a configuration that says none
 const conftimeusual 120000
@@ -50,6 +51,7 @@ const confbadset 12     # a setting whose name is not 1 to 255 bytes of valid te
 const confbadarg 13     # an argument of more than 4095 bytes, or no valid text
 const confnoarg 14      # no command
 const confmem 15        # no memory
+const confbadfile 16    # a file of the command that is no path from the root, of more than 4095 bytes or no valid text, or more than 64 of them
 
 # make the confsize bytes at confc a configuration that says nothing but
 # the usual time and number of texts; they hold no memory before
@@ -68,6 +70,7 @@ fn conffree confc
 	call byfree confc
 	call byfree confc+96
 	call byfree confc+128
+	call byfree confc+160
 end
 
 # the string confk of the configuration, confname, confmodel or confrev:
@@ -160,6 +163,37 @@ end
 fn confargs confc
 	load confc+128 as confp
 	load confc+152 as confk
+	ret confp confk
+end
+
+# add a file that the command depends on, the confn bytes at confp, a
+# path from the root: 0, or confbadfile or confmem
+fn conffile confc confp confn
+	call textvalid confp confn as confa
+	load confc+184 as confk
+	confb=0
+	if confn
+		loadb confp as confb
+	end
+	if (confa==0)|(confn>4095)|(confb!=47)|(confk>=64)
+		ret confbadfile
+	end
+	load confc+168 as confo
+	call byadd confc+160 confp confn
+	call byaddb confc+160 0 as confr
+	ifz confr
+		store confc+168 confo
+		ret confmem
+	end
+	store confc+184 confk+1
+	ret 0
+end
+
+# the files the command depends on: the address of the first, each with
+# a NUL byte after it, and their number
+fn conffiles confc
+	load confc+160 as confp
+	load confc+184 as confk
 	ret confp confk
 end
 
@@ -308,6 +342,13 @@ fn confwrite confb confc
 		confp+=confn+1
 		confk-=1
 	end
+	call conffiles confc as confp confk
+	while confk
+		call strlen confp as confn
+		call confline confb "file" confp confn as confr
+		confp+=confn+1
+		confk-=1
+	end
 	ret confr
 end
 
@@ -387,6 +428,11 @@ fn confword confc confp confn confq confm confi confs
 	call texteq confp confn "arg" as confr
 	if confr
 		call confarg confc confq confm as confr
+		ret confr confs
+	end
+	call texteq confp confn "file" as confr
+	if confr
+		call conffile confc confq confm as confr
 		ret confr confs
 	end
 	ret confbadline confs
@@ -548,6 +594,9 @@ fn confwhy confb confw
 	end
 	if confw==confmem
 		tail byadd confb "no memory"
+	end
+	if confw==confbadfile
+		tail byadd confb "a file of the command that is no path from the root, of more than 4095 bytes or no valid text, or more than 64 files"
 	end
 	ret 1
 end

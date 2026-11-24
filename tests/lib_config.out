@@ -52,3 +52,11 @@ abdd9e5945aaf9a92c8eed8fc11261f441587cfc5bc8717730a72baefaf1e2da
 3 at 6: a line or a setting that is there twice
 14 at 0: no command of the provider
 0 at 0: 
+--- the files a command depends on
+00 for two files
+161616 for a path not from the root, none, and one that is no text
+file	/models/a model.gguf
+file	/usr/bin/llama-embedding
+0 read again, files: 2
+853e0cc50825727d89eca01cb3fbf633421be5ac61f17e0bb6c674e19225ebd2
+16 at 6: a file of the command that is no path from the root, of more than 4095 bytes or no valid text, or more than 64 files

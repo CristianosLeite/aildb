@@ -31,7 +31,7 @@ fn run p n q m
 	call cmdadd "-m"
 	call cmdadd q m
 	call cmdadd "-x"
-	call cmdadd "./llama-embedding"
+	call cmdadd "/proc/self/cwd/llama-embedding"
 	call cmdshowvin p n
 end
 # the fake under a name of the directory of the test, so that what is
@@ -57,7 +57,7 @@ call print "--- arguments passed on\n"
 call cmdbegin
 call cmdadd "aildb-llama"
 call cmdadd "-x"
-call cmdadd "./llama-embedding"
+call cmdadd "/proc/self/cwd/llama-embedding"
 call cmdadd "-m"
 call cmdadd "a model.gguf"
 call cmdadd "--"
@@ -77,7 +77,11 @@ call cmdadd "-x"
 call cmdadd "/nonexistent/llama-embedding"
 call cmdshowvin "docs.json"
 call cmdshowin "aildb-llama" "docs.json"
-call cmdshowin "aildb-llama -x prog" "docs.json"
+call cmdshowin "aildb-llama -x /proc/self/cwd/llama-embedding" "docs.json"
+call print "--- a program that is no path from the root, and none\n"
+call cmdshowin "aildb-llama -m model.gguf -x ./llama-embedding" "docs.json"
+call cmdshowin "aildb-llama -m model.gguf -x llama-embedding" "docs.json"
+call cmdshowin "aildb-llama -m model.gguf" "docs.json"
 call cmdshowin "aildb-llama -m" "docs.json"
 call cmdshowin "aildb-llama -m a -m b" "docs.json"
 call cmdshowin "aildb-llama -q a" "docs.json"

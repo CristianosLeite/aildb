@@ -71,6 +71,35 @@ fn prog p n e
 	end
 	call print "\n"
 end
+# add the file p n of the directory of the test to what the command of
+# c depends on, by its path from the root
+fn depend p n
+	call bycut line 0
+	call trustabs line p n
+	load line as q
+	load line+8 as m
+	call conffile c q m as w
+	if w
+		call print "no file of a configuration\n"
+	end
+end
+# print whether trustfile finds the file p n, and the last e bytes of
+# its path, which starts at the root
+fn file p n e
+	call bycut line 0
+	call trustfile p n line as ok
+	call putn ok
+	if ok
+		load line as q
+		load line+8 as m
+		loadb q as x
+		if (x==47)&(m>=e)
+			call print " /..."
+			call print q+m-e e
+		end
+	end
+	call print "\n"
+end
 # write the digits of the key in k to the file key.txt
 fn keyfile
 	call bycut hex 0
@@ -87,7 +116,7 @@ call trustkey "d/sub" c k as ok
 call putn ok
 call print " for a key\n"
 call keyfile
-call filewrite "step.sh" "d=$(cd d/sub && pwd -P)\np=$(pwd -P)/out/prog\nprintf 'aildb-trust 2\\n%s:%s\\n3\\n%s:%s\\n2:-m\\n3:a b\\n%s:%s\\n-\\n' ${#d} \"$d\" ${#p} \"$p\" ${#p} \"$p\" | sha256sum | cut -c1-64 | tr -d '\\n' > sum.txt\ncmp key.txt sum.txt && echo the key is the sum of the text\n"
+call filewrite "step.sh" "d=$(cd d/sub && pwd -P)\np=$(pwd -P)/out/prog\nprintf 'aildb-trust 3\\n%s:%s\\n3\\n%s:%s\\n2:-m\\n3:a b\\n%s:%s\\n-\\n0\\n' ${#d} \"$d\" ${#p} \"$p\" ${#p} \"$p\" | sha256sum | cut -c1-64 | tr -d '\\n' > sum.txt\ncmp key.txt sum.txt && echo the key is the sum of the text\n"
 call cmdshow "/bin/sh -e step.sh"
 call print "# the same directory by other names\n"
 call same "named"
@@ -135,7 +164,7 @@ call trustkey "d/sub" c k as ok
 call putn ok
 call print " for a key\n"
 call keyfile
-call filewrite "step.sh" "d=$(cd d/sub && pwd -P)\np=$d/tool\nh=$(sha256sum < d/sub/tool | cut -c1-64)\nprintf 'aildb-trust 2\\n%s:%s\\n1\\n%s:%s\\n%s:%s\\nfile %s\\n' ${#d} \"$d\" ${#p} \"$p\" ${#p} \"$p\" $h | sha256sum | cut -c1-64 | tr -d '\\n' > sum.txt\ncmp key.txt sum.txt && echo the key is the sum of the text\nprintf '#!/bin/sh\\necho other\\n' > d/sub/tool\n"
+call filewrite "step.sh" "d=$(cd d/sub && pwd -P)\np=$d/tool\nh=$(sha256sum < d/sub/tool | cut -c1-64)\nprintf 'aildb-trust 3\\n%s:%s\\n1\\n%s:%s\\n%s:%s\\nfile %s\\n0\\n' ${#d} \"$d\" ${#p} \"$p\" ${#p} \"$p\" $h | sha256sum | cut -c1-64 | tr -d '\\n' > sum.txt\ncmp key.txt sum.txt && echo the key is the sum of the text\nprintf '#!/bin/sh\\necho other\\n' > d/sub/tool\n"
 call cmdshow "/bin/sh -e step.sh"
 call same "d/sub"
 call print "# and one that the directory reaches by a link of its own\n"
@@ -187,3 +216,31 @@ call print " in a file of other lines\n"
 call trustadd "none/keys" k "" as r
 call putn 0-r
 call print " for a file in no directory\n"
+call print "# the files a command depends on: one outside the directory and one in it\n"
+call filewrite "step.sh" "printf 'model\\n' > out/model\nprintf 'print(1)\\n' > d/sub/embed.py\n"
+call cmdshow "/bin/sh -e step.sh"
+call command "out/prog\0" 1
+call trustkey "d/sub" c k as ok
+call depend "out/model"
+call depend "d/sub/embed.py"
+call same "d/sub"
+call trustkey "d/sub" c k as ok
+call putn ok
+call print " for a key\n"
+call keyfile
+call filewrite "step.sh" "d=$(cd d/sub && pwd -P)\np=$(pwd -P)/out/prog\nm=$(pwd -P)/out/model\ne=$d/embed.py\nh=$(sha256sum < d/sub/embed.py | cut -c1-64)\nprintf 'aildb-trust 3\\n%s:%s\\n1\\n%s:%s\\n%s:%s\\n-\\n2\\n%s:%s\\n%s:%s\\n-\\n%s:%s\\n%s:%s\\nfile %s\\n' ${#d} \"$d\" ${#p} \"$p\" ${#p} \"$p\" ${#m} \"$m\" ${#m} \"$m\" ${#e} \"$e\" ${#e} \"$e\" $h | sha256sum | cut -c1-64 | tr -d '\\n' > sum.txt\ncmp key.txt sum.txt && echo the key is the sum of the text\nprintf 'other model\\n' > out/model\n"
+call cmdshow "/bin/sh -e step.sh"
+call print "# the file outside changed: the same key; the file in the directory changed: another\n"
+call same "d/sub"
+call filewrite "step.sh" "printf 'print(2)\\n' > d/sub/embed.py\n"
+call cmdshow "/bin/sh -e step.sh"
+call same "d/sub"
+call print "# a file that is gone: no key\n"
+call filewrite "step.sh" "rm out/model\n"
+call cmdshow "/bin/sh -e step.sh"
+call same "d/sub"
+call print "# a file as the user names it: one that can be read, by its path from the root\n"
+call file "d/sub/embed.py" 14
+call file "d/sub" 0
+call file "out/model" 0
+call file "" 0

@@ -89,3 +89,33 @@ a name?with a tab
 --- status 0
 0 in a file of other lines
 2 for a file in no directory
+# the files a command depends on: one outside the directory and one in it
+$ /bin/sh -e step.sh
+--- stdout
+--- stderr
+--- status 0
+1 0
+1 for a key
+$ /bin/sh -e step.sh
+--- stdout
+the key is the sum of the text
+--- stderr
+--- status 0
+# the file outside changed: the same key; the file in the directory changed: another
+1 1
+$ /bin/sh -e step.sh
+--- stdout
+--- stderr
+--- status 0
+1 0
+# a file that is gone: no key
+$ /bin/sh -e step.sh
+--- stdout
+--- stderr
+--- status 0
+0 0
+# a file as the user names it: one that can be read, by its path from the root
+1 /...d/sub/embed.py
+0
+0
+0

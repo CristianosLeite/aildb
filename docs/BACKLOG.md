@@ -696,3 +696,26 @@ chose.
   stop 2 leaves `config`, `index` and `manifest` the bytes they were)
   and `tests/kill_index.aiw` (the run after a kill at stop 5 and at
   stop 3 now prints `"published":false`).
+- [x] The line that allows a command was of its program, but
+  `aildb-llama` looked for `llama-embedding` in the `PATH` of each
+  search, and a relative `-x` was taken from the directory of each
+  search: the same line could run another program of llama.cpp for the
+  command line and for an MCP server. A script given to an interpreter
+  had the same gap, which `docs/provider.md` only named. `aildb index`
+  now takes the files a command depends on from the user: `-f FILE`
+  and `-x PROGRAM` are found once, written as lines `file` of the
+  configuration by their paths from the root, and put in the place of
+  the arguments that name them; the key, `aildb-trust 3`, has each of
+  them as it has the program, the file its path leads to and, below
+  the indexed directory, its bytes (`trustof`, read in blocks, not
+  whole into memory). `aildb-llama` takes its program by a path from
+  the root only, and `-x` is no longer optional. Tests
+  `tests/lib_trust.aiw` (the text of a key with two files against
+  `sha256sum`; a file of the directory changed is another key, a file
+  that is gone no key), `tests/lib_config.aiw` (the lines `file`),
+  `tests/cli_index_trust.aiw` (a script named with `-f` and given to
+  `/bin/sh`, searched from another directory, refused once it changed;
+  `aildb-llama` with `-x llama-embedding` found in one `PATH` and
+  searched with another where that name leaves a file, which is not
+  run) and `tests/adapter_llama.aiw` (a program that is no path from
+  the root, and none).

@@ -1,14 +1,17 @@
 # aildb-llama -- an embedding provider of aildb that runs a model file
 # with llama.cpp, with no service and no socket.
 #
-#   aildb-llama -m MODEL [-x PROGRAM] [-- ARGUMENT...]
+#   aildb-llama -m MODEL -x PROGRAM [-- ARGUMENT...]
 #
 # It reads one request of the protocol of docs/provider.md on stdin and
-# prints the answer on stdout. MODEL is a model file of llama.cpp (GGUF).
-# For each request the program llama-embedding of llama.cpp, or PROGRAM,
-# is started once, by its path or found in PATH:
+# prints the answer on stdout. MODEL is a model file of llama.cpp (GGUF)
+# and PROGRAM the program llama-embedding of llama.cpp, named by its
+# path from the root: the adapter looks for no program in PATH and in no
+# current directory, so the program that answers a search is the one
+# that was named when the index was set up (aildb index -x finds it
+# once and writes its path). For each request it is started once:
 #
-#   llama-embedding -m MODEL -f /dev/stdin --embd-separator SEPARATOR
+#   PROGRAM -m MODEL -f /dev/stdin --embd-separator SEPARATOR
 #       --embd-output-format json --embd-normalize -1 ARGUMENT...
 #
 # with the texts of the request as its stdin, each after the value of the
@@ -58,7 +61,7 @@ fn fail p n q m
 end
 
 fn usage
-	call eprint "usage: aildb-llama -m MODEL [-x PROGRAM] [-- ARGUMENT...]\n"
+	call eprint "usage: aildb-llama -m MODEL -x PROGRAM [-- ARGUMENT...]\n"
 	sys exit_group 2
 end
 
@@ -123,8 +126,8 @@ end
 call argc as c
 mp=0
 mn=0
-set "llama-embedding" as xp
-xn=15
+xp=0
+xn=0
 i=1
 rest=c
 label option
@@ -156,6 +159,17 @@ if i<c
 end
 ifz mn
 	call usage
+end
+ifz xn
+	call eprint "aildb-llama: no program: name llama-embedding of llama.cpp by its path from the root with -x; aildb index -x llama-embedding ... -- aildb-llama -x llama-embedding ... finds it once and writes that path\n"
+	sys exit_group 2
+end
+loadb xp as ch
+if ch!=47
+	call eprint "aildb-llama: the program is to be named by its path from the root, and none is looked for in PATH or in the current directory: "
+	call eprint xp xn
+	call eprint "; aildb index -x PROGRAM ... -- aildb-llama -x PROGRAM ... finds it once and writes that path\n"
+	sys exit_group 2
 end
 
 # the request
@@ -244,7 +258,7 @@ ifz count
 	sys exit_group 0
 end
 
-# the program, which procheld looks for in PATH
+# the program, by its path
 call arg xp xn
 call arg "-m"
 call arg mp mn
@@ -283,7 +297,7 @@ call memfile 0 0 as fout
 call memfile 0 0 as ferr
 # held: the program is to end when this one is killed, as it is when it
 # takes longer than aildb allows; procheld starts none that the kernel
-# would not hold, and looks for the program in PATH
+# would not hold
 call procheld vec fin fout ferr as pid
 ifslt pid 0
 	call fail "cannot start a process" ""

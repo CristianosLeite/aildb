@@ -14,7 +14,7 @@ aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
 aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
 aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
 aildb check INDEX
-aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] -- COMMAND [ARGUMENT...]]
+aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] [-f FILE]... [-x PROGRAM]... -- COMMAND [ARGUMENT...]]
 ```
 
 An option is a letter and its value, two arguments; the options of a command
@@ -221,7 +221,7 @@ do not wait for a writer of a named pipe.
 ## `index`
 
 ```
-aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] -- COMMAND [ARGUMENT...]]
+aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] [-f FILE]... [-x PROGRAM]... -- COMMAND [ARGUMENT...]]
 ```
 
 Makes the index of `DIRECTORY`, or of the current directory if none is
@@ -247,6 +247,8 @@ whose provider fails leaves the configuration that was there.
 | `-s NAME=VALUE` | a setting, sent to the provider with every request; any number of times, each name once |
 | `-t MILLISECONDS` | how long one request may take, 1 to 3600000; 120000 without it |
 | `-b TEXTS` | the most texts of one request, 1 to 1024; 32 without it |
+| `-f FILE` | a file that `COMMAND` depends on, a script given to an interpreter or a model file: it is found now, from this directory if it is no path from the root, and kept as a path from the root in a line `file` of the configuration. An argument of `COMMAND` that is `FILE`, byte for byte, becomes that path. The command is allowed with the file, and with its bytes if it lies in `DIRECTORY` ([provider.md](provider.md#which-commands-are-run)). Any number of times, 64 files at most; one that is no regular file that can be read is status 2 |
+| `-x PROGRAM` | the same for a program that `COMMAND` runs, found now as `COMMAND` itself is, in `PATH` if it has no slash: `-x llama-embedding -- aildb-llama -m FILE -x llama-embedding` |
 
 Of the letters `-i`, `-d`, `-n`, `-r`, `-t` and `-b` each is given once at
 most. Options without `-i`, `-d` or a command, and a directory that was

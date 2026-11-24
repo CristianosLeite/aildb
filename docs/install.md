@@ -58,13 +58,18 @@ Whoever runs Ollama anyway may use `aildb-ollama` in the place of
 ```
 aildb index ~/src/project -i nomic-embed-text -d 768 \
     -s 'document_prefix=search_document: ' -s 'query_prefix=search_query: ' \
-    -- aildb-llama -m ~/models/nomic-embed-text-v1.5.f16.gguf
+    -x llama-embedding \
+    -- aildb-llama -m ~/models/nomic-embed-text-v1.5.f16.gguf -x llama-embedding
 ```
 
 `-i` is the name of the model and `-d` the elements of its vectors; the
 two settings are what nomic-embed-text wants before a document and before
 a query, and another model has others or none; after `--` is the command
-of the provider. This is said once: it is written to
+of the provider. `-x llama-embedding` has aildb find that program now, in
+your `PATH`, and give `aildb-llama` its path from the root in the place
+of the name: the adapter itself looks for no program, so that every later
+search, from whatever directory and with whatever `PATH`, runs the one
+found here ([provider.md](provider.md#which-commands-are-run)). This is said once: it is written to
 `~/src/project/.aildb/config`. The command prints a line when it is done:
 
 ```
@@ -125,7 +130,8 @@ and its `PATH` are.
 The options given again are the new configuration:
 
 ```
-aildb index ~/src/project -i other-model -d 1024 -- aildb-llama -m ~/models/other.gguf
+aildb index ~/src/project -i other-model -d 1024 -x llama-embedding \
+    -- aildb-llama -m ~/models/other.gguf -x llama-embedding
 ```
 
 The vectors of the old model are not used for the new one: every text is
@@ -143,10 +149,10 @@ since the client starts it from where it likes:
 claude mcp add aildb -- /path/of/aildb-mcp -d /path/of/project -a /path/of/aildb
 ```
 
-The provider is found as the configuration names it, so `aildb-llama`
-and `llama-embedding` are to be on the `PATH` the client gives its
-servers, or named by whole paths in step 3 (`-x` of `aildb-llama` names
-`llama-embedding`).
+The provider needs nothing of the `PATH` the client gives its servers:
+step 3 found `aildb-llama` and, with `-x llama-embedding`,
+`llama-embedding` once, and the configuration has both by their paths
+from the root.
 
 ## What was checked
 
