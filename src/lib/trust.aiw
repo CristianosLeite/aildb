@@ -3,7 +3,9 @@
 # index names a command, and it lies in the indexed directory, which may
 # be a checkout of somebody else's repository: what it names is run only
 # if a file that is the user's own, outside every indexed directory,
-# says so. docs/provider.md has the rule and the file.
+# says so. docs/provider.md has the rule and the file. A program asks
+# trustwithin before it reads or makes that file for a directory: a
+# file that lies in the directory it speaks for is the directory's word.
 #
 # That file is "aildb/trusted" in the directory of the user's
 # configuration: XDG_CONFIG_HOME if the environment has it as a path
@@ -97,6 +99,77 @@ fn trustdir trustdp trustdn trustb
 	call trustfdname trustfd trustb as trustok
 	sys close trustfd
 	ret trustok
+end
+
+# Where the path trustp trustn, one from the root, leads to, against the
+# directory trustdp trustdn: 0 if outside it, 1 if it is the directory or
+# lies in it, and 2 if that cannot be said (no /proc, a part that cannot
+# be opened, no memory). The path is followed with its symbolic links as
+# far as it is there; what is not there yet would be made in the last
+# part that is, so that part is what is compared, by the name the kernel
+# has for it.
+fn trustwithin trustp trustn trustdp trustdn
+	call bycut trustroot 0
+	call trustdir trustdp trustdn trustroot as trustok
+	ifz trustok
+		ret 2
+	end
+	label part
+	if trustn<2
+		set "/" as trustp
+		trustn=1
+	end
+	# O_PATH, and O_CLOEXEC by fileopen
+	call fileopen trustp trustn 0x200000 0 as trustfd
+	if (trustfd==-2)|(trustfd==-20)
+		# not there; a link that leads to nothing would be followed by
+		# whoever makes the file, to a place that cannot be looked at
+		# (O_NOFOLLOW)
+		call fileopen trustp trustn 0x220000 0 as trustfd
+		ifsge trustfd 0
+			sys close trustfd
+			ret 2
+		end
+		# the part before the last slash
+		trustn-=1
+		label slash
+		if trustn
+			loadb trustp+trustn as trustc
+			if trustc!=47
+				trustn-=1
+				jmp slash
+			end
+		end
+		jmp part
+	end
+	ifslt trustfd 0
+		ret 2
+	end
+	call bycut trustreal 0
+	call trustfdname trustfd trustreal as trustok
+	sys close trustfd
+	ifz trustok
+		ret 2
+	end
+	load trustreal as trustq
+	load trustreal+8 as trustm
+	load trustroot as trustrp
+	load trustroot+8 as trustrn
+	if trustrn==1
+		ret 1
+	end
+	if trustm<trustrn
+		ret 0
+	end
+	call texteq trustq trustrn trustrp trustrn as trustsame
+	ifz trustsame
+		ret 0
+	end
+	if trustm==trustrn
+		ret 1
+	end
+	loadb trustq+trustrn as trustc
+	ret trustc==47
 end
 
 # Add to the bytes buffer trustb the path trustp trustn as one from the

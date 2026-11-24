@@ -792,3 +792,26 @@ chose.
   given to the adapter alone: status 7, nothing run and the
   configuration as it was; named to both, run, and refused once its
   bytes changed) and `tests/lib_provider.aiw` (the member).
+
+### Fix after the review of `acb1a70`
+
+A fifth review, of the fixes above at `acb1a70` (user, 2026-11-24,
+`REVIEW.md` again), had one finding.
+`.agents/knowledge/architecture/review-acb1a70.md` has what was chosen.
+
+- [x] The file of the allowed commands was taken wherever
+  `XDG_CONFIG_HOME` or `HOME` put it, also in the directory that was
+  indexed: the directory of the user's configuration indexed itself,
+  or one above it, or a link, made the directory the keeper of the
+  lines that allow its own provider (the review: the setup wrote the
+  file there). `ixtrusted` now asks `trustwithin` of
+  `src/lib/trust.aiw` where the path of the file and of its directory
+  leads, links followed, as far as it is there, before anything is
+  read or made, and a place in the indexed directory ends the command
+  with status 2; a link to nothing allows nothing. Tests
+  `tests/cli_index_trust.aiw` (the file in the directory, through a
+  link, by `HOME`, as a link of the file itself, and a copy of an
+  allowed line in the directory, which is not read; on the code before
+  the fix the setup wrote the file there and ran the provider) and
+  `tests/lib_trust.aiw` (`trustwithin` for paths that are and are not
+  there, through links both ways).

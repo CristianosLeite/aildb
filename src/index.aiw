@@ -585,13 +585,50 @@ end
 # with its directories made if make says so, and ixtkey the key of the
 # command of ixconf for the directory that is indexed: 1, or 0 if the
 # environment names no directory of the user or the directory that is
-# indexed has no name to the kernel.
+# indexed has no name to the kernel. A file that lies in the directory
+# that is indexed ends the program.
 fn ixtrusted make
 	call bycut ixtrust 0
 	call trustbase ixtrust as ok
 	ifz ok
 		ret 0
 	end
+	# The file is to be the user's and not the directory's: one that
+	# lies in the directory that is indexed, as it does when the
+	# directory of the user's configuration is indexed, or one above it,
+	# or when a link leads there, could be written by whoever wrote the
+	# directory, with the line of any command. It is looked at before
+	# anything of it is read or made, the file and the directory it is in.
+	call byadd ixtrust "/aildb" as ok
+	ifz ok
+		call nomem
+	end
+	load ixtrust as p
+	load ixtrust+8 as n
+	call trustwithin p n ixdp ixdn as in
+	ifz in
+		call bycut ixother 0
+		call byadd ixother p n
+		call byadd ixother "/trusted" as ok
+		ifz ok
+			call nomem
+		end
+		load ixother as q
+		load ixother+8 as m
+		call trustwithin q m ixdp ixdn as in
+	end
+	if in==2
+		ret 0
+	end
+	if in
+		call about ixdp ixdn
+		call byadd msg "the file of the commands you allowed, "
+		call byadd msg p n
+		call byadd msg "/trusted, lies in this directory or leads into it, so the directory could allow its own provider: nothing of it was read, written or run. Set XDG_CONFIG_HOME to a directory outside the one that is indexed"
+		call fail stusage
+	end
+	call bycut ixtrust 0
+	call trustbase ixtrust as ok
 	if make
 		load ixtrust as p
 		load ixtrust+8 as n
@@ -687,7 +724,7 @@ fn ixconfig given
 		call ixtrusted 1 as ok
 		ifz ok
 			call about ixdp ixdn
-			call byadd msg "the command of the provider cannot be noted as allowed: the environment has no HOME and no XDG_CONFIG_HOME that is a path from the root, or the directory, the program or a file it depends on has no name in /proc, or one of them lies in the directory and cannot be read"
+			call byadd msg "the command of the provider cannot be noted as allowed: the environment has no HOME and no XDG_CONFIG_HOME that is a path from the root, or the directory, the program or a file it depends on has no name in /proc, or one of them lies in the directory and cannot be read, or where the file of the allowed commands leads cannot be said, as for a link to nothing"
 			call fail stio
 		end
 		ixstaged=1

@@ -82,7 +82,7 @@ query 1 m1
 # no directory of the user: nothing is allowed, and nothing can be
 aildb: p: the configuration of this index names a provider that was not set up by you on this machine, or whose program or a file it depends on is no longer the file it was, and nothing of it was run. Its command is: FAKE spread; to allow it, name the provider yourself: aildb index p -i m1 -d 8 ... -- COMMAND
 aildb: p: the configuration of this index names a provider that was not set up by you on this machine, or whose program or a file it depends on is no longer the file it was, and nothing of it was run. Its command is: FAKE spread; to allow it, name the provider yourself: aildb index p -i m1 -d 8 ... -- COMMAND
-aildb: n: the command of the provider cannot be noted as allowed: the environment has no HOME and no XDG_CONFIG_HOME that is a path from the root, or the directory, the program or a file it depends on has no name in /proc, or one of them lies in the directory and cannot be read
+aildb: n: the command of the provider cannot be noted as allowed: the environment has no HOME and no XDG_CONFIG_HOME that is a path from the root, or the directory, the program or a file it depends on has no name in /proc, or one of them lies in the directory and cannot be read, or where the file of the allowed commands leads cannot be said, as for a link to nothing
 status 4
 .aildb
 t.txt
@@ -182,5 +182,33 @@ model	m1
 {"records":1,"dimension":3,"model":"m3","source_revision":null,"files":1,"embedded":1,"published":true}
 2
 status 2
-aildb: l: the configuration of this index names a provider that was not set up by you on this machine, or whose program 
+aildb: l: the configuration of this index names a provider t
+ls: No such file or directory
+# the file of the allowed commands in the directory that is indexed: nothing is made, read or run
+status 2
+aildb: t: the file of the commands you allowed, TMP/t/cfg/aildb/trusted, lies in this directory or leads into it, so the directory could allow its own
+.aildb
+t.txt
+# through a link to a directory of it, and by HOME when the directory is the one above
+status 2
+aildb: t: the file of the commands you allowed, TMP/tlink/aildb/trusted, lies in this directory or leads into it, so the directory could allow its own
+t/cfg
+status 2
+aildb: t: the file of the commands you allowed, TMP/t/.config/aildb/trusted, lies in this directory or leads into it, so the directory could allow its
+.aildb
+cfg
+t.txt
+# a file of the user that is a link into the directory, to none and to a file
+status 4
+aildb: t: the command of the provider cannot be noted as allowed: the environment has no HOME and no XDG_CONFIG_HOME that is a path from the root, or
+status 2
+aildb: t: the file of the commands you allowed, TMP/xdg3/aildb/trusted, lies in this directory or leads into it, so the directory could allow its own
+0
+# an index that was allowed, and then a copy of the file in the directory: its lines allow nothing
+{"records":1,"dimension":8,"model":"m1","source_revision":null,"files":1,"embedded":1,"published":true}
+2
+status 2
+aildb: t: the file of the commands you allowed, TMP/t/cfg/aildb/trusted, lies in this directory or leads into it, so the directory could allow its own
+status 2
+aildb: t: the file of the commands you allowed, TMP/t/cfg/aildb/trusted, lies in this directory or leads into it, so the directory could allow its own
 ls: No such file or directory

@@ -119,3 +119,23 @@ $ /bin/sh -e step.sh
 0
 0
 0
+# where a path leads, against a directory: outside 0, in it 1, not to be said 2
+$ /bin/sh -e step.sh
+--- stdout
+--- stderr
+--- status 0
+1 w
+1 w/in/file
+1 w/new/dir/file
+0 away
+0 away/new/file
+1 away/link
+1 away/link/new
+2 away/dangling
+2 away/dangling/new
+0 w/out
+0 w/out/new
+1 w/in/file/below
+0 wx
+2 a directory that is none
+1 the root

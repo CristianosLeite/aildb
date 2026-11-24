@@ -251,3 +251,41 @@ call file "d/sub/embed.py" 14
 call file "d/sub" 0
 call file "out/model" 0
 call file "" 0
+call print "# where a path leads, against a directory: outside 0, in it 1, not to be said 2\n"
+call filewrite "step.sh" "mkdir -p w/in/deep away\nln -s \"$PWD/w/in\" away/link\nln -s \"$PWD/w/none\" away/dangling\nln -s \"$PWD/away\" w/out\n: > w/in/file\n"
+call cmdshow "/bin/sh -e step.sh"
+# the path p n of the directory of the test, from the root, against w
+fn within p n
+	call bycut line 0
+	call trustabs line p n
+	load line as q
+	load line+8 as m
+	call trustwithin q m "w" as r
+	call putn r
+	call print " "
+	call print p n
+	call print "\n"
+end
+call within "w"
+call within "w/in/file"
+call within "w/new/dir/file"
+call within "away"
+call within "away/new/file"
+call within "away/link"
+call within "away/link/new"
+call within "away/dangling"
+call within "away/dangling/new"
+call within "w/out"
+call within "w/out/new"
+call within "w/in/file/below"
+call within "wx"
+call bycut line 0
+call trustabs line "away"
+load line as q
+load line+8 as m
+call trustwithin q m "none" as r
+call putn r
+call print " a directory that is none\n"
+call trustwithin q m "/" as r
+call putn r
+call print " the root\n"

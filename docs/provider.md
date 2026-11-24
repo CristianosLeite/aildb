@@ -163,6 +163,24 @@ $XDG_CONFIG_HOME/aildb/trusted      if the variable is a path from the root
 $HOME/.config/aildb/trusted         else
 ```
 
+**That file is never one of the directory it speaks for.** A line of it
+is a sum of things the directory knows, so whoever can write the file
+can allow any command. Before the file is read or made, aildb looks
+where its path leads, the file and the directory it is in, with their
+symbolic links followed and by the names the kernel has, as far as the
+path is there. If that is the indexed directory or a place in it, as
+when the directory of your configuration is indexed, or your home
+directory with the file in `.config` below it, or when a link leads
+there, the command ends with status 2, and nothing is read, written or
+run:
+
+```
+aildb: t: the file of the commands you allowed, /home/me/t/cfg/aildb/trusted, lies in this directory or leads into it, so the directory could allow its own provider: nothing of it was read, written or run. Set XDG_CONFIG_HOME to a directory outside the one that is indexed
+```
+
+A link on the way that leads to nothing is not followed to be made:
+nothing is allowed then, as without `HOME`.
+
 **The program is found once, when you name it.** A name without a slash
 is looked for in the directories of `PATH` as they are then, and a path
 that does not start at the root is taken from the directory the command
@@ -525,7 +543,9 @@ and `aildb-llama` with `-x llama-embedding`, found in one `PATH` and
 searched with another in which that name is a program that leaves a
 file, which is not run, and a program of the directory that is given to
 the adapter alone, which is not run either, and named to both is run
-until its bytes change;
+until its bytes change, and the file of the allowed commands in the
+indexed directory, directly, through a link, by `HOME` and as a copy
+with the line of an allowed command in it;
 `tests/kill_index.aiw` kills a run whose provider hangs and finds the
 provider gone. `make dist-check` on the archive of `b4b52aa`
 (2026-11-24, in `debian:stable-slim`, where `HOME` is `/root`) indexed
