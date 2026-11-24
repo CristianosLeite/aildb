@@ -59,3 +59,17 @@ chunk sizes or models was run.
   no units either and which would add nothing C does not; and changing the two older
   corpora to the chunker of every text file, which would change their published
   figures (the decision of 2026-11-23 on the chunker page).
+- **Six variants, one change each against the base** (agent, 2026-11-24): 20 lines and
+  750 bytes, 80 and 3000, 10 lines in common, the path before the text, and
+  mxbai-embed-large with the prefix its authors give for a query. Run once, on
+  2026-11-24 (`docs/evaluation.md`). Not run: pairs of changes, since six runs already
+  say that ten queries a corpus do not tell one change from another by one query.
+- **Lines in common only after a cut by the limits** (agent): a function of AIL or a
+  section of Markdown ends a chunk as a unit, and repeating its last lines in the next
+  unit would put two things in one chunk. So the variant changes little where units end
+  the chunks, which the figures show.
+- **No default was changed from the figures** (agent; the decision is the user's): the
+  path before the text helps the two corpora of one author and hurts the third, and a
+  default for `aildb index` is for the repositories of others. What the third corpus
+  points to is units for C, which is the open item of the chunker page.
+

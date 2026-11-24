@@ -184,8 +184,93 @@ places are those of this machine: another processor, another version of
 Ollama or the model without the GPU may give vectors that differ in their
 last bits, and two results that are close may change places.
 
+## Results of the variants
+
+`make AIL=../ailang/build/ail eval-variants` printed this table on
+2026-11-24, 18:06 to 18:11 UTC, for aildb at `5785d94`, built by AIL at
+`d9e069e` (0.1.1), on a Core i7-12700H with an NVIDIA RTX 3050 Laptop GPU
+and Linux 7.0, with Ollama 0.40.17, nomic-embed-text at the digest
+`0a109f422b47` and mxbai-embed-large at `468836162de7`, both F16, with
+contexts of 2048 and of 512 tokens. `first1`, `first5` and `first10` are
+queries of ten:
+
+```
+variant  corpus    chunks first1 first5 first10     mrr
+base     ail         3266      3      6      7  0.4517
+base     aildb        554      7      8      8  0.7418
+base     hiredis      529      3      5      6  0.4075
+small    ail         4701      3      6      6  0.4409
+small    aildb        846      6      8      8  0.6897
+small    hiredis      982      2      3      4  0.2788
+large    ail         2655      3      6      9  0.4743
+large    aildb        432      7      8      8  0.7456
+large    hiredis      313      2      5      6  0.3348
+overlap  ail         4708      3      6      7  0.4486
+overlap  aildb        624      7      8      8  0.7411
+overlap  hiredis      753      2      4      6  0.3179
+path     ail         3266      4      7     10  0.5617
+path     aildb        554      8      8      8  0.8111
+path     hiredis      529      2      4      6  0.3136
+mxbai    ail         3266      5      8      9  0.6466
+mxbai    aildb        554      7      9      9  0.7694
+mxbai    hiredis      529      2      5      5  0.3167
+```
+
+`base` gives `ail` and `aildb` the figures of 2026-11-22 above, and is the
+first run of `hiredis`, whose places were:
+
+```
+place 21  sds.c:381  append a number of bytes to the end of a dynamic string
+place 1  sds.c:812  split a string into pieces at a separator
+place 10  dict.c:300  grow the hash table when it has as many elements as slots
+place 63  net.c:171  turn on TCP keepalive for a connection
+place 149  net.c:607  connect to a server over a unix domain socket
+place 3  read.c:162  parse a string of digits into a 64-bit integer
+place 1  hiredis.c:316  build the protocol bytes of a command from a format string and arguments
+place 14  README.md:308  send several commands at once and read their replies afterwards
+place 1  README.md:792  replace the functions that allocate memory
+place 2  README.md:597  limit how large the buffer of the reply reader may stay
+```
+
+What the table says, and how far it can be trusted: a corpus has ten
+queries, so one query that moves across a line of the table is a tenth,
+and a difference of one is no finding.
+
+- **Smaller chunks are not better anywhere**, and on `hiredis`, where a
+  file is cut by the limits alone, they are the worst of the six: 4 of 10
+  among the first ten against 6.
+- **Larger chunks** change little on the two corpora with units, where a
+  function or a section ends a chunk before the limits do, and lower the
+  mean reciprocal rank of `hiredis`.
+- **Ten lines in common** change nothing on `ail` and `aildb`, whose
+  chunks are seldom ended by the limits, and do not help `hiredis`, where
+  they are.
+- **The path before the text** is the largest gain on `ail` (all ten
+  among the first ten, against seven) and on `aildb`, and a loss on
+  `hiredis`. In the first two a path says much (`lib/std/heap.aiw`,
+  `docs/durability.md`); in `hiredis` nearly every chunk is of one of a
+  few large files, so the path says the same of hundreds of chunks.
+- **mxbai-embed-large** is better than nomic-embed-text on `ail`, about
+  the same on `aildb`, and lower on `hiredis`. It reads 512 tokens, and a
+  chunk of 1500 bytes of C may be more, which Ollama cuts.
+- **No variant is better on all three corpora.** The three queries of
+  `hiredis` that are farthest down in `base` are answered by functions
+  that do not begin their chunk: `sds.c:381` is in the chunk of the lines
+  343 to 382, `net.c:171` in 147 to 186 and `net.c:607` in 585 to 624
+  (`build/eval/base/hiredis/meta.tsv`). The second of them is beyond the
+  place 30 in every variant, the places of the other two are in the
+  reports. What this points to for such files is not a number of lines
+  but units, chunks that begin where a function does, which the chunker
+  has for AIL and Markdown alone; that was not built or measured here.
+
+Nothing was changed in the index of a directory or in the example from
+these figures: which of them is worth a change of the defaults is a
+decision, and it is the user's.
+
 ## What was not measured
 
-Other sizes of a chunk, chunks that overlap, the path as part of the
-embedded text, and other models: the queries are there to compare them,
-and no such comparison was run (`docs/TODO.md`).
+Units for other languages than AIL and Markdown, which the variants point
+to. Two things changed at once, such as the path with larger chunks.
+More than one other model, more than one other size in each direction,
+and more than ten queries a corpus: the differences of one query in the
+table above are within what other queries would give.

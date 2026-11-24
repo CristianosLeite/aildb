@@ -54,17 +54,10 @@ Nothing is left of this step (`BACKLOG.md`).
 
 ## 15. Semantic retrieval evaluation
 
-The fixed queries, their places and the measures are done (`BACKLOG.md`,
-[evaluation.md](evaluation.md)).
-
-- [ ] Use the queries of `make eval` to compare chunk sizes, overlap,
-  the path as part of the embedded text and embedding models. The limits
-  of a chunk are constants of `example/chunk.aiw` and the model, its
-  dimension and its prefixes constants of `example/embed.aiw`; make them
-  arguments, run each variant on both corpora and add the measures to
-  `docs/evaluation.md`. Add queries on a repository of another author
-  first, in a language the chunker is taught, since both corpora are
-  AIL and Markdown.
+The fixed queries, their places, the measures and the comparison of
+variants are done (`BACKLOG.md`, [evaluation.md](evaluation.md)). Whether
+a default changes for what the comparison showed is the user's to decide
+(`.agents/knowledge/status/open-items.md`).
 
 ## 16. MCP server for coding agents
 
