@@ -8,3 +8,11 @@ use "tests/lib/cmd.aiw"
 call cmdshow "aildb"
 call cmdshow "aildb frob"
 call cmdshow "aildb frob a b"
+# the same through the arguments one by one, of which one has a space and
+# one is empty
+call cmdbegin
+call cmdadd "aildb"
+call cmdadd "frob a"
+call cmdadd ""
+call cmdadd "b"
+call cmdshowv

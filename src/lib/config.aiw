@@ -1,0 +1,532 @@
+# src/lib/config.aiw -- the configuration of the embedding provider of an
+# index: which provider and model made its vectors, with which settings,
+# and the command that is run to ask for more. It is the file
+# .aildb/config of an indexed directory, which docs/provider.md
+# describes, read and written here, and the identity of what it says:
+# the 32 bytes that two configurations share if and only if their
+# vectors may stand in one index.
+#
+# A configuration is confsize bytes that the caller owns; confinit makes
+# it empty and conffree gives its memory back. The functions return what
+# they found and print nothing. Every name of this file starts with
+# "conf"; a program has no var of such a name.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "src/lib/text.aiw"
+use "src/lib/sha.aiw"
+
+const confsize 160
+# where the configuration has what: three strings, each the offset in its
+# bytes and the length, for confstr and confput, and three numbers, for
+# load and store
+const confname 24       # the name of the provider
+const confmodel 40      # the model
+const confrev 56        # the revision of the model, which may be empty
+const confdim 72        # the dimension of a vector
+const conftime 80       # the milliseconds a request may take
+const confbatch 88      # the most texts of a request
+# besides: the bytes of the strings at 0, the settings at 96 (a name, a
+# NUL byte, a value, a NUL byte) with their number at 120, and the
+# arguments of the command at 128 (a NUL byte after each) with their
+# number at 152
+
+# the numbers of a configuration that says none
+const conftimeusual 120000
+const confbatchusual 32
+
+# why a configuration is none
+const confnoend 1       # the text ends without a line feed
+const confbadline 2     # a line that is none of a configuration
+const conftwice 3       # a line or a setting that is there twice
+const confmissing 4     # no version, provider, model or dimension
+const confversion 5     # the first line is not that of version 1
+const confbadname 6     # a provider name that is not 1 to 255 bytes of valid text
+const confbadmodel 7    # a model that is not
+const confbadrev 8      # a revision of more than 255 bytes, or no valid text
+const confbaddim 9      # a dimension that is not 1 to 65536
+const confbadtime 10    # a time that is not 1 to 3600000 milliseconds
+const confbadbatch 11   # a number of texts that is not 1 to 1024
+const confbadset 12     # a setting whose name is not 1 to 255 bytes of valid text, or whose value is more than 4095 bytes or no valid text
+const confbadarg 13     # an argument of more than 4095 bytes, or no valid text
+const confnoarg 14      # no command
+const confmem 15        # no memory
+
+# make the confsize bytes at confc a configuration that says nothing but
+# the usual time and number of texts; they hold no memory before
+fn confinit confc
+	confi=0
+	while confi<confsize
+		store confc+confi 0
+		confi+=8
+	end
+	store confc+conftime conftimeusual
+	store confc+confbatch confbatchusual
+end
+
+# give the memory of the configuration back
+fn conffree confc
+	call byfree confc
+	call byfree confc+96
+	call byfree confc+128
+end
+
+# the string confk of the configuration, confname, confmodel or confrev:
+# its address and its length
+fn confstr confc confk
+	load confc as confp
+	load confc+confk as confo
+	load confc+confk+8 as confn
+	ret confp+confo confn
+end
+
+# make the string confk of the configuration the confn bytes at confp,
+# which are not bytes of the configuration: 1, or 0 without memory
+fn confput confc confk confp confn
+	load confc+8 as confo
+	call byadd confc confp confn as confr
+	ifz confr
+		ret 0
+	end
+	store confc+confk confo
+	store confc+confk+8 confn
+	ret 1
+end
+
+# the value of the setting whose name is the confn bytes at confp: its
+# address, its length and 1, or three zeros if there is none
+fn confget confc confp confn
+	load confc+96 as confq
+	load confc+120 as confk
+	while confk
+		call strlen confq as confa
+		call strlen confq+confa+1 as confb
+		call texteq confp confn confq confa as confr
+		if confr
+			ret confq+confa+1 confb 1
+		end
+		confq+=confa+confb+2
+		confk-=1
+	end
+	ret 0 0 0
+end
+
+# add the setting of the name confp confn with the value confq confm: 0,
+# or confbadset, conftwice or confmem
+fn confadd confc confp confn confq confm
+	call textvalid confp confn as confa
+	call textvalid confq confm as confb
+	if (confa==0)|(confb==0)|(confn==0)|(confn>255)|(confm>4095)
+		ret confbadset
+	end
+	call confget confc confp confn as confa confb confr
+	if confr
+		ret conftwice
+	end
+	load confc+104 as confo
+	call byadd confc+96 confp confn
+	call byaddb confc+96 0
+	call byadd confc+96 confq confm
+	call byaddb confc+96 0 as confr
+	ifz confr
+		store confc+104 confo
+		ret confmem
+	end
+	load confc+120 as confk
+	store confc+120 confk+1
+	ret 0
+end
+
+# add an argument of the command, the confn bytes at confp; the first is
+# the program: 0, or confbadarg or confmem
+fn confarg confc confp confn
+	call textvalid confp confn as confa
+	if (confa==0)|(confn>4095)
+		ret confbadarg
+	end
+	load confc+136 as confo
+	call byadd confc+128 confp confn
+	call byaddb confc+128 0 as confr
+	ifz confr
+		store confc+136 confo
+		ret confmem
+	end
+	load confc+152 as confk
+	store confc+152 confk+1
+	ret 0
+end
+
+# the arguments of the command: the address of the first, each with a
+# NUL byte after it, and their number
+fn confargs confc
+	load confc+128 as confp
+	load confc+152 as confk
+	ret confp confk
+end
+
+# how the confn bytes at confp stand to the confm bytes at confq, byte
+# for byte: 0 before them, 1 the same, 2 after them
+fn confcmp confp confn confq confm
+	confi=0
+	while (confi<confn)&(confi<confm)
+		loadb confp+confi as confa
+		loadb confq+confi as confb
+		if confa<confb
+			ret 0
+		end
+		if confa>confb
+			ret 2
+		end
+		confi+=1
+	end
+	if confn<confm
+		ret 0
+	end
+	ret (confn>confm)+1
+end
+
+# The setting whose name is the first after the name conflp confln in
+# the order of their bytes, or the first of all if conflp is 0: the
+# address and the length of its name and of its value, and 1; or five
+# zeros after the last. So the settings are walked in one order whatever
+# order they were added in.
+fn confnext confc conflp confln
+	load confc+96 as confq
+	load confc+120 as confk
+	confbp=0
+	confbn=0
+	while confk
+		call strlen confq as confa
+		call strlen confq+confa+1 as confb
+		confok=1
+		if conflp
+			call confcmp confq confa conflp confln as confr
+			confok=confr==2
+		end
+		if confok&(confbp!=0)
+			call confcmp confq confa confbp confbn as confr
+			confok=confr==0
+		end
+		if confok
+			confbp=confq
+			confbn=confa
+		end
+		confq+=confa+confb+2
+		confk-=1
+	end
+	ifz confbp
+		ret 0 0 0 0 0
+	end
+	call strlen confbp+confbn+1 as confb
+	ret confbp confbn confbp+confbn+1 confb 1
+end
+
+# 0 if the configuration is one that may be used, or the reason: a
+# constant above from confbadname on
+fn confcheck confc
+	call confstr confc confname as confp confn
+	call textvalid confp confn as confa
+	if (confa==0)|(confn==0)|(confn>255)
+		ret confbadname
+	end
+	call confstr confc confmodel as confp confn
+	call textvalid confp confn as confa
+	if (confa==0)|(confn==0)|(confn>255)
+		ret confbadmodel
+	end
+	call confstr confc confrev as confp confn
+	call textvalid confp confn as confa
+	if (confa==0)|(confn>255)
+		ret confbadrev
+	end
+	load confc+confdim as confv
+	if (confv==0)|(confv>65536)
+		ret confbaddim
+	end
+	load confc+conftime as confv
+	if (confv==0)|(confv>3600000)
+		ret confbadtime
+	end
+	load confc+confbatch as confv
+	if (confv==0)|(confv>1024)
+		ret confbadbatch
+	end
+	load confc+152 as confv
+	ifz confv
+		ret confnoarg
+	end
+	ret 0
+end
+
+# add a line of the word confp confn, a tab and the bytes confq confm
+fn confline confb confp confn confq confm
+	call byadd confb confp confn
+	call byaddb confb 9
+	call byadd confb confq confm
+	tail byaddb confb 10
+end
+
+# the same with the number confv
+fn confnum confb confp confn confv
+	call byadd confb confp confn
+	call byaddb confb 9
+	call byaddn confb confv
+	tail byaddb confb 10
+end
+
+# Add the configuration to the bytes buffer confb as the text of the file
+# .aildb/config: 1, or 0 without memory, and then the buffer may have a
+# part of it. The settings are written in the order of their names.
+fn confwrite confb confc
+	call byadd confb "aildb\t1\n"
+	call confstr confc confname as confp confn
+	call confline confb "provider" confp confn
+	call confstr confc confmodel as confp confn
+	call confline confb "model" confp confn
+	call confstr confc confrev as confp confn
+	if confn
+		call confline confb "revision" confp confn
+	end
+	load confc+confdim as confv
+	call confnum confb "dimension" confv
+	load confc+conftime as confv
+	call confnum confb "timeout" confv
+	load confc+confbatch as confv
+	call confnum confb "batch" confv as confr
+	conflp=0
+	confln=0
+	label each
+	call confnext confc conflp confln as conflp confln confq confm confok
+	if confok
+		call byadd confb "set\t"
+		call confline confb conflp confln confq confm as confr
+		jmp each
+	end
+	call confargs confc as confp confk
+	while confk
+		call strlen confp as confn
+		call confline confb "arg" confp confn as confr
+		confp+=confn+1
+		confk-=1
+	end
+	ret confr
+end
+
+# one line of the text of a configuration: the word confp confn and what
+# follows its tab, confq confm, at the line confi, with the bits confs of
+# the words seen so far: 0 or a reason, and the bits with that of this
+# word
+fn confword confc confp confn confq confm confi confs
+	call texteq confp confn "aildb" as confr
+	if (confi==1)|confr
+		call texteq confq confm "1" as confa
+		if (confi!=1)|(confr==0)|(confa==0)
+			ret confversion confs
+		end
+		ret 0 1
+	end
+	confbit=0
+	confk=0
+	call texteq confp confn "provider" as confr
+	if confr
+		confbit=2
+		confk=confname
+	end
+	call texteq confp confn "model" as confr
+	if confr
+		confbit=4
+		confk=confmodel
+	end
+	call texteq confp confn "revision" as confr
+	if confr
+		confbit=16
+		confk=confrev
+	end
+	call texteq confp confn "dimension" as confr
+	if confr
+		confbit=8
+		confk=confdim
+	end
+	call texteq confp confn "timeout" as confr
+	if confr
+		confbit=32
+		confk=conftime
+	end
+	call texteq confp confn "batch" as confr
+	if confr
+		confbit=64
+		confk=confbatch
+	end
+	if confbit
+		if confs&confbit
+			ret conftwice confs
+		end
+		if confk<confdim
+			call confput confc confk confq confm as confr
+			ifz confr
+				ret confmem confs
+			end
+			ret 0 confs|confbit
+		end
+		call textnum confq confm as confv confok
+		ifz confok
+			# what confcheck refuses, with the reason of this number
+			confv=0
+		end
+		store confc+confk confv
+		ret 0 confs|confbit
+	end
+	call texteq confp confn "set" as confr
+	if confr
+		call textfield confq confm as confa confok
+		ifz confok
+			ret confbadline confs
+		end
+		call confadd confc confq confa confq+confa+1 confm-confa-1 as confr
+		ret confr confs
+	end
+	call texteq confp confn "arg" as confr
+	if confr
+		call confarg confc confq confm as confr
+		ret confr confs
+	end
+	ret confbadline confs
+end
+
+# Read the confn bytes at confp, the text of a file .aildb/config, into
+# the confsize bytes at confc, which hold no memory before: 0 and 0, or a
+# reason, a constant above, and the number of the line at fault, from 1,
+# which is 0 for a reason that is of no one line. After a reason the
+# configuration is not used but is still freed.
+fn confparse confc confp confn
+	call confinit confc
+	confi=0
+	confs=0
+	while confn
+		confi+=1
+		call textline confp confn as confe confok
+		ifz confok
+			ret confnoend confi
+		end
+		call textfield confp confe as confa confok
+		ifz confok
+			ret confbadline confi
+		end
+		call confword confc confp confa confp+confa+1 confe-confa-1 confi confs as confw confs
+		if confw
+			ret confw confi
+		end
+		confp+=confe+1
+		confn-=confe+1
+	end
+	if confs&15!=15
+		ret confmissing 0
+	end
+	call confcheck confc as confw
+	ret confw 0
+end
+
+# add a string of the identity to the bytes buffer confb: its length in
+# decimal, a colon and its bytes
+fn confpart confb confp confn
+	call byaddn confb confn
+	call byaddb confb 58
+	tail byadd confb confp confn
+end
+
+# The identity of the configuration, 32 bytes written at confout: the
+# SHA-256 of the name of the provider, the model, its revision, the
+# dimension and the settings in the order of their names, written as
+# docs/provider.md says. The command, the time and the number of texts
+# of a request are no part of it. 1, or 0 without memory.
+fn confident confc confout
+	local confb 24
+	store confb 0
+	store confb+8 0
+	store confb+16 0
+	call byadd confb "aildb-provider 1\n"
+	call confstr confc confname as confp confn
+	call confpart confb confp confn
+	call byaddb confb 10
+	call confstr confc confmodel as confp confn
+	call confpart confb confp confn
+	call byaddb confb 10
+	call confstr confc confrev as confp confn
+	call confpart confb confp confn
+	call byaddb confb 10
+	load confc+confdim as confv
+	call byaddn confb confv
+	call byaddb confb 10
+	load confc+120 as confv
+	call byaddn confb confv
+	call byaddb confb 10 as confr
+	conflp=0
+	confln=0
+	label each
+	call confnext confc conflp confln as conflp confln confq confm confok
+	if confok
+		call confpart confb conflp confln
+		call confpart confb confq confm
+		call byaddb confb 10 as confr
+		jmp each
+	end
+	ifz confr
+		call byfree confb
+		ret 0
+	end
+	load confb as confp
+	load confb+8 as confn
+	call sha256 confp confn confout
+	call byfree confb
+	ret 1
+end
+
+# add to the bytes buffer confb what the reason confw says, in words: 1,
+# or 0 without memory
+fn confwhy confb confw
+	if confw==confnoend
+		tail byadd confb "the text ends without a line feed"
+	end
+	if confw==confbadline
+		tail byadd confb "a line that is none of a configuration"
+	end
+	if confw==conftwice
+		tail byadd confb "a line or a setting that is there twice"
+	end
+	if confw==confmissing
+		tail byadd confb "no provider, model or dimension"
+	end
+	if confw==confversion
+		tail byadd confb "the first line is not that of version 1"
+	end
+	if confw==confbadname
+		tail byadd confb "the name of the provider is not 1 to 255 bytes of valid text"
+	end
+	if confw==confbadmodel
+		tail byadd confb "the model is not 1 to 255 bytes of valid text"
+	end
+	if confw==confbadrev
+		tail byadd confb "the revision of the model is more than 255 bytes or no valid text"
+	end
+	if confw==confbaddim
+		tail byadd confb "the dimension is not a number from 1 to 65536"
+	end
+	if confw==confbadtime
+		tail byadd confb "the time is not a number of milliseconds from 1 to 3600000"
+	end
+	if confw==confbadbatch
+		tail byadd confb "the number of texts of a request is not from 1 to 1024"
+	end
+	if confw==confbadset
+		tail byadd confb "a setting whose name is not 1 to 255 bytes of valid text, or whose value is more than 4095 bytes or no valid text"
+	end
+	if confw==confbadarg
+		tail byadd confb "an argument of the command of more than 4095 bytes or no valid text"
+	end
+	if confw==confnoarg
+		tail byadd confb "no command of the provider"
+	end
+	if confw==confmem
+		tail byadd confb "no memory"
+	end
+	ret 1
+end

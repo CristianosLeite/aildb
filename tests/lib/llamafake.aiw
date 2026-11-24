@@ -1,0 +1,133 @@
+# llama-fake -- stands for llama-embedding of llama.cpp in the tests of
+# the adapter aildb-llama: it takes the arguments the adapter gives the
+# program and prints vectors in the layout that llama-embedding of
+# llama.cpp b12676 printed on 2026-11-24 for --embd-output-format json
+# (docs/provider.md), with numbers a test can know.
+#
+#   llama-fake -m MODEL -f FILE --embd-separator SEPARATOR ...
+#
+# What FILE holds is cut at each SEPARATOR, and each text gets a vector
+# of three elements: the number of its bytes, the sum of its bytes and
+# 0.1, each printed with seven decimals as the program prints them. The
+# arguments are added to the file llama.log of the current directory,
+# one line a run, with spaces between. A MODEL whose name starts with
+# "missing" is what llama-embedding does with a file that is not there:
+# nothing printed, lines on stderr and the status 1.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+buf in 24
+buf out 24
+buf log 24
+
+fn same p n q m
+	if n!=m
+		ret 0
+	end
+	i=0
+	while i<n
+		loadb p+i as a
+		loadb q+i as b
+		if a!=b
+			ret 0
+		end
+		i+=1
+	end
+	ret 1
+end
+
+# the argument after the one that is the n bytes at p: its address and
+# length, or two zeros
+fn after p n
+	call argc as c
+	i=1
+	while i+1<c
+		call argv i as q m
+		call same p n q m as r
+		if r
+			tail argv i+1
+		end
+		i+=1
+	end
+	ret 0 0
+end
+
+call argc as c
+i=1
+while i<c
+	call argv i as p n
+	if i>1
+		call byaddb log 32
+	end
+	call byadd log p n
+	i+=1
+end
+call byaddb log 10
+call fileopen "llama.log" 0x441 420 as fd
+ifsge fd 0
+	load log as p
+	load log+8 as n
+	call fdwrite fd p n
+	sys close fd
+end
+call after "-m" as p n
+if n>=7
+	call same p 7 "missing" as r
+	if r
+		call eprint "0.00.003.970 E llama_model_load_from_file_impl: failed to load model\n"
+		call eprint "0.00.003.972 E main: unable to load model\n\n"
+		sys exit_group 1
+	end
+end
+call after "-f" as p n
+call fileread p n in as r
+ifslt r 0
+	call eprint "llama-fake: cannot read the file of the texts\n"
+	sys exit_group 1
+end
+call after "--embd-separator" as sp sl
+load in as p
+load in+8 as n
+call byadd out "{\n  \"object\": \"list\",\n  \"data\": [\n"
+k=0
+label text
+# the text up to the next separator
+l=0
+label find
+if l<n
+	found=0
+	if sl&(l+sl<=n)
+		call same p+l sl sp sl as found
+	end
+	ifz found
+		l+=1
+		jmp find
+	end
+end
+sum=0
+i=0
+while i<l
+	loadb p+i as ch
+	sum+=ch
+	i+=1
+end
+if k
+	call byadd out ",\n"
+end
+call byadd out "    {\n      \"object\": \"embedding\",\n      \"index\": "
+call byaddn out k
+call byadd out ",\n      \"embedding\": ["
+call byaddn out l
+call byadd out ".0000000,"
+call byaddn out sum
+call byadd out ".0000000,0.1000000]\n    }"
+k+=1
+if l<n
+	p+=l+sl
+	n-=l+sl
+	jmp text
+end
+call byadd out "\n  ]\n}\n\n"
+load out as p
+load out+8 as n
+call fdwrite 1 p n

@@ -36,6 +36,7 @@ use "lib/async/task.aiw"
 use "lib/async/time.aiw"
 use "lib/async/io.aiw"
 use "lib/net/http.aiw"
+use "adapters/lib/ollama.aiw"
 
 const dimension 768
 const batch 16
@@ -46,15 +47,11 @@ buf body 24     # a request
 buf resp 24     # and its response
 buf out 24      # the vectors
 buf one 8
-buf host 24     # the address as httpurl takes it
 buf line 24
-buf req 128
 buf from 4096
 buf to 4096
 data model "nomic-embed-text"
 data modelend ""
-data local "http://127.0.0.1:11434"
-data localend ""
 var ip port
 
 fn fail p n q m
@@ -143,30 +140,7 @@ end
 # ask the model at the path p n, with the body of bn bytes at bp or with
 # none, and leave the answer in resp: the address and length of its body
 fn ask p n bp bn
-	i=0
-	while i<128
-		store req+i 0
-		i+=8
-	end
-	store req ip
-	store req+8 port
-	if bn
-		store req+16 "POST"
-		store req+24 4
-		store req+64 "application/json"
-		store req+72 16
-	end
-	store req+32 p
-	store req+40 n
-	store req+48 bp
-	store req+56 bn
-	store req+96 600000
-	store req+104 0x40000000
-	call httpcall req resp as h
-	st=0-12
-	if h
-		await h as st
-	end
+	call ollask ip port p n bp bn resp 600000 as st q m
 	ifslt st 0
 		call bycut line 0
 		call byadd line "error "
@@ -175,24 +149,20 @@ fn ask p n bp bn
 		load line+8 as m
 		call fail "Ollama cannot be asked: " q m
 	end
-	load resp as q
-	load resp+8 as m
-	load req+112 as hn
 	if st!=200
 		call bycut line 0
 		call byadd line "status "
 		call byaddn line st
 		call byaddb line 32
-		m-=hn
 		if m>300
 			m=300
 		end
-		call byadd line q+hn m
+		call byadd line q m
 		load line as q
 		load line+8 as m
 		call fail "Ollama refused: " q m
 	end
-	ret q+hn m-hn
+	ret q m
 end
 
 # send the texts that body holds, k of them, and add their vectors to out
@@ -258,37 +228,7 @@ end
 # the address of Ollama, from the environment or the one it has on the
 # machine: ip and port
 fn where
-	call procvar "OLLAMA_HOST" as p n
-	ifz n
-		p=local
-		n=localend-local
-	end
-	label slash
-	if n
-		loadb p+n-1 as c
-		if c==47
-			n-=1
-			jmp slash
-		end
-	end
-	call bycut host 0
-	i=0
-	scheme=0
-	while i+2<n
-		load2 p+i as c
-		loadb p+i+2 as d
-		if (c==0x2f3a)&(d==47)
-			scheme=1
-		end
-		i+=1
-	end
-	ifz scheme
-		call byadd host "http://"
-	end
-	call byadd host p n
-	load host as p
-	load host+8 as n
-	call httpurl p n as ip port q m ok
+	call ollwhere 0 0 as ip port ok p n
 	ifz ok
 		call fail "OLLAMA_HOST is to be an IPv4 address or localhost, with a port or not: " p n
 	end

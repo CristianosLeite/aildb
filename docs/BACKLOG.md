@@ -352,3 +352,51 @@ mapped pages contribute to reported peak resident memory.
   limit of 32 MiB; and the chunks of one PDF file may be 16777216
   bytes of metadata and text, `pdfkept`, above which the file is
   passed over whole. Tests in `tests/example_chunk.aiw`.
+
+## 17. On-demand indexing and text search
+
+The user wants an index that the command `aildb` makes and refreshes
+when it is run, with no daemon and no watcher, and an embedding provider
+chosen apart from the LLM that asks (2026-11-24). The index of a
+directory, its configuration, its manifest and its kept vectors are in
+`DIRECTORY/.aildb/` (user, 2026-11-24).
+
+- [x] Before the items: `cmdbegin`, `cmdadd` and `cmdshowv` of
+  `tests/lib/cmd.aiw` run a command whose arguments have spaces; the
+  chunker is the library `src/lib/chunk.aiw`, of which `build/chunk` is
+  the command, with the same output; and `src/lib/sha.aiw` is SHA-256,
+  checked against `hashlib` of Python.
+- [x] The embedding provider interface: two operations, `documents` for
+  a batch of chunks and `query` for one query, in a request of JSON that
+  carries the model, its revision, the dimension and the settings, so
+  that a provider applies the prefix or the parameters of each
+  (`provrequest` of `src/lib/provider.aiw`). The provider of an index is
+  configured once, in `.aildb/config` (`src/lib/config.aiw`), and
+  `confident` gives the configuration an identity, the SHA-256 of the
+  provider, the model, its revision, the dimension and the settings,
+  which tells apart embeddings of one dimension. `provparse` validates
+  an answer where it enters: the count, the index of each vector, the
+  dimension, finite binary32, and no vector of zeros, the last two with
+  `normwide`, which `build` uses. Tests `lib_config` and `lib_provider`,
+  with answers written in the test for both operations and for each
+  malformed answer; the identities and the bits against Python.
+  `docs/provider.md`.
+- [x] The local command adapter: `provdocs` and `provquerytext` of
+  `src/lib/provider.aiw` start the command of the configuration once
+  for each request, directly, with the request of version 1 of the
+  protocol as its stdin and its answer on stdout, both files in memory;
+  32 texts a request and 120000 ms unless the configuration says
+  others, after which the process is killed; a status that is not 0, a
+  signal and a program that cannot be started are reasons, each with
+  the first line of what the provider said. `aildb-llama`
+  (`adapters/llama.aiw`) is the runner without a socket: it runs
+  `llama-embedding` of llama.cpp on a model file, which is built from
+  the sources of llama.cpp since its release archives have no such
+  program. `aildb-ollama` (`adapters/ollama.aiw`) wraps the protocol of
+  Ollama behind the same interface, with `adapters/lib/ollama.aiw`
+  shared with `build/embed`. Tests `provider_command` (a subprocess,
+  `build/provider-fake`, and no service of HTTP), `adapter_llama`
+  (against `build/llama-fake`) and `adapter_ollama`; both adapters were
+  run by hand on 2026-11-24 against llama.cpp `b12676` and Ollama
+  0.40.17 (`docs/provider.md`). Indexing and a query through them are
+  the tests of the items below.

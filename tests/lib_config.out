@@ -1,0 +1,50 @@
+3 for a setting twice
+0 for the check
+aildb	1
+provider	fake
+model	model one
+revision	r2
+dimension	768
+timeout	120000
+batch	32
+set	a	
+set	document_prefix	search_document: 
+set	query_prefix	search_query: 
+arg	provider-fake
+arg	--flag
+arg	two words
+--- read and written again
+0 0
+1 the same text
+[search_query: ]
+--- identities
+d07de441b1c1d706ddda7f08ea0449742d53b45af6377c3ed296e19267c208a1
+d07de441b1c1d706ddda7f08ea0449742d53b45af6377c3ed296e19267c208a1
+d07de441b1c1d706ddda7f08ea0449742d53b45af6377c3ed296e19267c208a1
+4d63077d5e84a03c73c009d8f3b7482eac7a954d5d84813c6a3f30df8bf5f7b5
+626292ee50810826d9fbf2b4dd4e2e7fdad83e0d6c2e96eabd5a183f511b9792
+b0b5d2fa3df05bee9652cc70d266e37237e2aaffda2c370df874f1aa8583e741
+e4e7206e961499c54076fc8d395c18c8a20cc05718827f075d3cda77db226aaa
+f478a5acfcb4844671b7d39466564ec70eee5da51b8dbd64da81408ed725f267
+--- no configuration
+1 at 5: the text ends without a line feed
+5 at 1: the first line is not that of version 1
+5 at 1: the first line is not that of version 1
+5 at 3: the first line is not that of version 1
+2 at 2: a line that is none of a configuration
+2 at 2: a line that is none of a configuration
+3 at 3: a line or a setting that is there twice
+4 at 0: no provider, model or dimension
+6 at 0: the name of the provider is not 1 to 255 bytes of valid text
+7 at 0: the model is not 1 to 255 bytes of valid text
+8 at 0: the revision of the model is more than 255 bytes or no valid text
+9 at 0: the dimension is not a number from 1 to 65536
+9 at 0: the dimension is not a number from 1 to 65536
+9 at 0: the dimension is not a number from 1 to 65536
+10 at 0: the time is not a number of milliseconds from 1 to 3600000
+11 at 0: the number of texts of a request is not from 1 to 1024
+2 at 5: a line that is none of a configuration
+12 at 5: a setting whose name is not 1 to 255 bytes of valid text, or whose value is more than 4095 bytes or no valid text
+3 at 6: a line or a setting that is there twice
+14 at 0: no command of the provider
+0 at 0: 

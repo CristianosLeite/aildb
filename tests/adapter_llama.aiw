@@ -1,0 +1,83 @@
+# aildb-llama, the provider that runs llama.cpp, with build/llama-fake in
+# the place of llama-embedding (tests/lib/llamafake.aiw), by a link: the texts of a
+# request reach the program with their prefix and a separator between
+# them that none of them has, the vectors it prints come back in the
+# answer of the protocol with their indexes, and the arguments after
+# "--" are passed on; a model that is not there, a program that is not
+# there and wrong arguments are a line and a status
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "tests/lib/cmd.aiw"
+buf f 24
+buf fake 4200
+const symlink 88
+data link "./llama-embedding\0"
+fn log
+	call bycut f 0
+	call fileread "llama.log" f
+	call print "--- llama.log\n"
+	load f as q
+	load f+8 as l
+	call print q l
+	call fileunlink "llama.log"
+end
+# run the adapter on the request of the file p n, with the model q m and
+# the fake as the program
+fn run p n q m
+	call cmdbegin
+	call cmdadd "aildb-llama"
+	call cmdadd "-m"
+	call cmdadd q m
+	call cmdadd "-x"
+	call cmdadd "./llama-embedding"
+	call cmdshowvin p n
+end
+# the fake under a name of the directory of the test, so that what is
+# printed has no path of the machine
+call bycopy fake cmdhome cmdhomen
+call bycopy fake+cmdhomen "/build/llama-fake"
+sys symlink fake link
+call filewrite "docs.json" "{\"aildb\":1,\"op\":\"documents\",\"model\":\"m\",\"revision\":\"\",\"dimension\":3,\"settings\":{\"document_prefix\":\"d: \",\"query_prefix\":\"q: \"},\"texts\":[\"a\",\"two\\nlines\",\"c\"]}\n"
+call filewrite "query.json" "{\"aildb\":1,\"op\":\"query\",\"model\":\"m\",\"revision\":\"\",\"dimension\":3,\"settings\":{\"document_prefix\":\"d: \",\"query_prefix\":\"q: \"},\"texts\":[\"a\"]}\n"
+# a text that has the first separator in it, and no settings
+call filewrite "sep.json" "{\"aildb\":1,\"op\":\"documents\",\"model\":\"m\",\"revision\":\"\",\"dimension\":3,\"settings\":{},\"texts\":[\"a\",\"x<#aildb-0#>y\"]}\n"
+call filewrite "none.json" "{\"aildb\":1,\"op\":\"documents\",\"model\":\"m\",\"revision\":\"\",\"dimension\":3,\"settings\":{},\"texts\":[]}\n"
+call filewrite "two.json" "{\"aildb\":2,\"op\":\"documents\",\"texts\":[]}\n"
+call filewrite "bad.json" "not json\n"
+call run "docs.json" "model.gguf"
+call log
+call run "query.json" "model.gguf"
+call log
+call run "sep.json" "model.gguf"
+call log
+call run "none.json" "model.gguf"
+call print "--- arguments passed on\n"
+call cmdbegin
+call cmdadd "aildb-llama"
+call cmdadd "-x"
+call cmdadd "./llama-embedding"
+call cmdadd "-m"
+call cmdadd "a model.gguf"
+call cmdadd "--"
+call cmdadd "-ngl"
+call cmdadd "0"
+call cmdshowvin "query.json"
+call log
+call print "--- failures\n"
+call run "docs.json" "missing.gguf"
+call run "two.json" "model.gguf"
+call run "bad.json" "model.gguf"
+call cmdbegin
+call cmdadd "aildb-llama"
+call cmdadd "-m"
+call cmdadd "model.gguf"
+call cmdadd "-x"
+call cmdadd "/nonexistent/llama-embedding"
+call cmdshowvin "docs.json"
+call cmdshowin "aildb-llama" "docs.json"
+call cmdshowin "aildb-llama -x prog" "docs.json"
+call cmdshowin "aildb-llama -m" "docs.json"
+call cmdshowin "aildb-llama -m a -m b" "docs.json"
+call cmdshowin "aildb-llama -q a" "docs.json"

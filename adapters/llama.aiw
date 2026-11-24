@@ -1,0 +1,396 @@
+# aildb-llama -- an embedding provider of aildb that runs a model file
+# with llama.cpp, with no service and no socket.
+#
+#   aildb-llama -m MODEL [-x PROGRAM] [-- ARGUMENT...]
+#
+# It reads one request of the protocol of docs/provider.md on stdin and
+# prints the answer on stdout. MODEL is a model file of llama.cpp (GGUF).
+# For each request the program llama-embedding of llama.cpp, or PROGRAM,
+# is started once, by its path or found in PATH:
+#
+#   llama-embedding -m MODEL -f /dev/stdin --embd-separator SEPARATOR
+#       --embd-output-format json --embd-normalize -1 ARGUMENT...
+#
+# with the texts of the request as its stdin, each after the value of the
+# setting "document_prefix" for the operation documents or of
+# "query_prefix" for the operation query, if the request has that
+# setting, and SEPARATOR between two of them, a text that is in none of
+# them. The vectors are passed on as the program wrote their numbers,
+# which it is asked not to divide by their norm, so that they keep the
+# digits it prints. The model and the dimension of the request are not
+# looked at: the model is the file.
+#
+# llama-embedding takes a line feed at the very end of what it reads
+# off, and refuses a text of more tokens than it takes at once, where
+# Ollama cuts the text; docs/provider.md says more.
+#
+# The status is 0, or 2 for wrong usage and 1 for a request that is none
+# or a program that cannot be started, fails or prints no vectors, with a
+# line on stderr that has the last line the program said. The program
+# ends when this one is killed.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "lib/std/num.aiw"
+use "lib/std/json.aiw"
+
+const memfd 319
+const lseek 8
+const dup2 33
+const getppid 110
+const prctl 157
+buf in 24       # the request
+buf texts 24    # what the program reads
+buf so 24       # what it printed
+buf se 24       # and what it said
+buf out 24      # the answer
+buf line 24
+buf sep 24
+buf zs 24       # its arguments, a NUL byte after each
+buf av 24       # and their addresses
+data mname "aildb-llama\0"
+var args
+
+fn fail p n q m
+	call eprint "aildb-llama: "
+	call eprint p n
+	call eprint q m
+	call eprint "\n"
+	sys exit_group 1
+end
+
+fn usage
+	call eprint "usage: aildb-llama -m MODEL [-x PROGRAM] [-- ARGUMENT...]\n"
+	sys exit_group 2
+end
+
+# 1 if the n bytes at p are the m bytes at q
+fn same p n q m
+	if n!=m
+		ret 0
+	end
+	i=0
+	while i<n
+		loadb p+i as a
+		loadb q+i as b
+		if a!=b
+			ret 0
+		end
+		i+=1
+	end
+	ret 1
+end
+
+# 1 if the m bytes at q stand somewhere in the n bytes at p
+fn within p n q m
+	i=0
+	while i+m<=n
+		call same p+i m q m as r
+		if r
+			ret 1
+		end
+		i+=1
+	end
+	ret 0
+end
+
+# add the n bytes at p to the arguments of the program
+fn arg p n
+	call byadd zs p n
+	call byaddb zs 0 as ok
+	ifz ok
+		call fail "no memory" ""
+	end
+	args+=1
+end
+
+# a descriptor of a file in memory with the n bytes at p, placed at its
+# start
+fn memfile p n
+	sys memfd mname 0 as fd
+	ifslt fd 0
+		call fail "cannot make a file in memory" ""
+	end
+	if n
+		call fdwrite fd p n as ok
+		ifz ok
+			call fail "cannot write a file in memory" ""
+		end
+		sys lseek fd 0 0
+	end
+	ret fd
+end
+
+# the options
+call argc as c
+mp=0
+mn=0
+set "llama-embedding" as xp
+xn=15
+i=1
+rest=c
+label option
+if i<c
+	call argv i as p n
+	call same p n "--" as r
+	if r
+		rest=i+1
+	else
+		if i+1>=c
+			call usage
+		end
+		call argv i+1 as q m
+		call same p n "-m" as r
+		if r&(mn==0)&(m>0)
+			mp=q
+			mn=m
+		else
+			call same p n "-x" as r
+			ifz r&(m>0)
+				call usage
+			end
+			xp=q
+			xn=m
+		end
+		i+=2
+		jmp option
+	end
+end
+ifz mn
+	call usage
+end
+
+# the request
+call filereadfd 0 in as r
+ifslt r 0
+	call fail "cannot read the request" ""
+end
+load in as p
+load in+8 as n
+call jsonvalue p n as a an kind
+if kind!=7
+	call fail "the request is no object of JSON" ""
+end
+call jsonget a an "aildb" as v vn vk
+call numint v vn as ver ok
+if (vk!=4)|(ok==0)|(ver!=1)
+	call fail "the request is not of version 1 of the protocol" ""
+end
+call jsonget a an "op" as v vn vk
+call jsoneq v vn "documents" as isdoc
+call jsoneq v vn "query" as isquery
+if (vk!=5)|((isdoc|isquery)==0)
+	call fail "the request has no operation that is known" ""
+end
+call jsonget a an "settings" as s sn sk
+pp=0
+pn=0
+pk=0
+if sk==7
+	if isdoc
+		call jsonget s sn "document_prefix" as pp pn pk
+	else
+		call jsonget s sn "query_prefix" as pp pn pk
+	end
+end
+call jsonget a an "texts" as t tn tk
+if tk!=6
+	call fail "the request has no texts" ""
+end
+
+# the texts, with a separator between them that none of them has
+k=0
+label again
+call bycut sep 0
+call byadd sep "<#aildb-"
+call byaddn sep k
+call byadd sep "#>"
+load sep as sp
+load sep+8 as sl
+call bycut texts 0
+q=t+1
+count=0
+label text
+call jsonelem q t+tn as e el ek q
+if ek
+	if ek!=5
+		call fail "a text of the request is no string" ""
+	end
+	call bycut line 0
+	if pk==5
+		call jsonstr line pp pn
+	end
+	call jsonstr line e el as ok
+	ifz ok
+		call fail "no memory" ""
+	end
+	load line as x
+	load line+8 as xl
+	call within x xl sp sl as r
+	if r
+		k+=1
+		jmp again
+	end
+	if count
+		call byadd texts sp sl
+	end
+	call byadd texts x xl as ok
+	ifz ok
+		call fail "no memory" ""
+	end
+	count+=1
+	jmp text
+end
+ifz count
+	call print "{\"aildb\":1,\"embeddings\":[]}\n"
+	sys exit_group 0
+end
+
+# the program, through env, which looks for it in PATH
+call arg "/usr/bin/env"
+call arg xp xn
+call arg "-m"
+call arg mp mn
+call arg "-f"
+call arg "/dev/stdin"
+call arg "--embd-separator"
+call arg sp sl
+call arg "--embd-output-format"
+call arg "json"
+call arg "--embd-normalize"
+call arg "-1"
+i=rest
+while i<c
+	call argv i as p n
+	call arg p n
+	i+=1
+end
+call byneed av args*8+8 as ok
+ifz ok
+	call fail "no memory" ""
+end
+load av as vec
+load zs as z
+i=0
+while i<args
+	store vec+i*8 z
+	call strlen z as l
+	z+=l+1
+	i+=1
+end
+store vec+args*8 0
+load texts as p
+load texts+8 as n
+call memfile p n as fin
+call memfile 0 0 as fout
+call memfile 0 0 as ferr
+call procenv as env
+sys fork as pid
+ifz pid
+	# the child: it is to end when this program is killed, as it is when
+	# it takes longer than aildb allows
+	sys prctl 1 9
+	sys getppid as parent
+	if parent==1
+		sys exit 127
+	end
+	sys dup2 fin 0
+	sys dup2 fout 1
+	sys dup2 ferr 2
+	load vec as z
+	sys execve z vec env
+	sys exit 127
+end
+ifslt pid 0
+	call fail "cannot start a process" ""
+end
+call procwait pid 0 as st
+sys lseek fout 0 0
+sys lseek ferr 0 0
+call filereadfd fout so
+call filereadfd ferr se
+if st
+	# the last line the program said that has something on it
+	load se as p
+	load se+8 as n
+	label trim
+	if n
+		loadb p+n-1 as ch
+		if ch<=32
+			n-=1
+			jmp trim
+		end
+	end
+	i=n
+	label back
+	if i
+		loadb p+i-1 as ch
+		if ch!=10
+			i-=1
+			jmp back
+		end
+	end
+	call bycut line 0
+	call byadd line xp xn
+	if st==127
+		call byadd line " could not be started"
+	else
+		ifslt st 0
+			call byadd line " was ended by the signal "
+			call byaddn line 0-st
+		else
+			call byadd line " ended with the status "
+			call byaddn line st
+		end
+	end
+	if (n-i>0)&(st!=127)
+		call byadd line ": "
+		call byadd line p+i n-i
+	end
+	load line as q
+	load line+8 as m
+	call fail q m ""
+end
+
+# what it printed: {"data":[{"index":0,"embedding":[...]},...]}
+load so as p
+load so+8 as n
+call jsonvalue p n as a an kind
+call jsonget a an "data" as v vn vk
+if vk!=6
+	call fail "what the program printed has no embeddings" ""
+end
+call byadd out "{\"aildb\":1,\"embeddings\":["
+q=v+1
+k=0
+label vector
+call jsonelem q v+vn as e el ek q
+if ek
+	call jsonget e el "index" as ip il ik
+	call jsonget e el "embedding" as xp xl xk
+	if (ek!=7)|(ik!=4)|(xk!=6)
+		call fail "what the program printed has an embedding without an index or a vector" ""
+	end
+	if k
+		call byaddb out 44
+	end
+	call byadd out "{\"index\":"
+	call byadd out ip il
+	call byadd out ",\"vector\":"
+	call byadd out xp xl
+	call byaddb out 125
+	k+=1
+	jmp vector
+end
+call byadd out "]}\n" as ok
+ifz ok
+	call fail "no memory" ""
+end
+load out as p
+load out+8 as n
+call fdwrite 1 p n as ok
+ifz ok
+	call fail "cannot write the answer" ""
+end
+sys exit_group 0

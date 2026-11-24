@@ -20,7 +20,7 @@
 # double quote, a backslash or a byte below 0x20 in it, which git prints
 # quoted, one that would lead out of the directory, and a file of more
 # bytes than the chunker reads, which is not written: git says how long
-# a blob is. The most are maxfile of example/chunk.aiw, and maxpdf for a
+# a blob is. The most are chunkmaxfile of src/lib/chunk.aiw, and chunkmaxpdf for a
 # PDF file, one whose path ends in ".pdf" and whose first bytes are
 # "%PDF-".
 #
@@ -62,8 +62,8 @@ mkdir "$w/src"
 # and listed; which of them is text, and so indexed, the chunker says. It
 # fails for a path of the list that it does not find, so the two cannot
 # come to differ unseen.
-max=$(sed -n 's/^const maxfile //p' "$b/../example/chunk.aiw")
-maxpdf=$(sed -n 's/^const maxpdf //p' "$b/../example/chunk.aiw")
+max=$(sed -n 's/^const chunkmaxfile //p' "$b/../src/lib/chunk.aiw")
+maxpdf=$(sed -n 's/^const chunkmaxpdf //p' "$b/../src/lib/chunk.aiw")
 tab=$(printf '\t')
 git -C "$repo" -c core.quotePath=false ls-tree -r -l --full-tree "$pin" > "$w/tree"
 : > "$w/list"

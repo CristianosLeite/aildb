@@ -10,7 +10,9 @@ another program wrote.
 
 A chunk is what one record of the index stands for: some whole lines of
 one file. `build/chunk`, an AIL program compiled from `example/chunk.aiw`
-by `make test`, cuts the files:
+by `make test`, cuts the files. The cutting itself is the library
+`src/lib/chunk.aiw` ([library.md](library.md#the-chunker)), of which the
+program is the command:
 
 ```
 build/chunk [-c] ROOT META TEXT < LIST
@@ -52,7 +54,7 @@ Without `-c`, every file of the list that is text is cut:
   `html`, `css`, and `text` for `txt`). A path with another end or with
   none, as `Makefile`, is `text`. The ends are compared byte for byte,
   so `A.PY` is `text`.
-- **The most bytes of a file** are 1048576, the constant `maxfile`. The
+- **The most bytes of a file** are 1048576, the constant `chunkmaxfile`. The
   chunker reads one byte more than that at most, and a file that has it
   is passed over with `chunk: passed over, a file of more than 1048576
   bytes: <path>`.
@@ -83,7 +85,7 @@ which `Ailfile` names as a dependency:
   text is several records that name the same page. A path that ends in
   `.pdf` says that the two numbers of a result are a page; the result
   of a search does not have the language.
-- **The most bytes** of a PDF file are 33554432, the constant `maxpdf`,
+- **The most bytes** of a PDF file are 33554432, the constant `chunkmaxpdf`,
   since such a file has pictures where another has text. The memory a
   file is read into is what the file has, not that most, so a short
   file is read where there is no memory for the longest.
@@ -100,7 +102,7 @@ which `Ailfile` names as a dependency:
   uses that up after pages of it were cut, their chunks are taken back,
   so that an index has all the readable pages of a file or none.
 - **The most that is kept of one file** is 16777216 bytes of metadata
-  and text, the constant `pdfkept`: the chunks of every file are held
+  and text, the constant `chunkpdfkept`: the chunks of every file are held
   in memory until the last is cut, and the memory of the module does
   not count them. A file whose chunks come to more is passed over
   whole, as one that is spent, with `chunk: passed over, a PDF file
@@ -156,7 +158,7 @@ belong to the chunk of that function until a limit ends it.
 The limits are for the embedding model: 1500 bytes are well inside the
 text that the model reads at once, and a chunk that is one function or one
 section says where to open the file. They are constants at the top of
-`example/chunk.aiw`.
+`src/lib/chunk.aiw`.
 
 `tests/example_chunk.aiw` shows each rule on small files, with `-c` and
 without. On the AIL repository at `a5b4559`, `build/chunk` printed on
