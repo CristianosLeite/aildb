@@ -352,3 +352,32 @@ mapped pages contribute to reported peak resident memory.
   limit of 32 MiB; and the chunks of one PDF file may be 16777216
   bytes of metadata and text, `pdfkept`, above which the file is
   passed over whole. Tests in `tests/example_chunk.aiw`.
+
+## 17. On-demand indexing and text search
+
+The user wants an index that the command `aildb` makes and refreshes
+when it is run, with no daemon and no watcher, and an embedding provider
+chosen apart from the LLM that asks (2026-11-24). The index of a
+directory, its configuration, its manifest and its kept vectors are in
+`DIRECTORY/.aildb/` (user, 2026-11-24).
+
+- [x] Before the items: `cmdbegin`, `cmdadd` and `cmdshowv` of
+  `tests/lib/cmd.aiw` run a command whose arguments have spaces; the
+  chunker is the library `src/lib/chunk.aiw`, of which `build/chunk` is
+  the command, with the same output; and `src/lib/sha.aiw` is SHA-256,
+  checked against `hashlib` of Python.
+- [x] The embedding provider interface: two operations, `documents` for
+  a batch of chunks and `query` for one query, in a request of JSON that
+  carries the model, its revision, the dimension and the settings, so
+  that a provider applies the prefix or the parameters of each
+  (`provrequest` of `src/lib/provider.aiw`). The provider of an index is
+  configured once, in `.aildb/config` (`src/lib/config.aiw`), and
+  `confident` gives the configuration an identity, the SHA-256 of the
+  provider, the model, its revision, the dimension and the settings,
+  which tells apart embeddings of one dimension. `provparse` validates
+  an answer where it enters: the count, the index of each vector, the
+  dimension, finite binary32, and no vector of zeros, the last two with
+  `normwide`, which `build` uses. Tests `lib_config` and `lib_provider`,
+  with answers written in the test for both operations and for each
+  malformed answer; the identities and the bits against Python.
+  `docs/provider.md`.

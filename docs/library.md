@@ -94,7 +94,7 @@ the score printed.
   snapshot is open.
 - **Names.** A file of aildb owns the names that start with its own:
   `search`, `snap`, `topk`, `norm`, `text`, `crc`, `fmt`, `meta`, `pack`,
-  `chunk`, `sha`.
+  `chunk`, `sha`, `conf`, `prov`.
   A program has no `var` and no function of such a name.
 
 ## The chunker
@@ -119,3 +119,24 @@ nothing and end no program. One file is cut at a time.
 Writing a snapshot from a program is not offered as one call: `build`
 is the command, with its lock, its temporary file and its syncs
 ([durability.md](durability.md)), and a program starts it.
+
+## The provider
+
+`aildb:src/lib/config.aiw` and `aildb:src/lib/provider.aiw` are the
+configuration of an embedding provider and the protocol it is asked
+with ([provider.md](provider.md)).
+
+| Function | Does |
+|---|---|
+| `confinit c`, `conffree c` | make the `confsize` bytes at `c` an empty configuration; give its memory back |
+| `confparse c p n` | reads the text of a file `.aildb/config`: 0 and 0, or a reason and the line at fault |
+| `confwrite b c` | adds the configuration to a bytes buffer as that text |
+| `confput c k p n`, `confstr c k` | set and read the string `confname`, `confmodel` or `confrev`; the numbers are at `c+confdim`, `c+conftime` and `c+confbatch` |
+| `confadd c p n q m`, `confget c p n`, `confnext c lp ln` | add a setting, read one, and walk them in the order of their names |
+| `confarg c p n`, `confargs c` | add an argument of the command; the arguments and their number |
+| `confcheck c` | 0 if the configuration may be used, or the reason |
+| `confident c out` | writes the 32 bytes of its identity |
+| `confwhy b w` | adds the words of a reason |
+| `provrequest b c op p n` | adds the request of `provdocuments` or `provquery` to a bytes buffer; `p n` is the texts, a string of JSON on each line, or the bytes of the query |
+| `provparse p n dim k out` | reads an answer to `k` texts: `k` times `dim` binary32 added to the bytes buffer `out`, or a reason |
+| `provwhy b w` | adds the words of a reason |

@@ -81,15 +81,6 @@ no daemon or filesystem watcher, and wants to choose an embedding provider
 independently of the LLM that asks the questions. The commands and data
 layouts below are implementation suggestions.
 
-- [ ] Define an embedding provider interface shared by indexing and text
-  search. Give it separate operations for embedding a batch of document
-  chunks and embedding a query, so a provider can apply the appropriate
-  prefix or model settings to each. Configure the provider, model revision,
-  dimension and settings once per index. Give that configuration a stable
-  identity that distinguishes incompatible embeddings even when their
-  dimensions match. Validate result count, order and dimension at the
-  provider boundary and reuse the engine's vector validation. Test both
-  operations and malformed responses with a deterministic fake provider.
 - [ ] Implement a local command adapter first. Start the configured
   executable directly with arguments and exchange requests and responses
   over stdin and stdout, for example with a versioned JSON protocol that

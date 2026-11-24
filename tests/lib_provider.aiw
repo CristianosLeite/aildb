@@ -1,0 +1,96 @@
+# provrequest of src/lib/provider.aiw writes the request of each of the
+# two operations as docs/provider.md has it, and provparse reads an
+# answer: the vectors as binary32 in the order of the texts, or a reason
+# for one that has not as many vectors as texts, one out of its place,
+# one of another dimension, an element that is no finite binary32, a
+# vector of zeros, another version, or no JSON; after a reason the
+# buffer holds what it held
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "src/lib/fmt.aiw"
+use "src/lib/config.aiw"
+use "src/lib/provider.aiw"
+buf c confsize
+buf b 24
+buf v 24
+buf m 24
+# read the answer p n to a request of k texts for vectors of 3 elements
+# and print the reason, in words too, and the binary32 the buffer holds,
+# as the 8 hexadecimal digits of each
+fn answer k p n
+	call provparse p n 3 k v as w
+	call putn w
+	call print " "
+	call bycut m 0
+	call provwhy m w
+	load m as q
+	load m+8 as l
+	call print q l
+	call print "\n"
+	load v as q
+	load v+8 as l
+	i=0
+	while i<l
+		load4 q+i as x
+		call bycut m 0
+		call fmthex m x
+		load m as a
+		call print " "
+		call print a+8 8
+		i+=4
+	end
+	if l
+		call print "\n"
+	end
+end
+call confinit c
+call confput c confname "fake"
+call confput c confmodel "m\"1"
+call confput c confrev "r2"
+store c+confdim 3
+call confadd c "query_prefix" "q: "
+call confadd c "document_prefix" "d: "
+call confarg c "provider-fake"
+call provrequest b c provdocuments "\"one\"\n\"two\\u000alines\"\n" as r
+call putn r
+call print "\n"
+load b as p
+load b+8 as n
+call print p n
+call bycut b 0
+call provrequest b c provquery "where \"x\" is\n"
+load b as p
+load b+8 as n
+call print p n
+call print "--- answers\n"
+# 1, 2 and 3, then 0.5, -0.25 and 1e-3: the bits Python gives for them
+call answer 2 "{\"aildb\":1,\"embeddings\":[{\"index\":0,\"vector\":[1,2,3]},{\"vector\":[0.5,-0.25,1e-3],\"index\":1}]}\n"
+# a second answer is added to the first, and blanks are allowed
+call answer 1 " { \"embeddings\" : [ { \"index\" : 0 , \"vector\" : [ 0 , 0 , 1e-45 ] } ] , \"aildb\" : 1 , \"more\" : null } "
+call print "--- no answers\n"
+call answer 1 ""
+call answer 1 "[1]"
+call answer 1 "{\"aildb\":1,\"embeddings\":[{\"index\":0,\"vector\":[1,2,3]}]} x"
+call answer 1 "{\"embeddings\":[{\"index\":0,\"vector\":[1,2,3]}]}"
+call answer 1 "{\"aildb\":2,\"embeddings\":[{\"index\":0,\"vector\":[1,2,3]}]}"
+call answer 1 "{\"aildb\":\"1\",\"embeddings\":[{\"index\":0,\"vector\":[1,2,3]}]}"
+call answer 1 "{\"aildb\":1}"
+call answer 1 "{\"aildb\":1,\"embeddings\":{}}"
+call answer 1 "{\"aildb\":1,\"embeddings\":[[1,2,3]]}"
+call answer 1 "{\"aildb\":1,\"embeddings\":[{\"vector\":[1,2,3]}]}"
+call answer 1 "{\"aildb\":1,\"embeddings\":[{\"index\":0}]}"
+call answer 1 "{\"aildb\":1,\"embeddings\":[]}"
+call answer 2 "{\"aildb\":1,\"embeddings\":[{\"index\":0,\"vector\":[1,2,3]}]}"
+call answer 1 "{\"aildb\":1,\"embeddings\":[{\"index\":0,\"vector\":[1,2,3]},{\"index\":1,\"vector\":[1,2,3]}]}"
+call answer 2 "{\"aildb\":1,\"embeddings\":[{\"index\":1,\"vector\":[1,2,3]},{\"index\":0,\"vector\":[1,2,3]}]}"
+call answer 2 "{\"aildb\":1,\"embeddings\":[{\"index\":0,\"vector\":[1,2,3]},{\"index\":0,\"vector\":[1,2,3]}]}"
+call answer 1 "{\"aildb\":1,\"embeddings\":[{\"index\":0,\"vector\":[1,2]}]}"
+call answer 1 "{\"aildb\":1,\"embeddings\":[{\"index\":0,\"vector\":[1,2,3,4]}]}"
+call answer 1 "{\"aildb\":1,\"embeddings\":[{\"index\":0,\"vector\":[1,\"2\",3]}]}"
+call answer 1 "{\"aildb\":1,\"embeddings\":[{\"index\":0,\"vector\":[1,null,3]}]}"
+# beyond a double, and beyond a binary32
+call answer 1 "{\"aildb\":1,\"embeddings\":[{\"index\":0,\"vector\":[1,1e999,3]}]}"
+call answer 1 "{\"aildb\":1,\"embeddings\":[{\"index\":0,\"vector\":[1,-1e39,3]}]}"
+call answer 1 "{\"aildb\":1,\"embeddings\":[{\"index\":0,\"vector\":[0,0.0,-0]}]}"
+# below the least binary32: zeros when they are rounded
+call answer 1 "{\"aildb\":1,\"embeddings\":[{\"index\":0,\"vector\":[1e-50,0,0]}]}"

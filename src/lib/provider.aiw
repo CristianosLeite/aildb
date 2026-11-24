@@ -1,0 +1,240 @@
+# src/lib/provider.aiw -- the embedding provider of an index: the request
+# that asks it for the vectors of texts and the reading of its answer.
+# docs/provider.md has the protocol. A request is one of two operations,
+# the texts of documents or the text of a query, so that a provider can
+# treat the two differently; the answer is checked here, where it enters
+# aildb: as many vectors as texts, each with the index of its text, of
+# the dimension of the configuration, of finite binary32, and none of
+# zeros alone, which is what build asks of a vector.
+#
+# The configuration is one of src/lib/config.aiw. The functions return
+# what they found and print nothing. Every name of this file starts with
+# "prov"; a program has no var of such a name.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/num.aiw"
+use "lib/std/json.aiw"
+use "src/lib/text.aiw"
+use "src/lib/norm.aiw"
+use "src/lib/config.aiw"
+
+# the version of the protocol, the member "aildb" of a request and of an
+# answer
+const provversion 1
+
+# the two operations
+const provdocuments 0
+const provquery 1
+
+# why an answer is none
+const provjson 1        # not one object of JSON
+const provother 2       # no member "aildb" with the version of the request
+const provshape 3       # no array "embeddings" of objects with an index and a vector
+const provcount 4       # not as many vectors as texts
+const provorder 5       # a vector whose index is not that of its place
+const provlong 6        # a vector that has not the elements of the dimension
+const provvalue 7       # an element that is no number, or none that is finite as a binary32
+const provzero 8        # a vector of zeros
+const provmem 9         # no memory
+
+# the doubles of one vector, for the check that build makes
+buf provwide 24
+
+# Add to the bytes buffer provb the request of the operation provop to
+# the provider of the configuration provc, one line of JSON. For
+# provdocuments the provn bytes at provp are the texts, each a string of
+# JSON on a line of its own, as the chunker writes them; for provquery
+# they are the bytes of the query itself, well-formed UTF-8. 1, or 0
+# without memory, and then the buffer may have a part of the request.
+fn provrequest provb provc provop provp provn
+	call byadd provb "{\"aildb\":"
+	call byaddn provb provversion
+	if provop==provquery
+		call byadd provb ",\"op\":\"query\",\"model\":"
+	else
+		call byadd provb ",\"op\":\"documents\",\"model\":"
+	end
+	call confstr provc confmodel as provq provm
+	call jsonadds provb provq provm
+	call byadd provb ",\"revision\":"
+	call confstr provc confrev as provq provm
+	call jsonadds provb provq provm
+	call byadd provb ",\"dimension\":"
+	load provc+confdim as provv
+	call byaddn provb provv
+	call byadd provb ",\"settings\":{"
+	provlp=0
+	provln=0
+	provk=0
+	label each
+	call confnext provc provlp provln as provlp provln provq provm provok
+	if provok
+		if provk
+			call byaddb provb 44
+		end
+		call jsonadds provb provlp provln
+		call byaddb provb 58
+		call jsonadds provb provq provm
+		provk+=1
+		jmp each
+	end
+	call byadd provb "},\"texts\":["
+	if provop==provquery
+		call jsonadds provb provp provn
+	else
+		provk=0
+		while provn
+			call textline provp provn as provl provok
+			if provk
+				call byaddb provb 44
+			end
+			call byadd provb provp provl
+			provk+=1
+			provp+=provl+provok
+			provn-=provl+provok
+		end
+	end
+	tail byadd provb "]}\n"
+end
+
+# the elements of the array of the provn bytes at provp read as a vector
+# of provdim binary32 written at provout, where there is room for them:
+# 0 or a reason
+fn provvector provp provn provdim provout
+	provq=provp+1
+	provk=0
+	label number
+	call jsonelem provq provp+provn as provf provl provkind provq
+	if provkind
+		if provkind!=4
+			ret provvalue
+		end
+		if provk>=provdim
+			ret provlong
+		end
+		call numdouble provf provl as provd provok
+		f8to4 provd as provw
+		# finite as a binary32 too: its exponent is not all ones
+		if (provok==0)|((provw>>23&255)==255)
+			ret provvalue
+		end
+		store4 provout+provk*4 provw
+		provk+=1
+		jmp number
+	end
+	if provk!=provdim
+		ret provlong
+	end
+	store provwide+8 0
+	call byneed provwide provdim*8 as provok
+	ifz provok
+		ret provmem
+	end
+	load provwide as provq
+	call normwide provout provq provdim as provr
+	if provr==normzero
+		ret provzero
+	end
+	if provr
+		ret provvalue
+	end
+	ret 0
+end
+
+# Read the provn bytes at provp, the answer of a provider to a request
+# of provk texts for vectors of the dimension provdim: the vectors are
+# added to the bytes buffer provout, provk times provdim binary32 in the
+# order of the texts, as build takes them. 0, or a reason, a constant
+# above, after which the buffer holds what it held.
+fn provparse provp provn provdim provk provout
+	load provout+8 as provbase
+	call byneed provout provk*provdim*4 as provok
+	ifz provok
+		ret provmem
+	end
+	call jsonvalue provp provn as prova provan provkind
+	if provkind!=7
+		ret provjson
+	end
+	call jsonget prova provan "aildb" as provq provm provkind
+	if provkind!=4
+		ret provother
+	end
+	call numint provq provm as provv provok
+	if (provok==0)|(provv!=provversion)
+		ret provother
+	end
+	call jsonget prova provan "embeddings" as prove proven provkind
+	if provkind!=6
+		ret provshape
+	end
+	provq=prove+1
+	provi=0
+	label vector
+	call jsonelem provq prove+proven as provx provxn provkind provq
+	if provkind
+		if provkind!=7
+			ret provshape
+		end
+		if provi>=provk
+			ret provcount
+		end
+		call jsonget provx provxn "index" as provf provl provkind
+		if provkind!=4
+			ret provshape
+		end
+		call numint provf provl as provv provok
+		if (provok==0)|(provv!=provi)
+			ret provorder
+		end
+		call jsonget provx provxn "vector" as provf provl provkind
+		if provkind!=6
+			ret provshape
+		end
+		load provout as provo
+		call provvector provf provl provdim provo+provbase+provi*provdim*4 as provr
+		if provr
+			ret provr
+		end
+		provi+=1
+		jmp vector
+	end
+	if provi!=provk
+		ret provcount
+	end
+	store provout+8 provbase+provk*provdim*4
+	ret 0
+end
+
+# add to the bytes buffer provb what the reason provw says of an answer,
+# in words: 1, or 0 without memory
+fn provwhy provb provw
+	if provw==provjson
+		tail byadd provb "the answer is not one object of JSON"
+	end
+	if provw==provother
+		tail byadd provb "the answer is not of version 1 of the protocol"
+	end
+	if provw==provshape
+		tail byadd provb "the answer has no embeddings, each with an index and a vector"
+	end
+	if provw==provcount
+		tail byadd provb "the answer has not as many vectors as there were texts"
+	end
+	if provw==provorder
+		tail byadd provb "a vector of the answer is not at the place of its text"
+	end
+	if provw==provlong
+		tail byadd provb "a vector of the answer has not the dimension of the index"
+	end
+	if provw==provvalue
+		tail byadd provb "a vector of the answer has an element that is no finite number"
+	end
+	if provw==provzero
+		tail byadd provb "a vector of the answer is all zeros"
+	end
+	if provw==provmem
+		tail byadd provb "no memory"
+	end
+	ret 1
+end

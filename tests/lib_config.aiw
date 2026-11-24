@@ -1,0 +1,132 @@
+# a configuration of src/lib/config.aiw is written as the text of
+# .aildb/config and read back the same, with its settings in the order
+# of their names whatever order they came in; its identity is the
+# SHA-256 that Python gives for the text docs/provider.md states, changes
+# with the provider, the model, its revision, the dimension and each
+# setting, and not with the command, the time or the number of texts;
+# and a text that is no configuration is a reason and a line
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "src/lib/text.aiw"
+use "src/lib/sha.aiw"
+use "src/lib/config.aiw"
+buf c confsize
+buf d confsize
+buf b 24
+buf m 24
+buf id 32
+# print the identity of the configuration x
+fn ident x
+	call confident x id
+	call bycut m 0
+	call shahex m id
+	load m as p
+	load m+8 as n
+	call print p n
+	call print "\n"
+end
+# read the text p n and print the reason in words and the line
+fn bad p n
+	call confparse d p n as w line
+	call putn w
+	call print " at "
+	call putn line
+	call print ": "
+	call bycut m 0
+	call confwhy m w
+	load m as q
+	load m+8 as k
+	call print q k
+	call print "\n"
+	call conffree d
+end
+call confinit c
+call confput c confname "fake"
+call confput c confmodel "model one"
+call confput c confrev "r2"
+store c+confdim 768
+call confadd c "query_prefix" "search_query: "
+call confadd c "document_prefix" "search_document: "
+call confadd c "a" ""
+call confadd c "document_prefix" "again" as w
+call putn w
+call print " for a setting twice\n"
+call confarg c "provider-fake"
+call confarg c "--flag"
+call confarg c "two words"
+call confcheck c as w
+call putn w
+call print " for the check\n"
+call confwrite b c
+load b as p
+load b+8 as n
+call print p n
+call print "--- read and written again\n"
+call confparse d p n as w line
+call putn w
+call print " "
+call putn line
+call print "\n"
+call confwrite m d
+load m as q
+load m+8 as k
+call texteq p n q k as same
+call putn same
+call print " the same text\n"
+call confget d "query_prefix" as q k ok
+call print "["
+call print q k
+call print "]\n"
+call print "--- identities\n"
+call ident c
+call ident d
+# what is no part of it
+store d+conftime 5
+store d+confbatch 1
+call confarg d "more"
+call ident d
+call conffree d
+# what is: each line prints another
+call confparse d p n
+call confput d confname "other"
+call ident d
+call conffree d
+call confparse d p n
+call confput d confmodel "model two"
+call ident d
+call conffree d
+call confparse d p n
+call confput d confrev ""
+call ident d
+call conffree d
+call confparse d p n
+store d+confdim 767
+call ident d
+call conffree d
+call confparse d p n
+call confadd d "b" ""
+call ident d
+call conffree d
+call print "--- no configuration\n"
+call bad "aildb\t1\nprovider\tx\nmodel\tm\ndimension\t2\narg\tp"
+call bad "aildb\t2\n"
+call bad "provider\tx\n"
+call bad "aildb\t1\nprovider\tx\naildb\t1\n"
+call bad "aildb\t1\nfrob\tx\n"
+call bad "aildb\t1\nprovider\n"
+call bad "aildb\t1\nprovider\tx\nprovider\ty\n"
+call bad "aildb\t1\nprovider\tx\nmodel\tm\narg\tp\n"
+call bad "aildb\t1\nprovider\t\nmodel\tm\ndimension\t2\narg\tp\n"
+call bad "aildb\t1\nprovider\tx\nmodel\t\ndimension\t2\narg\tp\n"
+call bad "aildb\t1\nprovider\tx\nmodel\tm\nrevision\ta\x01\ndimension\t2\narg\tp\n"
+call bad "aildb\t1\nprovider\tx\nmodel\tm\ndimension\t0\narg\tp\n"
+call bad "aildb\t1\nprovider\tx\nmodel\tm\ndimension\t65537\narg\tp\n"
+call bad "aildb\t1\nprovider\tx\nmodel\tm\ndimension\ttwo\narg\tp\n"
+call bad "aildb\t1\nprovider\tx\nmodel\tm\ndimension\t2\ntimeout\t0\narg\tp\n"
+call bad "aildb\t1\nprovider\tx\nmodel\tm\ndimension\t2\nbatch\t1025\narg\tp\n"
+call bad "aildb\t1\nprovider\tx\nmodel\tm\ndimension\t2\nset\tk\n"
+call bad "aildb\t1\nprovider\tx\nmodel\tm\ndimension\t2\nset\t\tv\n"
+call bad "aildb\t1\nprovider\tx\nmodel\tm\ndimension\t2\nset\tk\tv\nset\tk\tw\n"
+call bad "aildb\t1\nprovider\tx\nmodel\tm\ndimension\t2\n"
+# the least that is one
+call bad "aildb\t1\nprovider\tx\nmodel\tm\ndimension\t2\narg\tp\n"

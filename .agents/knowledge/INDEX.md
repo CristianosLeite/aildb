@@ -17,6 +17,7 @@ The decisions about the language AIL, its compiler and its libraries are in the 
 - [The retrieval evaluation](architecture/evaluation.md) — twenty fixed queries on AIL at `a5b4559` and aildb at `v0.1.0`, written before they were embedded; the place among all records, hit rate at 1, 5 and 10, mean reciprocal rank; the run of 2026-11-22; no comparison of chunks or models yet
 - [The chunker of an index](architecture/chunker.md) — every text file since 2026-11-23, the language by the end of the path, a line above 1500 bytes cut, 1048576 bytes at most; `-c` keeps the corpora of the example and the evaluation; a PDF file page by page, read by the module `pdf` of ail-extensions
 - [The MCP server](architecture/mcp.md) — `aildb-mcp` in AIL, no Python: libraries in AIL, the SDK in ail-extensions, the program in `mcp/`; a command a query with files in memory, the hits as the command printed them; `make index`, the index of a repository for it
+- [The embedding provider](architecture/provider.md) — step 17: everything of an index in `.aildb/` and llama.cpp behind an adapter (user); a provider as a command and a protocol of JSON, two operations, the index of each vector in the answer, the identity as SHA-256 of what changes the vectors, `sha.aiw` written here; chosen by the agent, for the user to review
 
 ## testing
 - [How the tests run](testing/runner.md) — `make test`, since 2026-11-22 `ail test` and `ail fmt --check`: AIL programs with expected output and status, compiled and run from the top of the repository, files in `AIL_TMP`
