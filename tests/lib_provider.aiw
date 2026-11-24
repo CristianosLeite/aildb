@@ -58,6 +58,9 @@ load b as p
 load b+8 as n
 call print p n
 call bycut b 0
+# with the files the command was allowed with
+call conffile c "/opt/a \"b\"/embed.py"
+call conffile c "/opt/model"
 call provrequest b c provquery "where \"x\" is\n"
 load b as p
 load b+8 as n

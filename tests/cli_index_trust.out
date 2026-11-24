@@ -173,3 +173,14 @@ ls: No such file or directory
 # and without the program named: the adapter looks for none
 status 7
 aildb: l: the provider ended with the status 2: aildb-llama: no program: name llama-embedding of llama.cpp by its path from the root with -x; aildb index -x llama-embedding ... -- aildb-llama -x llama-embedding ... finds it once and writes that path
+# a program of the directory that is given to the adapter alone, and not to aildb, is not run
+status 7
+aildb: l: the provider ended with the status 1: aildb-llama: the program is not one of the files this index was set up with, and was not run: TMP/l/llama-embedding; name it to aildb too: aildb index -x PROGRAM ... -- aildb-llama -x PROGRAM ...
+ls: No such file or directory
+model	m1
+# named to both, it is run, and not once its bytes changed
+{"records":1,"dimension":3,"model":"m3","source_revision":null,"files":1,"embedded":1,"published":true}
+2
+status 2
+aildb: l: the configuration of this index names a provider that was not set up by you on this machine, or whose program 
+ls: No such file or directory

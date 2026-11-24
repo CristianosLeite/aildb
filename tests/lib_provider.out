@@ -1,6 +1,6 @@
 1
-{"aildb":1,"op":"documents","model":"m\"1","revision":"r2","dimension":3,"settings":{"document_prefix":"d: ","query_prefix":"q: "},"texts":["one","two\u000alines"]}
-{"aildb":1,"op":"query","model":"m\"1","revision":"r2","dimension":3,"settings":{"document_prefix":"d: ","query_prefix":"q: "},"texts":["where \"x\" is\n"]}
+{"aildb":1,"op":"documents","model":"m\"1","revision":"r2","dimension":3,"settings":{"document_prefix":"d: ","query_prefix":"q: "},"files":[],"texts":["one","two\u000alines"]}
+{"aildb":1,"op":"query","model":"m\"1","revision":"r2","dimension":3,"settings":{"document_prefix":"d: ","query_prefix":"q: "},"files":["/opt/a \"b\"/embed.py","/opt/model"],"texts":["where \"x\" is\n"]}
 --- answers
 0 
  3f800000 40000000 40400000 3f000000 be800000 3a83126f

@@ -776,3 +776,19 @@ chose.
   refused, with `config` and `index` the bytes they were; on the code
   before the fix the search answered) and `tests/lib_trust.aiw` (the
   text of a key against `sha256sum`).
+- [x] `aildb-llama` took any path from the root as its program. The
+  documented command names the program twice, to `aildb index -x`,
+  which has it looked at, and to the adapter, which runs it; a command
+  that named it to the adapter alone was accepted, and a program of
+  the indexed directory was then run with nothing of it in the allowed
+  line but its path as a word, so its bytes could change. A request of
+  the protocol now has a member `files`, the paths of the lines `file`
+  of the configuration (`provrequest` of `src/lib/provider.aiw`), and
+  the adapter runs its program only if it is one of them
+  (`adapters/llama.aiw`); else it ends with status 1 and a line that
+  says to name it to aildb too. Tests `tests/adapter_llama.aiw` (a
+  request without `files`, and one with other paths: the program is
+  not run), `tests/cli_index_trust.aiw` (a program of the directory
+  given to the adapter alone: status 7, nothing run and the
+  configuration as it was; named to both, run, and refused once its
+  bytes changed) and `tests/lib_provider.aiw` (the member).

@@ -48,7 +48,7 @@ $ aildb-llama -m model.gguf -x /proc/self/cwd/llama-embedding < bad.json
 --- stderr
 aildb-llama: the request is no object of JSON
 --- status 1
-$ aildb-llama -m model.gguf -x /nonexistent/llama-embedding < docs.json
+$ aildb-llama -m model.gguf -x /nonexistent/llama-embedding < gone.json
 --- stdout
 --- stderr
 aildb-llama: /nonexistent/llama-embedding could not be started
@@ -94,3 +94,15 @@ $ aildb-llama -q a < docs.json
 --- stderr
 usage: aildb-llama -m MODEL -x PROGRAM [-- ARGUMENT...]
 --- status 2
+--- a program that the request does not name among its files is not run
+$ aildb-llama -m model.gguf -x /proc/self/cwd/llama-embedding < undeclared.json
+--- stdout
+--- stderr
+aildb-llama: the program is not one of the files this index was set up with, and was not run: /proc/self/cwd/llama-embedding; name it to aildb too: aildb index -x PROGRAM ... -- aildb-llama -x PROGRAM ...
+--- status 1
+$ aildb-llama -m model.gguf -x /proc/self/cwd/llama-embedding < other.json
+--- stdout
+--- stderr
+aildb-llama: the program is not one of the files this index was set up with, and was not run: /proc/self/cwd/llama-embedding; name it to aildb too: aildb index -x PROGRAM ... -- aildb-llama -x PROGRAM ...
+--- status 1
+--- llama.log

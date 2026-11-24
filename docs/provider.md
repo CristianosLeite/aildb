@@ -271,7 +271,7 @@ aildb: c: the configuration of this index names a provider that was not set up b
 A request is one object of JSON on one line:
 
 ```
-{"aildb":1,"op":"documents","model":"nomic-embed-text","revision":"0a109f422b47","dimension":768,"settings":{"document_prefix":"search_document: ","query_prefix":"search_query: "},"texts":["first text","second text"]}
+{"aildb":1,"op":"documents","model":"nomic-embed-text","revision":"0a109f422b47","dimension":768,"settings":{"document_prefix":"search_document: ","query_prefix":"search_query: "},"files":["/opt/llama.cpp/bin/llama-embedding"],"texts":["first text","second text"]}
 ```
 
 | Member | Is |
@@ -280,6 +280,7 @@ A request is one object of JSON on one line:
 | `op` | `documents` or `query` |
 | `model`, `revision`, `dimension` | those of the configuration |
 | `settings` | an object with a string for each setting, in the order of the names |
+| `files` | the paths of the lines `file` of the configuration, in their order: the files the user named with `-f` and `-x` as what the command depends on, which aildb has checked before it started the command ([above](#which-commands-are-run)). A provider that starts a program of its own can refuse one that is not among them, as `aildb-llama` does; another need not look at it |
 | `texts` | the texts, strings of well-formed UTF-8: up to `batch` of them for `documents`, exactly one for `query` |
 
 The answer is one object of JSON:
@@ -382,6 +383,21 @@ the program once and writes the path, and allows the command with it:
 
 ```
 aildb index DIRECTORY -i MODEL -d DIMENSION -x llama-embedding -- aildb-llama -m FILE -x llama-embedding
+```
+
+The two `-x` are both needed, and the adapter holds to it. The one of
+`aildb index` is what has the program looked at before every search:
+the file its path leads to, and its bytes if it lies in the indexed
+directory. The one of the adapter says which program is run. A program
+that is named to the adapter alone, by a path from the root, would be
+no more to aildb than a word among the arguments, and a file of the
+directory at that path could be changed without the command being
+refused. So the adapter runs `PROGRAM` only if the request names the
+same path among its `files`, and else ends with status 1, which is
+status 7 of `aildb index`, and this line:
+
+```
+aildb-llama: the program is not one of the files this index was set up with, and was not run: /home/me/project/llama-embedding; name it to aildb too: aildb index -x PROGRAM ... -- aildb-llama -x PROGRAM ...
 ```
 
 For each request the program is started once:
@@ -507,7 +523,9 @@ among its cases a script given to `/bin/sh` and named with `-f`, which
 is searched from another directory and refused once its bytes change,
 and `aildb-llama` with `-x llama-embedding`, found in one `PATH` and
 searched with another in which that name is a program that leaves a
-file, which is not run;
+file, which is not run, and a program of the directory that is given to
+the adapter alone, which is not run either, and named to both is run
+until its bytes change;
 `tests/kill_index.aiw` kills a run whose provider hangs and finds the
 provider gone. `make dist-check` on the archive of `b262fef`
 (2026-11-24, in `debian:stable-slim`, where `HOME` is `/root`) indexed
