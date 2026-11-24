@@ -1,7 +1,7 @@
 ---
 title: The embedding provider
 last-verified: 2026-11-24
-sources: [conversation 2026-11-24, docs/TODO.md (step 17), docs/provider.md, src/lib/config.aiw, src/lib/provider.aiw, src/lib/sha.aiw, adapters/llama.aiw, adapters/ollama.aiw, adapters/lib/ollama.aiw, tests/lib_config.aiw, tests/lib_provider.aiw, tests/lib_sha.aiw, tests/provider_command.aiw, tests/adapter_llama.aiw, tests/adapter_ollama.aiw, llama.cpp b12676]
+sources: [conversation 2026-11-24, docs/TODO.md (step 17), docs/provider.md, src/lib/config.aiw, src/lib/provider.aiw, lib/std/sha.aiw of AIL, adapters/llama.aiw, adapters/ollama.aiw, adapters/lib/ollama.aiw, tests/lib_config.aiw, tests/lib_provider.aiw, tests/provider_command.aiw, tests/adapter_llama.aiw, tests/adapter_ollama.aiw, llama.cpp b12676]
 status: current
 ---
 # The embedding provider
@@ -41,9 +41,16 @@ for review.
   arguments, the time and the number of texts of a request, which change no vector. It is
   what the configuration says, not what the provider runs: aildb cannot see weights, and
   `docs/provider.md` says so.
-- **SHA-256 written here, `src/lib/sha.aiw`** (agent, 2026-11-24): the library of AIL has
-  no hash, and CRC-32 has 32 bits, with which two texts would share a kept vector without
-  a sign. Checked against `hashlib` of Python (`tests/lib_sha.aiw`).
+- **SHA-256 is `lib/std/sha.aiw` of AIL** (user, 2026-11-24: "SHA256 should live on AIL
+  not in aildb"). The agent had written it here, as `src/lib/sha.aiw`, because the
+  library of AIL had no hash and CRC-32 has 32 bits, with which two texts would share a
+  kept vector without a sign; that is the same mistake the user corrected on 2026-11-22
+  for JSON, the numbers and HTTP: what a program first needs of a general kind is a
+  library of AIL, and the user is asked before it is written in the program. The file
+  and its test, checked against `hashlib` of Python, are the pull request 33 of the AIL
+  repository; the branch `sha-from-ail` removes them here. Until a version of AIL has
+  the library, that branch is built by the command of the AIL branch alone and the line
+  `ail` of `Ailfile` cannot name what it needs.
 - **The format of a snapshot is not changed** (agent, 2026-11-24): its model identifier
   stays the model, and the identity is in the manifest and in the name of the file of
   kept vectors. Rejected: the identity in the header, a version 2 of the format for

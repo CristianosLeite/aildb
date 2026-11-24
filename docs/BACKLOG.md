@@ -378,6 +378,12 @@ directory, its configuration, its manifest and its kept vectors are in
   chunker is the library `src/lib/chunk.aiw`, of which `build/chunk` is
   the command, with the same output; and `src/lib/sha.aiw` is SHA-256,
   checked against `hashlib` of Python.
+- [x] SHA-256 is a library of AIL, not a file of aildb (user,
+  2026-11-24): `src/lib/sha.aiw` and its test went to the AIL
+  repository as `lib/std/sha.aiw` and `tests/lib_sha_sums` (its pull
+  request 33), and `src/lib/config.aiw` and `src/index.aiw` name that
+  file. No version of AIL has it yet, so the line `ail` of `Ailfile`
+  still says 0.1.1 and is raised when the user gives the version.
 - [x] The embedding provider interface: two operations, `documents` for
   a batch of chunks and `query` for one query, in a request of JSON that
   carries the model, its revision, the dimension and the settings, so
