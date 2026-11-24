@@ -1,0 +1,72 @@
+# belowopen of src/lib/below.aiw opens what is at a path below a
+# directory part by part and follows no symbolic link: a file and a file
+# in a directory are opened, to be looked at and to be read; a link is
+# looked at as a link and not read; a path through a link to a directory
+# is an error, whether the link leads to a directory below or to one
+# outside; a directory and a pipe are looked at and not read; a part
+# "..", an empty part and an empty path are errors. The directory
+# itself may be named through a link.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "tests/lib/cmd.aiw"
+use "src/lib/below.aiw"
+buf b 24
+buf st 144
+fn told r
+	ifslt r 0
+		call print "error "
+		call putn 0-r
+		ret 0
+	end
+	call print "opened"
+end
+# the path q m below the directory p n: looked at, and read
+fn try p n q m
+	call print "["
+	call print q m
+	call print "] look: "
+	call belowopen p n q m belowlook as fd
+	call told fd
+	ifsge fd 0
+		sys fstat fd st
+		load4 st+24 as mode
+		call print ", mode "
+		call putn mode>>12
+		sys close fd
+	end
+	call print "; read: "
+	call belowopen p n q m belowread as fd
+	call told fd
+	ifsge fd 0
+		call bycut b 0
+		call filereadfd fd b
+		sys close fd
+		load b as x
+		load b+8 as k
+		call print " ["
+		call print x k
+		call print "]"
+	end
+	call print "\n"
+end
+call filewrite "step.sh" "mkdir -p d/sub/deep out\nprintf inside > d/f\nprintf deep > d/sub/deep/g\nprintf outside > out/secret\nln -s f d/link\nln -s sub d/dir\nln -s ../out d/away\nln -s deep d/sub/hop\nmkfifo d/pipe\nln -s d named\n"
+call cmdshow "/bin/sh -e step.sh"
+call try "d" "f"
+call try "d" "sub/deep/g"
+call try "d" "link"
+call try "d" "dir/deep/g"
+call try "d" "away/secret"
+call try "d" "sub/hop/g"
+call try "d" "sub"
+call try "d" "pipe"
+call try "d" "none"
+call try "d" "f/x"
+call try "d" "sub/../f"
+call try "d" ".."
+call try "d" "sub//deep/g"
+call try "d" "/f"
+call try "d" ""
+call try "named" "sub/deep/g"
+call try "none" "f"

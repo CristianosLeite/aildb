@@ -1,14 +1,21 @@
 # aildb-llama -- an embedding provider of aildb that runs a model file
 # with llama.cpp, with no service and no socket.
 #
-#   aildb-llama -m MODEL [-x PROGRAM] [-- ARGUMENT...]
+#   aildb-llama -m MODEL -x PROGRAM [-- ARGUMENT...]
 #
 # It reads one request of the protocol of docs/provider.md on stdin and
-# prints the answer on stdout. MODEL is a model file of llama.cpp (GGUF).
-# For each request the program llama-embedding of llama.cpp, or PROGRAM,
-# is started once, by its path or found in PATH:
+# prints the answer on stdout. MODEL is a model file of llama.cpp (GGUF)
+# and PROGRAM the program llama-embedding of llama.cpp, named by its
+# path from the root: the adapter looks for no program in PATH and in no
+# current directory, so the program that answers a search is the one
+# that was named when the index was set up (aildb index -x finds it
+# once and writes its path). And it is run only if the request names it
+# among its "files", the files that aildb was told the command depends
+# on and has checked: -x of this program alone names a program to it,
+# and -x of aildb index is what has the program looked at. For each
+# request it is started once:
 #
-#   llama-embedding -m MODEL -f /dev/stdin --embd-separator SEPARATOR
+#   PROGRAM -m MODEL -f /dev/stdin --embd-separator SEPARATOR
 #       --embd-output-format json --embd-normalize -1 ARGUMENT...
 #
 # with the texts of the request as its stdin, each after the value of the
@@ -25,7 +32,8 @@
 # Ollama cuts the text; docs/provider.md says more.
 #
 # The status is 0, or 2 for wrong usage and 1 for a request that is none
-# or a program that cannot be started, fails or prints no vectors, with a
+# or does not name the program among its files, or a program that
+# cannot be started, fails or prints no vectors, with a
 # line on stderr that has the last line the program said. The program
 # ends when this one is killed.
 use "lib/std/io.aiw"
@@ -37,9 +45,6 @@ use "lib/std/json.aiw"
 
 const memfd 319
 const lseek 8
-const dup2 33
-const getppid 110
-const prctl 157
 buf in 24       # the request
 buf texts 24    # what the program reads
 buf so 24       # what it printed
@@ -61,7 +66,7 @@ fn fail p n q m
 end
 
 fn usage
-	call eprint "usage: aildb-llama -m MODEL [-x PROGRAM] [-- ARGUMENT...]\n"
+	call eprint "usage: aildb-llama -m MODEL -x PROGRAM [-- ARGUMENT...]\n"
 	sys exit_group 2
 end
 
@@ -126,8 +131,8 @@ end
 call argc as c
 mp=0
 mn=0
-set "llama-embedding" as xp
-xn=15
+xp=0
+xn=0
 i=1
 rest=c
 label option
@@ -160,6 +165,17 @@ end
 ifz mn
 	call usage
 end
+ifz xn
+	call eprint "aildb-llama: no program: name llama-embedding of llama.cpp by its path from the root with -x; aildb index -x llama-embedding ... -- aildb-llama -x llama-embedding ... finds it once and writes that path\n"
+	sys exit_group 2
+end
+loadb xp as ch
+if ch!=47
+	call eprint "aildb-llama: the program is to be named by its path from the root, and none is looked for in PATH or in the current directory: "
+	call eprint xp xn
+	call eprint "; aildb index -x PROGRAM ... -- aildb-llama -x PROGRAM ... finds it once and writes that path\n"
+	sys exit_group 2
+end
 
 # the request
 call filereadfd 0 in as r
@@ -182,6 +198,39 @@ call jsoneq v vn "documents" as isdoc
 call jsoneq v vn "query" as isquery
 if (vk!=5)|((isdoc|isquery)==0)
 	call fail "the request has no operation that is known" ""
+end
+# The program is run only if it is one of the files that the index was
+# set up with, the member "files" of the request: aildb checked those
+# before it started this program, the file each path leads to and, for
+# one in the indexed directory, its bytes. A program that was given to
+# this adapter alone is a word among its arguments to aildb, which then
+# has looked at no file.
+call jsonget a an "files" as lp ln lk
+known=0
+if lk==6
+	q=lp+1
+	label declared
+	call jsonelem q lp+ln as e el ek q
+	if ek
+		if ek==5
+			call bycut line 0
+			call jsonstr line e el as ok
+			ifz ok
+				call fail "no memory" ""
+			end
+			load line as x
+			load line+8 as xl
+			call same x xl xp xn as r
+			known=known|r
+		end
+		jmp declared
+	end
+end
+ifz known
+	call eprint "aildb-llama: the program is not one of the files this index was set up with, and was not run: "
+	call eprint xp xn
+	call eprint "; name it to aildb too: aildb index -x PROGRAM ... -- aildb-llama -x PROGRAM ...\n"
+	sys exit_group 1
 end
 call jsonget a an "settings" as s sn sk
 pp=0
@@ -247,8 +296,7 @@ ifz count
 	sys exit_group 0
 end
 
-# the program, through env, which looks for it in PATH
-call arg "/usr/bin/env"
+# the program, by its path
 call arg xp xn
 call arg "-m"
 call arg mp mn
@@ -285,23 +333,10 @@ load texts+8 as n
 call memfile p n as fin
 call memfile 0 0 as fout
 call memfile 0 0 as ferr
-call procenv as env
-sys fork as pid
-ifz pid
-	# the child: it is to end when this program is killed, as it is when
-	# it takes longer than aildb allows
-	sys prctl 1 9
-	sys getppid as parent
-	if parent==1
-		sys exit 127
-	end
-	sys dup2 fin 0
-	sys dup2 fout 1
-	sys dup2 ferr 2
-	load vec as z
-	sys execve z vec env
-	sys exit 127
-end
+# held: the program is to end when this one is killed, as it is when it
+# takes longer than aildb allows; procheld starts none that the kernel
+# would not hold
+call procheld vec fin fout ferr as pid
 ifslt pid 0
 	call fail "cannot start a process" ""
 end

@@ -74,5 +74,12 @@ no daemon or filesystem watcher, and wants to choose an embedding provider
 independently of the LLM that asks the questions. It is written
 ([install.md](install.md), [index.md](index.md), [provider.md](provider.md)).
 
-Nothing is left of this step (`BACKLOG.md`); its choices wait for the
-user's review (`.agents/knowledge/status/open-items.md`).
+The eight findings of the review of `5eeba0b` are fixed but one, the
+six of the review of `6c707bc` but the same one, and the four others
+of the review of `cb9285a`, the three of the review of `b515e72` and
+the one of the review of `acb1a70` all (`BACKLOG.md`); their choices
+wait for the user's review
+(`.agents/knowledge/status/open-items.md`).
+
+Nothing of them is open: the AIL that `Ailfile` asks for is 0.1.2
+since 2026-11-24 (`BACKLOG.md`).

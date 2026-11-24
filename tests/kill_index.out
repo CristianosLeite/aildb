@@ -1,15 +1,17 @@
-# the configuration, by a run whose provider fails
-$ aildb index p -i m1 -d 3 -b 1 -- FAKE exit3
+# the configuration, by a run whose snapshot is then removed
+$ aildb index p -i m1 -d 3 -b 1 -- FAKE
 --- stdout
+{"records":2,"dimension":3,"model":"m1","source_revision":null,"files":2,"embedded":2,"published":true}
 --- stderr
-aildb: p: the provider ended with the status 3: provider-fake: the model is not there
---- status 7
+--- status 0
 $ aildb index o -i m1 -d 3 -- FAKE
 --- stdout
 {"records":1,"dimension":3,"model":"m1","source_revision":null,"files":1,"embedded":1,"published":true}
 --- stderr
 --- status 0
 --- provider.log
+documents 1 m1
+documents 1 m1
 documents 1 m1
 # a first index, killed before its snapshot has its name
 stop 2: reached 1
@@ -31,6 +33,7 @@ documents 1 m1
 cache
 config
 index.lock
+manifest.new
 $ aildb index p
 --- stdout
 {"records":2,"dimension":3,"model":"m1","source_revision":null,"files":2,"embedded":0,"published":true}
@@ -75,6 +78,7 @@ config
 index
 index.lock
 manifest
+manifest.new
 $ aildb check p/.aildb/index
 --- stdout
 {"records":4,"dimension":3,"model":"m1","source_revision":null}
@@ -82,7 +86,7 @@ $ aildb check p/.aildb/index
 --- status 0
 $ aildb index p
 --- stdout
-{"records":4,"dimension":3,"model":"m1","source_revision":null,"files":4,"embedded":0,"published":true}
+{"records":4,"dimension":3,"model":"m1","source_revision":null,"files":4,"embedded":0,"published":false}
 --- stderr
 --- status 0
 --- provider.log
@@ -102,6 +106,7 @@ config
 index
 index.lock
 manifest
+manifest.new
 $ aildb check p/.aildb/index
 --- stdout
 {"records":5,"dimension":3,"model":"m1","source_revision":null}
@@ -109,8 +114,19 @@ $ aildb check p/.aildb/index
 --- status 0
 $ aildb index p
 --- stdout
-{"records":5,"dimension":3,"model":"m1","source_revision":null,"files":5,"embedded":0,"published":true}
+{"records":5,"dimension":3,"model":"m1","source_revision":null,"files":5,"embedded":0,"published":false}
 --- stderr
 --- status 0
 --- provider.log
 0
+# a run killed while the provider works: the provider ends with it
+the provider was started 1
+ended by signal 9
+the provider is gone
+$ aildb index p
+--- stdout
+{"records":6,"dimension":3,"model":"m1","source_revision":null,"files":6,"embedded":1,"published":true}
+--- stderr
+--- status 0
+--- provider.log
+documents 1 m1

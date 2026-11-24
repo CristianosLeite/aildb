@@ -1,0 +1,214 @@
+# an index made with options: its command is allowed
+$ aildb index p -i m1 -d 8 -- FAKE spread
+--- stdout
+{"records":2,"dimension":8,"model":"m1","source_revision":null,"files":2,"embedded":2,"published":true}
+--- stderr
+--- status 0
+$ aildb search p --text gamma -k 1
+--- stdout
+{"source_revision":null,"model":"m1"}
+{"rank":1,"score":1.000000,"score_bits":"3ff0000002218688","path":"b.txt","start_line":1,"end_line":1}
+--- stderr
+--- status 0
+--- provider.log
+documents 2 m1
+query 1 m1
+trusted
+600
+1
+TMP/p
+# a copy of the directory, its configuration with it: nothing is run
+$ aildb search c --text gamma -k 1
+status 2
+aildb: c: the configuration of this index names a provider that was not set up by you on this machine, or whose program or a file it depends on is no longer the file it was, and nothing of it was run. Its command is: FAKE spread; to allow it, name the provider yourself: aildb index c -i m1 -d 8 ... -- COMMAND
+$ aildb index c
+status 2
+aildb: c: the configuration of this index names a provider that was not set up by you on this machine, or whose program or a file it depends on is no longer the file it was, and nothing of it was run. Its command is: FAKE spread; to allow it, name the provider yourself: aildb index c -i m1 -d 8 ... -- COMMAND
+$ aildb search c --text new -k 1
+status 2
+aildb: c: the configuration of this index names a provider that was not set up by you on this machine, or whose program or a file it depends on is no longer the file it was, and nothing of it was run. Its command is: FAKE spread; to allow it, name the provider yourself: aildb index c -i m1 -d 8 ... -- COMMAND
+--- provider.log
+# the options given for it allow it
+$ aildb index c -i m1 -d 8 -- FAKE spread
+--- stdout
+{"records":3,"dimension":8,"model":"m1","source_revision":null,"files":3,"embedded":1,"published":true}
+--- stderr
+--- status 0
+$ aildb search c --text new -k 1
+--- stdout
+{"source_revision":null,"model":"m1"}
+{"rank":1,"score":1.000000,"score_bits":"3feffffffb5dd97c","path":"n.txt","start_line":1,"end_line":1}
+--- stderr
+--- status 0
+--- provider.log
+documents 1 m1
+query 1 m1
+2
+# the same named again: no second line
+$ aildb index c -i m1 -d 8 -- FAKE spread
+--- stdout
+{"records":3,"dimension":8,"model":"m1","source_revision":null,"files":3,"embedded":0,"published":false}
+--- stderr
+--- status 0
+2
+# a command changed in the file by hand
+$ aildb search p --text gamma -k 1
+status 2
+aildb: p: the configuration of this index names a provider that was not set up by you on this machine, or whose program or a file it depends on is no longer the file it was, and nothing of it was run. Its command is: FAKE spread 'it'\''s more'; to allow it, name the provider yourself: aildb index p -i m1 -d 8 ... -- COMMAND
+1
+$ aildb search p --text gamma -k 1
+status 2
+aildb: p: the configuration of this index names a provider that was not set up by you on this machine, or whose program or a file it depends on is no longer the file it was, and nothing of it was run. Its command is: /bin/sh spread 'it'\''s more'; to allow it, name the provider yourself: aildb index p -i m1 -d 8 ... -- COMMAND
+$ aildb search p --text gamma -k 1
+--- stdout
+{"source_revision":null,"model":"m1"}
+{"rank":1,"score":1.000000,"score_bits":"3ff0000002218688","path":"b.txt","start_line":1,"end_line":1}
+--- stderr
+--- status 0
+--- provider.log
+query 1 m1
+# the directory moved
+$ aildb search moved --text gamma -k 1
+status 2
+aildb: moved: the configuration of this index names a provider that was not set up by you on this machine, or whose program or a file it depends on is no longer the file it was, and nothing of it was run. Its command is: FAKE spread; to allow it, name the provider yourself: aildb index moved -i m1 -d 8 ... -- COMMAND
+$ aildb search p --text gamma -k 1
+--- stdout
+{"source_revision":null,"model":"m1"}
+{"rank":1,"score":1.000000,"score_bits":"3ff0000002218688","path":"b.txt","start_line":1,"end_line":1}
+--- stderr
+--- status 0
+--- provider.log
+query 1 m1
+# no directory of the user: nothing is allowed, and nothing can be
+aildb: p: the configuration of this index names a provider that was not set up by you on this machine, or whose program or a file it depends on is no longer the file it was, and nothing of it was run. Its command is: FAKE spread; to allow it, name the provider yourself: aildb index p -i m1 -d 8 ... -- COMMAND
+aildb: p: the configuration of this index names a provider that was not set up by you on this machine, or whose program or a file it depends on is no longer the file it was, and nothing of it was run. Its command is: FAKE spread; to allow it, name the provider yourself: aildb index p -i m1 -d 8 ... -- COMMAND
+aildb: n: the command of the provider cannot be noted as allowed: the environment has no HOME and no XDG_CONFIG_HOME that is a path from the root, or the directory, the program or a file it depends on has no name in /proc, or one of them lies in the directory and cannot be read, or where the file of the allowed commands leads cannot be said, as for a link to nothing
+status 4
+.aildb
+t.txt
+--- provider.log
+# HOME alone: the file is in .config of it
+{"records":1,"dimension":8,"model":"m1","source_revision":null,"files":1,"embedded":1,"published":true}
+home
+home/.config
+home/.config/aildb
+home/.config/aildb/trusted
+{"source_revision":null,"model":"m1"}
+{"rank":1,"score":1.000000,"score_bits":"3ff00000077cc02b","path":"t.txt","start_line":1,"end_line":1}
+aildb: p: the configuration of this index names a provider that was not set up by you on this machine, or whose program or a file it depends on is no longer the file it was, and nothing of it was run. Its command is: FAKE spread; to allow it, name the provider yourself: aildb index p -i m1 -d 8 ... -- COMMAND
+--- provider.log
+documents 1 m1
+query 1 m1
+# a program named by its name alone, then searched with another PATH and from another directory
+{"records":1,"dimension":8,"model":"m1","source_revision":null,"files":1,"embedded":1,"published":true}
+arg	TMP/bin1/prov
+arg	spread
+{"source_revision":null,"model":"m1"}
+{"rank":1,"score":1.000000,"score_bits":"3ff0000003cc5859","path":"t.txt","start_line":1,"end_line":1}
+ls: No such file or directory
+# a program named from the directory it is in
+{"records":1,"dimension":8,"model":"m1","source_revision":null,"files":1,"embedded":1,"published":true}
+{"source_revision":null,"model":"m1"}
+{"rank":1,"score":1.000000,"score_bits":"3ff0000003cc5859","path":"t.txt","start_line":1,"end_line":1}
+arg	TMP/bin1/./prov
+arg	spread
+ls: No such file or directory
+# a program of the indexed directory: allowed with the bytes it has
+2
+status 2
+aildb: q: the configuration of this index names a provider that was not set up by you on this machine, or whose program or a file it depends on is no longer the file it was, and nothing of it was run. Its command is: TMP/q/prov spread; to allow it, name the provider yourself: aildb index q -i m1 -d 8 ... -- COMMAND
+ls: No such file or directory
+# a program that is not there
+$ aildb index q -i m1 -d 8 -- /nonexistent/provider
+--- stdout
+--- stderr
+aildb: /nonexistent/provider: the program of the provider is not a file that can be run
+--- status 2
+$ aildb index q -i m1 -d 8 -- no-such-program-of-aildb
+--- stdout
+--- stderr
+aildb: no-such-program-of-aildb: the program of the provider is not a file that can be run
+--- status 2
+# a script given to an interpreter, named as a file the command depends on
+{"records":2,"dimension":8,"model":"m1","source_revision":null,"files":2,"embedded":2,"published":true}
+arg	/bin/sh
+arg	TMP/s/embed.sh
+file	TMP/s/embed.sh
+{"source_revision":null,"model":"m1"}
+{"rank":1,"score":1.000000,"score_bits":"3ff00000018b4e47","path":"t.txt","start_line":1,"end_line":1}
+status 2
+aildb: s: the configuration of this index names a provider that was not set up by you on this machine, or whose program or a file it depends on is no longer the file it was, and nothing of it was run. Its command is: /bin/sh TMP/s/embed.sh; to allow it, name the provider yourself: aildb index s -i m1 -d 8 ... -- COMMAND
+ls: No such file or directory
+--- provider.log
+documents 1 m1
+documents 1 m1
+query 1 m1
+# a file that is not there, and one that is a directory
+$ aildb index s -i m1 -d 8 -f s/none -- /bin/sh s/none
+--- stdout
+--- stderr
+aildb: s/none: a file of the provider that is no file that can be read
+--- status 2
+$ aildb index s -i m1 -d 8 -f s -- /bin/sh s
+--- stdout
+--- stderr
+aildb: s: a file of the provider that is no file that can be read
+--- status 2
+$ aildb index s -i m1 -d 8 -x no-such-program-of-aildb -- /bin/sh
+--- stdout
+--- stderr
+aildb: no-such-program-of-aildb: a program of the provider that is no file that can be run
+--- status 2
+# aildb-llama with the program it runs found once: a search with another PATH runs the same
+{"records":1,"dimension":3,"model":"m1","source_revision":null,"files":1,"embedded":1,"published":true}
+arg	BUILD/aildb-llama
+arg	-m
+arg	model.gguf
+arg	-x
+arg	TMP/lbin1/llama-embedding
+file	TMP/lbin1/llama-embedding
+{"source_revision":null,"model":"m1"}
+{"rank":1,"score":1.000000,"score_bits":"3feffffffe8dbd9c","path":"t.txt","start_line":1,"end_line":1}
+ls: No such file or directory
+# and without the program named: the adapter looks for none
+status 7
+aildb: l: the provider ended with the status 2: aildb-llama: no program: name llama-embedding of llama.cpp by its path from the root with -x; aildb index -x llama-embedding ... -- aildb-llama -x llama-embedding ... finds it once and writes that path
+# a program of the directory that is given to the adapter alone, and not to aildb, is not run
+status 7
+aildb: l: the provider ended with the status 1: aildb-llama: the program is not one of the files this index was set up with, and was not run: TMP/l/llama-embedding; name it to aildb too: aildb index -x PROGRAM ... -- aildb-llama -x PROGRAM ...
+ls: No such file or directory
+model	m1
+# named to both, it is run, and not once its bytes changed
+{"records":1,"dimension":3,"model":"m3","source_revision":null,"files":1,"embedded":1,"published":true}
+2
+status 2
+aildb: l: the configuration of this index names a provider t
+ls: No such file or directory
+# the file of the allowed commands in the directory that is indexed: nothing is made, read or run
+status 2
+aildb: t: the file of the commands you allowed, TMP/t/cfg/aildb/trusted, lies in this directory or leads into it, so the directory could allow its own
+.aildb
+t.txt
+# through a link to a directory of it, and by HOME when the directory is the one above
+status 2
+aildb: t: the file of the commands you allowed, TMP/tlink/aildb/trusted, lies in this directory or leads into it, so the directory could allow its own
+t/cfg
+status 2
+aildb: t: the file of the commands you allowed, TMP/t/.config/aildb/trusted, lies in this directory or leads into it, so the directory could allow its
+.aildb
+cfg
+t.txt
+# a file of the user that is a link into the directory, to none and to a file
+status 4
+aildb: t: the command of the provider cannot be noted as allowed: the environment has no HOME and no XDG_CONFIG_HOME that is a path from the root, or
+status 2
+aildb: t: the file of the commands you allowed, TMP/xdg3/aildb/trusted, lies in this directory or leads into it, so the directory could allow its own
+0
+# an index that was allowed, and then a copy of the file in the directory: its lines allow nothing
+{"records":1,"dimension":8,"model":"m1","source_revision":null,"files":1,"embedded":1,"published":true}
+2
+status 2
+aildb: t: the file of the commands you allowed, TMP/t/cfg/aildb/trusted, lies in this directory or leads into it, so the directory could allow its own
+status 2
+aildb: t: the file of the commands you allowed, TMP/t/cfg/aildb/trusted, lies in this directory or leads into it, so the directory could allow its own
+ls: No such file or directory

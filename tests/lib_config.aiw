@@ -2,8 +2,9 @@
 # .aildb/config and read back the same, with its settings in the order
 # of their names whatever order they came in; its identity is the
 # SHA-256 that Python gives for the text docs/provider.md states, changes
-# with the provider, the model, its revision, the dimension and each
-# setting, and not with the command, the time or the number of texts;
+# with the provider, the model, its revision, the dimension, each
+# setting and each argument of the command after its program, and not
+# with the program, the time or the number of texts;
 # and a text that is no configuration is a reason and a line
 use "lib/std/io.aiw"
 use "lib/std/bytes.aiw"
@@ -83,10 +84,32 @@ call ident d
 # what is no part of it
 store d+conftime 5
 store d+confbatch 1
-call confarg d "more"
+call ident d
+call conffree d
+# nor the program of the command: the text of c with another one
+call bycut m 0
+call byadd m p n-43
+call byadd m "arg\t/another/path/of/it\narg\t--flag\narg\ttwo words\n"
+load m as q
+load m+8 as k
+call confparse d q k as w line
+call putn w
+call print " for the text with another program\n"
 call ident d
 call conffree d
 # what is: each line prints another
+call confparse d p n
+call confarg d "more"
+call ident d
+call conffree d
+call bycut m 0
+call byadd m p n-14
+call byadd m "arg\ttwo  words\n"
+load m as q
+load m+8 as k
+call confparse d q k
+call ident d
+call conffree d
 call confparse d p n
 call confput d confname "other"
 call ident d
@@ -130,3 +153,35 @@ call bad "aildb\t1\nprovider\tx\nmodel\tm\ndimension\t2\nset\tk\tv\nset\tk\tw\n"
 call bad "aildb\t1\nprovider\tx\nmodel\tm\ndimension\t2\n"
 # the least that is one
 call bad "aildb\t1\nprovider\tx\nmodel\tm\ndimension\t2\narg\tp\n"
+call print "--- the files a command depends on\n"
+load b as p
+load b+8 as n
+call confparse d p n
+call conffile d "/models/a model.gguf" as w
+call putn w
+call conffile d "/usr/bin/llama-embedding" as w
+call putn w
+call print " for two files\n"
+call conffile d "models/relative.gguf" as w
+call putn w
+call conffile d "" as w
+call putn w
+call conffile d "/a\x01b" as w
+call putn w
+call print " for a path not from the root, none, and one that is no text\n"
+call bycut m 0
+call confwrite m d
+load m as q
+load m+8 as k
+call print q+n k-n
+call conffree d
+call confparse d q k as w line
+call putn w
+call conffiles d as fp fk
+call print " read again, files: "
+call putn fk
+call print "\n"
+# no part of the identity
+call ident d
+call conffree d
+call bad "aildb\t1\nprovider\tx\nmodel\tm\ndimension\t2\narg\tp\nfile\tnot/from/the/root\n"

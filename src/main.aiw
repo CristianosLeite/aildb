@@ -53,7 +53,7 @@ fn usage
        aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
        aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
        aildb check INDEX
-       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] -- COMMAND [ARGUMENT...]]
+       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] [-f FILE]... [-x PROGRAM]... -- COMMAND [ARGUMENT...]]
 "
 	sys exit_group stusage
 end
@@ -68,11 +68,12 @@ fn fail st
 	sys exit_group st
 end
 
-# start the line of an error about the file at the path p n
+# start the line of an error about the file at the path p n, which
+# ixshow of src/index.aiw writes as the user knows it
 fn about p n
 	call bycut msg 0
 	call byadd msg "aildb: "
-	call byadd msg p n
+	call ixshow p n
 	call byadd msg ": "
 end
 
@@ -514,6 +515,8 @@ fn publish vec count dim vp vn
 		call snapwhy msg snap r
 		call giveup stio
 	end
+	# what an index of a directory writes before its snapshot has its name
+	call ixbefore
 	call hookstop 2
 	sys rename tp dp as r
 	if r

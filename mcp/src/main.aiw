@@ -355,6 +355,11 @@ fn finish r c pk pv pn lk lv ln bp bn
 		call failed r "the search took longer than it may" ""
 		ret 0
 	end
+	if st==0-3000
+		# each is within its limit, and the command has no room for all
+		call failed r "the directory, the query and the filters are too long together" ""
+		ret 0
+	end
 	if st
 		call said as tp tn
 		if dirn

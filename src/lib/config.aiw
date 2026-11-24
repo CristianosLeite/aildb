@@ -15,8 +15,8 @@ use "lib/std/bytes.aiw"
 use "src/lib/text.aiw"
 use "lib/std/sha.aiw"
 
-const confsize 160
-# where the configuration has what: three strings, each the offset in its
+const confsize 208
+# where the configuration has what: four strings, each the offset in its
 # bytes and the length, for confstr and confput, and three numbers, for
 # load and store
 const confname 24       # the name of the provider
@@ -25,10 +25,12 @@ const confrev 56        # the revision of the model, which may be empty
 const confdim 72        # the dimension of a vector
 const conftime 80       # the milliseconds a request may take
 const confbatch 88      # the most texts of a request
+const confprint 192     # the fingerprint: 64 digits for the bytes of the program and the files of the command, or empty
 # besides: the bytes of the strings at 0, the settings at 96 (a name, a
 # NUL byte, a value, a NUL byte) with their number at 120, and the
 # arguments of the command at 128 (a NUL byte after each) with their
-# number at 152
+# number at 152, and the files the command depends on at 160 (a NUL byte
+# after each) with their number at 184
 
 # the numbers of a configuration that says none
 const conftimeusual 120000
@@ -50,6 +52,8 @@ const confbadset 12     # a setting whose name is not 1 to 255 bytes of valid te
 const confbadarg 13     # an argument of more than 4095 bytes, or no valid text
 const confnoarg 14      # no command
 const confmem 15        # no memory
+const confbadprint 17   # a fingerprint that is not 64 hexadecimal digits, the letters small
+const confbadfile 16    # a file of the command that is no path from the root, of more than 4095 bytes or no valid text, or more than 64 of them
 
 # make the confsize bytes at confc a configuration that says nothing but
 # the usual time and number of texts; they hold no memory before
@@ -68,6 +72,7 @@ fn conffree confc
 	call byfree confc
 	call byfree confc+96
 	call byfree confc+128
+	call byfree confc+160
 end
 
 # the string confk of the configuration, confname, confmodel or confrev:
@@ -163,6 +168,37 @@ fn confargs confc
 	ret confp confk
 end
 
+# add a file that the command depends on, the confn bytes at confp, a
+# path from the root: 0, or confbadfile or confmem
+fn conffile confc confp confn
+	call textvalid confp confn as confa
+	load confc+184 as confk
+	confb=0
+	if confn
+		loadb confp as confb
+	end
+	if (confa==0)|(confn>4095)|(confb!=47)|(confk>=64)
+		ret confbadfile
+	end
+	load confc+168 as confo
+	call byadd confc+160 confp confn
+	call byaddb confc+160 0 as confr
+	ifz confr
+		store confc+168 confo
+		ret confmem
+	end
+	store confc+184 confk+1
+	ret 0
+end
+
+# the files the command depends on: the address of the first, each with
+# a NUL byte after it, and their number
+fn conffiles confc
+	load confc+160 as confp
+	load confc+184 as confk
+	ret confp confk
+end
+
 # how the confn bytes at confp stand to the confm bytes at confq, byte
 # for byte: 0 before them, 1 the same, 2 after them
 fn confcmp confp confn confq confm
@@ -254,6 +290,20 @@ fn confcheck confc
 	ifz confv
 		ret confnoarg
 	end
+	call confstr confc confprint as confp confn
+	if confn
+		if confn!=64
+			ret confbadprint
+		end
+		confi=0
+		while confi<64
+			loadb confp+confi as confa
+			if (confa-48>9)&(confa-97>5)
+				ret confbadprint
+			end
+			confi+=1
+		end
+	end
 	ret 0
 end
 
@@ -292,6 +342,10 @@ fn confwrite confb confc
 	call confnum confb "timeout" confv
 	load confc+confbatch as confv
 	call confnum confb "batch" confv as confr
+	call confstr confc confprint as confp confn
+	if confn
+		call confline confb "fingerprint" confp confn as confr
+	end
 	conflp=0
 	confln=0
 	label each
@@ -305,6 +359,13 @@ fn confwrite confb confc
 	while confk
 		call strlen confp as confn
 		call confline confb "arg" confp confn as confr
+		confp+=confn+1
+		confk-=1
+	end
+	call conffiles confc as confp confk
+	while confk
+		call strlen confp as confn
+		call confline confb "file" confp confn as confr
 		confp+=confn+1
 		confk-=1
 	end
@@ -356,11 +417,16 @@ fn confword confc confp confn confq confm confi confs
 		confbit=64
 		confk=confbatch
 	end
+	call texteq confp confn "fingerprint" as confr
+	if confr
+		confbit=128
+		confk=confprint
+	end
 	if confbit
 		if confs&confbit
 			ret conftwice confs
 		end
-		if confk<confdim
+		if (confk<confdim)|(confk==confprint)
 			call confput confc confk confq confm as confr
 			ifz confr
 				ret confmem confs
@@ -387,6 +453,11 @@ fn confword confc confp confn confq confm confi confs
 	call texteq confp confn "arg" as confr
 	if confr
 		call confarg confc confq confm as confr
+		ret confr confs
+	end
+	call texteq confp confn "file" as confr
+	if confr
+		call conffile confc confq confm as confr
 		ret confr confs
 	end
 	ret confbadline confs
@@ -435,15 +506,18 @@ end
 
 # The identity of the configuration, 32 bytes written at confout: the
 # SHA-256 of the name of the provider, the model, its revision, the
-# dimension and the settings in the order of their names, written as
-# docs/provider.md says. The command, the time and the number of texts
-# of a request are no part of it. 1, or 0 without memory.
+# fingerprint, the dimension, the settings in the order of their names
+# and the arguments of the command after its program, in their order,
+# written as docs/provider.md says. The path of the program, the paths
+# of the files of the command, the time and the number of texts of a
+# request are no part of it. 1, or 0 without
+# memory.
 fn confident confc confout
 	local confb 24
 	store confb 0
 	store confb+8 0
 	store confb+16 0
-	call byadd confb "aildb-provider 1\n"
+	call byadd confb "aildb-provider 3\n"
 	call confstr confc confname as confp confn
 	call confpart confb confp confn
 	call byaddb confb 10
@@ -451,6 +525,9 @@ fn confident confc confout
 	call confpart confb confp confn
 	call byaddb confb 10
 	call confstr confc confrev as confp confn
+	call confpart confb confp confn
+	call byaddb confb 10
+	call confstr confc confprint as confp confn
 	call confpart confb confp confn
 	call byaddb confb 10
 	load confc+confdim as confv
@@ -468,6 +545,25 @@ fn confident confc confout
 		call confpart confb confq confm
 		call byaddb confb 10 as confr
 		jmp each
+	end
+	# the arguments after the program: a provider takes its model file
+	# and what else changes its vectors from them
+	call confargs confc as confp confk
+	confv=0
+	if confk
+		confv=confk-1
+	end
+	call byaddn confb confv
+	call byaddb confb 10 as confr
+	confi=0
+	while confi<confk
+		call strlen confp as confn
+		if confi
+			call confpart confb confp confn
+			call byaddb confb 10 as confr
+		end
+		confp+=confn+1
+		confi+=1
 	end
 	ifz confr
 		call byfree confb
@@ -527,6 +623,12 @@ fn confwhy confb confw
 	end
 	if confw==confmem
 		tail byadd confb "no memory"
+	end
+	if confw==confbadprint
+		tail byadd confb "the fingerprint is not 64 hexadecimal digits"
+	end
+	if confw==confbadfile
+		tail byadd confb "a file of the command that is no path from the root, of more than 4095 bytes or no valid text, or more than 64 files"
 	end
 	ret 1
 end

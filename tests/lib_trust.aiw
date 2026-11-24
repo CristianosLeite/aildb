@@ -1,0 +1,291 @@
+# src/lib/trust.aiw: the key of a command for a directory is the
+# SHA-256 of the text the file states, which sha256sum gives for the
+# same text; it is the same for the directory under another name and
+# another for another directory, another argument, an argument more and
+# another program. The program is a path from the root, or there is no
+# key; the key is of the file the path leads to, so it is another when a
+# link on the way is turned to another file, and of the bytes of a
+# program that lies in the directory, and not of those of one that does
+# not. trustprog makes the path of a program as it is found now, from
+# this directory or from PATH, and none for what cannot be run. A file
+# of keys is made for its owner alone, has a key after it was added and
+# not before, and a key is found whatever follows its digits on the
+# line. A directory that is none has no key.
+use "lib/std/io.aiw"
+use "lib/std/bytes.aiw"
+use "lib/std/file.aiw"
+use "lib/std/proc.aiw"
+use "tests/lib/cmd.aiw"
+use "src/lib/trust.aiw"
+buf c confsize
+buf k 32
+buf k2 32
+buf hex 24
+buf line 24
+# the configuration c with the command of the k arguments at p, a NUL
+# byte after each; the first is a path in the directory of the test and
+# is made one from the root
+fn command p l k
+	call conffree c
+	call confinit c
+	first=1
+	while k
+		call strlen p as n
+		if first
+			call bycut line 0
+			call trustabs line p n
+			load line as q
+			load line+8 as m
+			call confarg c q m
+			first=0
+		else
+			call confarg c p n
+		end
+		p+=n+1
+		k-=1
+	end
+end
+# print whether the key of c for the directory p n is the one in k
+fn same p n
+	call trustkey p n c k2 as ok
+	call texteq k 32 k2 32 as eq
+	call putn ok
+	call print " "
+	call putn eq
+	call print "\n"
+end
+# print whether trustprog finds the program p n, and the last e bytes of
+# its path, which starts at the root
+fn prog p n e
+	call bycut line 0
+	call trustprog p n line as ok
+	call putn ok
+	if ok
+		load line as q
+		load line+8 as m
+		loadb q as x
+		if (x==47)&(m>=e)
+			call print " /..."
+			call print q+m-e e
+		end
+	end
+	call print "\n"
+end
+# add the file p n of the directory of the test to what the command of
+# c depends on, by its path from the root
+fn depend p n
+	call bycut line 0
+	call trustabs line p n
+	load line as q
+	load line+8 as m
+	call conffile c q m as w
+	if w
+		call print "no file of a configuration\n"
+	end
+end
+# print whether trustfile finds the file p n, and the last e bytes of
+# its path, which starts at the root
+fn file p n e
+	call bycut line 0
+	call trustfile p n line as ok
+	call putn ok
+	if ok
+		load line as q
+		load line+8 as m
+		loadb q as x
+		if (x==47)&(m>=e)
+			call print " /..."
+			call print q+m-e e
+		end
+	end
+	call print "\n"
+end
+# write the digits of the key in k to the file key.txt
+fn keyfile
+	call bycut hex 0
+	call shahex hex k
+	load hex as p
+	load hex+8 as n
+	call filewrite "key.txt" p n
+	# and those of the identity of the configuration, which the key is of
+	call confident c k2
+	call bycut hex 0
+	call shahex hex k2
+	load hex as p
+	load hex+8 as n
+	call filewrite "id.txt" p n
+end
+call confinit c
+call filewrite "step.sh" "mkdir -p d/sub e out\nln -s d/sub named\nprintf '#!/bin/sh\\n' > out/prog\ncp out/prog out/other\ncp out/prog out/plain\nchmod +x out/prog out/other\n"
+call cmdshow "/bin/sh -e step.sh"
+call command "out/prog\0-m\0a b\0" 3
+call trustkey "d/sub" c k as ok
+call putn ok
+call print " for a key\n"
+call keyfile
+call filewrite "step.sh" "d=$(cd d/sub && pwd -P)\np=$(pwd -P)/out/prog\nprintf 'aildb-trust 4\\n%s\\n%s:%s\\n3\\n%s:%s\\n2:-m\\n3:a b\\n%s:%s\\n-\\n0\\n' $(cat id.txt) ${#d} \"$d\" ${#p} \"$p\" ${#p} \"$p\" | sha256sum | cut -c1-64 | tr -d '\\n' > sum.txt\ncmp key.txt sum.txt && echo the key is the sum of the text\n"
+call cmdshow "/bin/sh -e step.sh"
+call print "# the same directory by other names\n"
+call same "named"
+call same "d/../d/sub/."
+call print "# another directory, and none\n"
+call same "d"
+call same "none"
+call same "key.txt"
+call print "# another command\n"
+call command "out/prog\0-m\0a  b\0" 3
+call same "d/sub"
+call command "out/prog\0-m\0a b\0more\0" 4
+call same "d/sub"
+call command "out/other\0-m\0a b\0" 3
+call same "d/sub"
+call command "out/prog\0-m\0a b\0" 3
+call same "d/sub"
+call print "# a program that is no path from the root, and one that is not there\n"
+call conffree c
+call confinit c
+call confarg c "out/prog"
+call same "d/sub"
+call command "out/none\0" 1
+call same "d/sub"
+call print "# a program outside the directory whose bytes change: the same key\n"
+call command "out/prog\0" 1
+call trustkey "d/sub" c k as ok
+call filewrite "step.sh" "printf '#!/bin/sh\\necho more\\n' > out/prog\n"
+call cmdshow "/bin/sh -e step.sh"
+call same "d/sub"
+call print "# a link that is turned to another file: another key\n"
+call filewrite "step.sh" "ln -s prog out/link\n"
+call cmdshow "/bin/sh -e step.sh"
+call command "out/link\0" 1
+call trustkey "d/sub" c k as ok
+call same "d/sub"
+call filewrite "step.sh" "ln -sf other out/link\n"
+call cmdshow "/bin/sh -e step.sh"
+call same "d/sub"
+call print "# a program in the directory: the key is of its bytes\n"
+call filewrite "step.sh" "cp out/other d/sub/tool\n"
+call cmdshow "/bin/sh -e step.sh"
+call command "d/sub/tool\0" 1
+call trustkey "d/sub" c k as ok
+call putn ok
+call print " for a key\n"
+call keyfile
+call filewrite "step.sh" "d=$(cd d/sub && pwd -P)\np=$d/tool\nh=$(sha256sum < d/sub/tool | cut -c1-64)\nprintf 'aildb-trust 4\\n%s\\n%s:%s\\n1\\n%s:%s\\n%s:%s\\nfile %s\\n0\\n' $(cat id.txt) ${#d} \"$d\" ${#p} \"$p\" ${#p} \"$p\" $h | sha256sum | cut -c1-64 | tr -d '\\n' > sum.txt\ncmp key.txt sum.txt && echo the key is the sum of the text\nprintf '#!/bin/sh\\necho other\\n' > d/sub/tool\n"
+call cmdshow "/bin/sh -e step.sh"
+call same "d/sub"
+call print "# and one that the directory reaches by a link of its own\n"
+call filewrite "step.sh" "ln -s ../../out/prog d/sub/out\n"
+call cmdshow "/bin/sh -e step.sh"
+call command "d/sub/out\0" 1
+call trustkey "d/sub" c k as ok
+call same "d/sub"
+call filewrite "step.sh" "ln -sf ../../out/other d/sub/out\n"
+call cmdshow "/bin/sh -e step.sh"
+call same "d/sub"
+call print "# the path of a program\n"
+call prog "out/prog" 9
+call prog "./out/link" 11
+call prog "/bin/sh" 7
+call prog "sh" 3
+call prog "out/none" 0
+call prog "out/plain" 0
+call prog "out" 0
+call prog "no-such-program-of-aildb" 0
+call prog "" 0
+call command "out/prog\0-m\0a b\0" 3
+call trustkey "d/sub" c k as ok
+call print "# the file of keys\n"
+call trusthas "keys" k as has
+call putn has
+call print " before\n"
+call trustadd "keys" k "a name\twith a tab" as r
+call putn r
+call print " added\n"
+call trusthas "keys" k as has
+call putn has
+call print " after\n"
+call trustkey "d" c k2
+call trusthas "keys" k2 as has
+call putn has
+call print " for another key\n"
+call trustadd "keys" k2 "" as r
+call trusthas "keys" k as a
+call trusthas "keys" k2 as b
+call putn a
+call putn b
+call print " for both\n"
+call filewrite "step.sh" "stat -c %a keys\nwc -l < keys\ncut -f2- keys\nprintf 'short\\n\\n' > junk\ncut -c1-63 keys >> junk\n"
+call cmdshow "/bin/sh -e step.sh"
+call trusthas "junk" k as has
+call putn has
+call print " in a file of other lines\n"
+call trustadd "none/keys" k "" as r
+call putn 0-r
+call print " for a file in no directory\n"
+call print "# the files a command depends on: one outside the directory and one in it\n"
+call filewrite "step.sh" "printf 'model\\n' > out/model\nprintf 'print(1)\\n' > d/sub/embed.py\n"
+call cmdshow "/bin/sh -e step.sh"
+call command "out/prog\0" 1
+call trustkey "d/sub" c k as ok
+call depend "out/model"
+call depend "d/sub/embed.py"
+call same "d/sub"
+call trustkey "d/sub" c k as ok
+call putn ok
+call print " for a key\n"
+call keyfile
+call filewrite "step.sh" "d=$(cd d/sub && pwd -P)\np=$(pwd -P)/out/prog\nm=$(pwd -P)/out/model\ne=$d/embed.py\nh=$(sha256sum < d/sub/embed.py | cut -c1-64)\nprintf 'aildb-trust 4\\n%s\\n%s:%s\\n1\\n%s:%s\\n%s:%s\\n-\\n2\\n%s:%s\\n%s:%s\\n-\\n%s:%s\\n%s:%s\\nfile %s\\n' $(cat id.txt) ${#d} \"$d\" ${#p} \"$p\" ${#p} \"$p\" ${#m} \"$m\" ${#m} \"$m\" ${#e} \"$e\" ${#e} \"$e\" $h | sha256sum | cut -c1-64 | tr -d '\\n' > sum.txt\ncmp key.txt sum.txt && echo the key is the sum of the text\nprintf 'other model\\n' > out/model\n"
+call cmdshow "/bin/sh -e step.sh"
+call print "# the file outside changed: the same key; the file in the directory changed: another\n"
+call same "d/sub"
+call filewrite "step.sh" "printf 'print(2)\\n' > d/sub/embed.py\n"
+call cmdshow "/bin/sh -e step.sh"
+call same "d/sub"
+call print "# a file that is gone: no key\n"
+call filewrite "step.sh" "rm out/model\n"
+call cmdshow "/bin/sh -e step.sh"
+call same "d/sub"
+call print "# a file as the user names it: one that can be read, by its path from the root\n"
+call file "d/sub/embed.py" 14
+call file "d/sub" 0
+call file "out/model" 0
+call file "" 0
+call print "# where a path leads, against a directory: outside 0, in it 1, not to be said 2\n"
+call filewrite "step.sh" "mkdir -p w/in/deep away\nln -s \"$PWD/w/in\" away/link\nln -s \"$PWD/w/none\" away/dangling\nln -s \"$PWD/away\" w/out\n: > w/in/file\n"
+call cmdshow "/bin/sh -e step.sh"
+# the path p n of the directory of the test, from the root, against w
+fn within p n
+	call bycut line 0
+	call trustabs line p n
+	load line as q
+	load line+8 as m
+	call trustwithin q m "w" as r
+	call putn r
+	call print " "
+	call print p n
+	call print "\n"
+end
+call within "w"
+call within "w/in/file"
+call within "w/new/dir/file"
+call within "away"
+call within "away/new/file"
+call within "away/link"
+call within "away/link/new"
+call within "away/dangling"
+call within "away/dangling/new"
+call within "w/out"
+call within "w/out/new"
+call within "w/in/file/below"
+call within "wx"
+call bycut line 0
+call trustabs line "away"
+load line as q
+load line+8 as m
+call trustwithin q m "none" as r
+call putn r
+call print " a directory that is none\n"
+call trustwithin q m "/" as r
+call putn r
+call print " the root\n"

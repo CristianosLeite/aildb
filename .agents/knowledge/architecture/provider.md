@@ -37,9 +37,13 @@ for review.
   is shorter but which a script of a few lines cannot write as easily as JSON.
 - **The identity is SHA-256 of the provider name, the model, its revision, the dimension
   and the sorted settings** (agent, 2026-11-24), each string with its length before it so
-  that no two configurations give the same text. Not in it: the command and its
-  arguments, the time and the number of texts of a request, which change no vector. It is
-  what the configuration says, not what the provider runs: aildb cannot see weights, and
+  that no two configurations give the same text. Not in it: the program of the command,
+  the time and the number of texts of a request, which change no vector. The arguments
+  after the program were left out too and are in it since the review of `5eeba0b`
+  ([page](review-5eeba0b.md)): `aildb-llama` takes its model file as one.
+  The program is in it through the name since the review of `6c707bc`
+  ([page](review-6c707bc.md)): a provider without `-n` is named by the path of its
+  program. It is what the configuration says, not what the provider runs: aildb cannot see weights, and
   `docs/provider.md` says so.
 - **SHA-256 is `lib/std/sha.aiw` of AIL** (user, 2026-11-24: "SHA256 should live on AIL
   not in aildb"). The agent had written it here, as `src/lib/sha.aiw`, because the
@@ -48,9 +52,9 @@ for review.
   for JSON, the numbers and HTTP: what a program first needs of a general kind is a
   library of AIL, and the user is asked before it is written in the program. The file
   and its test, checked against `hashlib` of Python, are the pull request 33 of the AIL
-  repository; the branch `sha-from-ail` removes them here. Until a version of AIL has
-  the library, that branch is built by the command of the AIL branch alone and the line
-  `ail` of `Ailfile` cannot name what it needs.
+  repository; the branch `sha-from-ail` removes them here. AIL 0.1.2 (user, 2026-11-24)
+  is the first version with the library, and `Ailfile` asks for it since the branch
+  `review-fixes`.
 - **The format of a snapshot is not changed** (agent, 2026-11-24): its model identifier
   stays the model, and the identity is in the manifest and in the name of the file of
   kept vectors. Rejected: the identity in the header, a version 2 of the format for
@@ -86,13 +90,15 @@ for review.
 - **`aildb-llama` asks for vectors that are not divided by their norm** (agent,
   2026-11-24): the program prints seven decimals, so a number near 1 keeps more digits
   than one near 0.03, and aildb normalizes.
-- **The program of `aildb-llama` dies with it** (agent, 2026-11-24): the adapter forks
-  itself, asks the kernel to kill the child when the parent dies (`prctl`,
-  `PR_SET_PDEATHSIG`), and starts the program through `/usr/bin/env`, which looks for it
-  in `PATH`; `procstart` of AIL has no place for the request between its fork and its
-  exec. Checked by hand: a program that sleeps was gone after `kill -9` of the adapter.
-  Rejected: a process group of the provider that aildb kills, which takes the provider
-  out of the group that Ctrl-C of a terminal ends.
+- **The program of `aildb-llama` dies with it** (agent, 2026-11-24): the adapter starts
+  it with `procheld` of AIL since the review of `6c707bc` ([page](review-6c707bc.md)).
+  Before, it forked itself, asked the kernel to kill the child when the parent dies
+  (`prctl`, `PR_SET_PDEATHSIG`) without a look at the answer, and started the program
+  through `/usr/bin/env`, because `procstart` had no place for the request between its
+  fork and its exec; `procheld` is that place. Checked by hand again on 2026-11-24: a
+  program that sleeps was gone after `kill -9` of the adapter. Rejected: a process
+  group of the provider that aildb kills, which takes the provider out of the group
+  that Ctrl-C of a terminal ends.
 - **The adapters pass the numbers on as text** (agent, 2026-11-24): they copy the bytes
   of each vector into the answer, and aildb reads and checks them once.
 - **`adapters/lib/ollama.aiw` is shared with `build/embed`** (agent, 2026-11-24): the

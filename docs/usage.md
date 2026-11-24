@@ -14,7 +14,7 @@ aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
 aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
 aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
 aildb check INDEX
-aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] -- COMMAND [ARGUMENT...]]
+aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] [-f FILE]... [-x PROGRAM]... -- COMMAND [ARGUMENT...]]
 ```
 
 An option is a letter and its value, two arguments; the options of a command
@@ -221,7 +221,7 @@ do not wait for a writer of a named pipe.
 ## `index`
 
 ```
-aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] -- COMMAND [ARGUMENT...]]
+aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] [-f FILE]... [-x PROGRAM]... -- COMMAND [ARGUMENT...]]
 ```
 
 Makes the index of `DIRECTORY`, or of the current directory if none is
@@ -234,17 +234,21 @@ The first index of a directory names its embedding provider with the
 options, which are written to `DIRECTORY/.aildb/config`; after that the
 command is given no option and reads that file. Options given again take
 the place of the whole configuration, which is how a model is changed.
+The file is written when the snapshot of the options is published: a run
+whose provider fails leaves the configuration that was there.
 
 | Option | Is |
 |---|---|
 | `-i MODEL` | the model, 1 to 255 bytes: the model identifier of the snapshot. Required |
 | `-d DIMENSION` | the elements of a vector, 1 to 65536. Required |
-| `-- COMMAND [ARGUMENT...]` | the command that is the provider, everything after `--`. Required, and the last thing on the line |
-| `-n PROVIDER` | a name for the provider; without it, the last part of the path of `COMMAND` |
+| `-- COMMAND [ARGUMENT...]` | the command that is the provider, everything after `--`. Required, and the last thing on the line. Its program is found now, in `PATH` or from this directory, and kept as a path from the root ([provider.md](provider.md#which-commands-are-run)); one that is no file that can be run is status 2 |
+| `-n PROVIDER` | a name for the provider, under which its vectors are kept wherever its program lies and whatever its bytes are; without it, the path of the program of `COMMAND` from the root, with the bytes of that program and of the files of `-f` and `-x` as they are now, so another program, and the same one changed, is another provider ([provider.md](provider.md#the-identity-of-a-configuration)) |
 | `-r REVISION` | which weights of the model, up to 255 bytes |
 | `-s NAME=VALUE` | a setting, sent to the provider with every request; any number of times, each name once |
 | `-t MILLISECONDS` | how long one request may take, 1 to 3600000; 120000 without it |
 | `-b TEXTS` | the most texts of one request, 1 to 1024; 32 without it |
+| `-f FILE` | a file that `COMMAND` depends on, a script given to an interpreter or a model file: it is found now, from this directory if it is no path from the root, and kept as a path from the root in a line `file` of the configuration. An argument of `COMMAND` that is `FILE`, byte for byte, becomes that path. The command is allowed with the file, and with its bytes if it lies in `DIRECTORY` ([provider.md](provider.md#which-commands-are-run)). Any number of times, 64 files at most; one that is no regular file that can be read is status 2 |
+| `-x PROGRAM` | the same for a program that `COMMAND` runs, found now as `COMMAND` itself is, in `PATH` if it has no slash: `-x llama-embedding -- aildb-llama -m FILE -x llama-embedding` |
 
 Of the letters `-i`, `-d`, `-n`, `-r`, `-t` and `-b` each is given once at
 most. Options without `-i`, `-d` or a command, and a directory that was
@@ -271,9 +275,12 @@ The snapshot is published as `build` publishes one
 `DIRECTORY/.aildb/index.lock`: a second `index` of the directory while one
 runs ends with status 5, and a run that fails, at the provider or anywhere
 before the rename, leaves the snapshot that was there. The statuses are
-those above: 2 for wrong usage, 3 for a file `.aildb/config` that is no
-configuration, 4 for a directory or a file that cannot be read or written,
-5, 6, and 7 for a provider that failed.
+those above: 2 for wrong usage, and for a configuration whose command
+was not named by the user for this directory
+([provider.md](provider.md#which-commands-are-run)), of which nothing is
+run; 3 for a file `.aildb/config` that is no configuration, 4 for a
+directory or a file that cannot be read or written, 5, 6, and 7 for a
+provider that failed.
 
 ## `search --text`
 
@@ -311,8 +318,10 @@ sizes and the times in the manifest ([index.md](index.md#searching-by-text)).
 | `-p PREFIX`, `-l LANGUAGE` | the filters of `search` |
 | `-w MILLISECONDS` | how long to wait for another run that is refreshing the index, 0 to 3600000; without it, the time the configuration gives a request of the provider |
 
-The statuses: 2 for wrong usage and for a directory that was never
-indexed; 3 for a query that is not well-formed UTF-8 and a configuration
+The statuses: 2 for wrong usage, for a directory that was never
+indexed, and for one whose configuration names a command that the user
+did not name for it ([provider.md](provider.md#which-commands-are-run));
+3 for a query that is not well-formed UTF-8 and a configuration
 that is none; 4; 5 if another run still holds the index after the wait; 6;
 and 7 if the provider failed, for the documents or for the query. What a
 refresh says of a file it passes over is on standard error; standard

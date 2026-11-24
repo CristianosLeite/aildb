@@ -5,15 +5,15 @@ $ aildb search p --text 'alpha beta' -k 2
 aildb: p: no index is configured here; the first index of a directory names its provider: aildb index DIRECTORY -i MODEL -d DIMENSION -- COMMAND
 --- status 2
 # a configuration and no snapshot: the first search makes it
-$ aildb index p -i m1 -d 8 -- FAKE spread exit3
+$ aildb index p -i m1 -d 8 -- FAKE spread
 --- stdout
+{"records":4,"dimension":8,"model":"m1","source_revision":null,"files":3,"embedded":4,"published":true}
 --- stderr
-aildb: p: the provider ended with the status 3: provider-fake: the model is not there
---- status 7
-cache
+--- status 0
 config
 index.lock
 --- provider.log
+documents 4 m1
 $ aildb search p --text 'alpha beta' -k 2
 --- stdout
 {"source_revision":null,"model":"m1"}
@@ -89,7 +89,7 @@ usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REV
        aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
        aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
        aildb check INDEX
-       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] -- COMMAND [ARGUMENT...]]
+       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] [-f FILE]... [-x PROGRAM]... -- COMMAND [ARGUMENT...]]
 --- status 2
 $ aildb search p --text '' -k 1
 --- stdout
@@ -98,7 +98,7 @@ usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REV
        aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
        aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
        aildb check INDEX
-       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] -- COMMAND [ARGUMENT...]]
+       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] [-f FILE]... [-x PROGRAM]... -- COMMAND [ARGUMENT...]]
 --- status 2
 $ aildb search p --text 'delta' -k 0
 --- stdout
@@ -107,7 +107,7 @@ usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REV
        aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
        aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
        aildb check INDEX
-       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] -- COMMAND [ARGUMENT...]]
+       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] [-f FILE]... [-x PROGRAM]... -- COMMAND [ARGUMENT...]]
 --- status 2
 $ aildb search p --text 'delta' -k 1 -q q.bin
 --- stdout
@@ -116,7 +116,7 @@ usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REV
        aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
        aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
        aildb check INDEX
-       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] -- COMMAND [ARGUMENT...]]
+       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] [-f FILE]... [-x PROGRAM]... -- COMMAND [ARGUMENT...]]
 --- status 2
 $ aildb search p --text 'delta' -k 1 -i m1
 --- stdout
@@ -125,7 +125,7 @@ usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REV
        aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
        aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
        aildb check INDEX
-       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] -- COMMAND [ARGUMENT...]]
+       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] [-f FILE]... [-x PROGRAM]... -- COMMAND [ARGUMENT...]]
 --- status 2
 $ aildb search p --text 'delta' -k 1 -k 2
 --- stdout
@@ -134,7 +134,7 @@ usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REV
        aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
        aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
        aildb check INDEX
-       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] -- COMMAND [ARGUMENT...]]
+       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] [-f FILE]... [-x PROGRAM]... -- COMMAND [ARGUMENT...]]
 --- status 2
 $ aildb search p --text 'delta' -k 1 --text again
 --- stdout
@@ -143,7 +143,7 @@ usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REV
        aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
        aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
        aildb check INDEX
-       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] -- COMMAND [ARGUMENT...]]
+       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] [-f FILE]... [-x PROGRAM]... -- COMMAND [ARGUMENT...]]
 --- status 2
 $ aildb search p --text 'delta' -k 1 -w x
 --- stdout
@@ -152,7 +152,7 @@ usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REV
        aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
        aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
        aildb check INDEX
-       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] -- COMMAND [ARGUMENT...]]
+       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] [-f FILE]... [-x PROGRAM]... -- COMMAND [ARGUMENT...]]
 --- status 2
 $ aildb search p --text 'delta' -k
 --- stdout
@@ -161,7 +161,7 @@ usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REV
        aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
        aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
        aildb check INDEX
-       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] -- COMMAND [ARGUMENT...]]
+       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] [-f FILE]... [-x PROGRAM]... -- COMMAND [ARGUMENT...]]
 --- status 2
 # a directory that is none, and one that was never indexed
 $ aildb search none --text 'delta' -k 1
@@ -209,3 +209,154 @@ $ aildb search p --text 'last' -k 1
 --- status 0
 --- provider.log
 query 1 m1
+# a change of the provider that fails: the configuration stays
+$ aildb index p -i m2 -d 8 -- FAKE spread
+--- stdout
+--- stderr
+aildb: p: the provider ended with the status 3: provider-fake: the model is not there
+--- status 7
+the configuration and the snapshot are what they were
+cache
+config
+index
+index.lock
+manifest
+$ aildb search p --text 'last' -k 1
+--- stdout
+{"source_revision":null,"model":"m1"}
+{"rank":1,"score":1.000000,"score_bits":"3feffffffca0b060","path":"g.txt","start_line":1,"end_line":1}
+--- stderr
+--- status 0
+--- provider.log
+query 1 m1
+# and one that is killed before it publishes
+--- provider.log
+documents 7 m2
+the configuration and the snapshot are what they were
+$ aildb search p --text 'last' -k 1
+--- stdout
+{"source_revision":null,"model":"m1"}
+{"rank":1,"score":1.000000,"score_bits":"3feffffffca0b060","path":"g.txt","start_line":1,"end_line":1}
+--- stderr
+--- status 0
+--- provider.log
+query 1 m1
+# the change itself
+$ aildb index p -i m2 -d 8 -- FAKE spread
+--- stdout
+{"records":7,"dimension":8,"model":"m2","source_revision":null,"files":6,"embedded":0,"published":true}
+--- stderr
+--- status 0
+$ aildb search p --text 'last' -k 1
+--- stdout
+{"source_revision":null,"model":"m2"}
+{"rank":1,"score":1.000000,"score_bits":"3feffffffca0b060","path":"g.txt","start_line":1,"end_line":1}
+--- stderr
+--- status 0
+--- provider.log
+query 1 m2
+# a search that waits for a run which changes the provider asks the new one
+$ aildb search p --text 'queued' -k 1 -w 5000
+--- stdout
+{"source_revision":null,"model":"m3"}
+{"rank":1,"score":1.000000,"score_bits":"3ff00000054ff196","path":"h.txt","start_line":1,"end_line":1}
+--- stderr
+--- status 0
+--- provider.log
+documents 8 m3
+query 1 m3
+{"records":8,"dimension":8,"model":"m3","source_revision":null,"files":7,"embedded":8,"published":true}
+model	m3
+# a change whose configuration cannot be written: nothing is published
+$ aildb index p -i m4 -d 8 -- FAKE spread
+--- stdout
+--- stderr
+aildb: p/.aildb/config.new: cannot write: permission denied
+--- status 4
+the configuration and the snapshot are what they were
+cache
+config
+index
+index.lock
+manifest
+--- provider.log
+documents 8 m4
+$ aildb search p --text 'last' -k 1
+--- stdout
+{"source_revision":null,"model":"m3"}
+{"rank":1,"score":1.000000,"score_bits":"3feffffffca0b060","path":"g.txt","start_line":1,"end_line":1}
+--- stderr
+--- status 0
+--- provider.log
+query 1 m3
+# a change killed between its snapshot and its configuration: the next run ends it
+--- provider.log
+documents 8 m5
+cache
+config
+config.new
+index
+index.lock
+manifest
+manifest.new
+p/.aildb/config:model	m3
+p/.aildb/config.new:model	m5
+$ aildb check p/.aildb/index
+--- stdout
+{"records":8,"dimension":8,"model":"m5","source_revision":null}
+--- stderr
+--- status 0
+$ aildb search p --text 'last' -k 1
+--- stdout
+{"source_revision":null,"model":"m5"}
+{"rank":1,"score":1.000000,"score_bits":"3feffffffca0b060","path":"g.txt","start_line":1,"end_line":1}
+--- stderr
+--- status 0
+--- provider.log
+query 1 m5
+cache
+config
+index
+index.lock
+manifest
+model	m5
+the snapshot is the file that the run published
+$ aildb index p
+--- stdout
+{"records":8,"dimension":8,"model":"m5","source_revision":null,"files":7,"embedded":0,"published":false}
+--- stderr
+--- status 0
+--- provider.log
+# a change killed when its snapshot is written and has no name yet: the index is what it was
+--- provider.log
+documents 8 m6
+cache
+config
+config.new
+index
+index.N.tmp
+index.lock
+manifest
+manifest.new
+$ aildb search p --text 'last' -k 1
+--- stdout
+{"source_revision":null,"model":"m5"}
+{"rank":1,"score":1.000000,"score_bits":"3feffffffca0b060","path":"g.txt","start_line":1,"end_line":1}
+--- stderr
+--- status 0
+--- provider.log
+query 1 m5
+the configuration, the snapshot and the manifest are what they were
+# and the next run that takes the lock removes what the killed one left
+$ aildb index p
+--- stdout
+{"records":8,"dimension":8,"model":"m5","source_revision":null,"files":7,"embedded":0,"published":false}
+--- stderr
+--- status 0
+--- provider.log
+cache
+config
+index
+index.lock
+manifest
+the configuration, the snapshot and the manifest are what they were

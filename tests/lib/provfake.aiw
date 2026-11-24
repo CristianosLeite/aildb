@@ -26,9 +26,15 @@
 # other, "dim" leaves the last element of each vector out, "nan" makes
 # the first element 1e999, "zero" makes every element 0, "garbage"
 # prints a line that is no JSON, "exit3" prints nothing, says two lines
-# and ends with the status 3, "hang" never ends, and "after1" answers
+# and ends with the status 3, "hang" writes the number of its process
+# to the file provider.pid and never ends, and "after1" answers
 # well if provider.log is not there and does what "exit3" does if it is:
-# a provider that fails from its second request on.
+# a provider that fails from its second request on. The words of the
+# file provider.fault of the current directory, with a blank or a line
+# feed between them, count as arguments too, so that a test changes
+# what the provider does without changing its command. "slow" makes the
+# first request that finds no file provider.started make that file and
+# wait a second before it goes on.
 use "lib/std/io.aiw"
 use "lib/std/bytes.aiw"
 use "lib/std/file.aiw"
@@ -39,9 +45,46 @@ buf out 24
 buf log 24
 buf txt 24
 buf ts 16
+buf flt 24
 
-# 1 if an argument is the n bytes at p
+# 1 if the n bytes at p are the m bytes at q
+fn eq p n q m
+	if n!=m
+		ret 0
+	end
+	i=0
+	while i<n
+		loadb p+i as a
+		loadb q+i as b
+		if a!=b
+			ret 0
+		end
+		i+=1
+	end
+	ret 1
+end
+
+# 1 if an argument, or a word of provider.fault, is the n bytes at p
 fn is p n
+	load flt as q
+	load flt+8 as m
+	j=0
+	while j<m
+		e=j
+		label word
+		if e<m
+			loadb q+e as ch
+			if ch>32
+				e+=1
+				jmp word
+			end
+		end
+		call eq p n q+j e-j as same
+		if same
+			ret 1
+		end
+		j=e+1
+	end
 	call argc as c
 	k=1
 	while k<c
@@ -71,13 +114,32 @@ fn bad p n
 	sys exit_group 1
 end
 
+call fileread "provider.fault" flt
 call is "hang" as r
 if r
+	sys getpid as pid
+	call byaddn log pid
+	call byaddb log 10
+	load log as p
+	load log+8 as n
+	call filewrite "provider.pid" p n
 	label sleep
 	store ts 3600
 	store ts+8 0
 	sys nanosleep ts 0
 	jmp sleep
+end
+call is "slow" as r
+if r
+	call fileopen "provider.started" 0 0 as fd
+	ifsge fd 0
+		sys close fd
+	else
+		call filewrite "provider.started" ""
+		store ts 1
+		store ts+8 0
+		sys nanosleep ts 0
+	end
 end
 call is "exit3" as r
 call is "after1" as late

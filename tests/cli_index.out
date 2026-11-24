@@ -20,11 +20,12 @@ index
 index.lock
 manifest
 aildb	1
-provider	provider-fake
+provider	FAKE
 model	m1
 dimension	3
 timeout	120000
 batch	32
+fingerprint	DIGITS
 set	document_prefix	d:
 *
 $ aildb search r/.aildb/index -k 100 -q dir.q
@@ -108,7 +109,7 @@ usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REV
        aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
        aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
        aildb check INDEX
-       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] -- COMMAND [ARGUMENT...]]
+       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] [-f FILE]... [-x PROGRAM]... -- COMMAND [ARGUMENT...]]
 --- status 2
 $ aildb index r -d 3 -- FAKE
 --- stdout
@@ -117,7 +118,7 @@ usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REV
        aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
        aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
        aildb check INDEX
-       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] -- COMMAND [ARGUMENT...]]
+       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] [-f FILE]... [-x PROGRAM]... -- COMMAND [ARGUMENT...]]
 --- status 2
 $ aildb index r -i m1 -d 3
 --- stdout
@@ -126,7 +127,7 @@ usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REV
        aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
        aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
        aildb check INDEX
-       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] -- COMMAND [ARGUMENT...]]
+       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] [-f FILE]... [-x PROGRAM]... -- COMMAND [ARGUMENT...]]
 --- status 2
 $ aildb index r -i m1 -d 3 --
 --- stdout
@@ -135,7 +136,7 @@ usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REV
        aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
        aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
        aildb check INDEX
-       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] -- COMMAND [ARGUMENT...]]
+       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] [-f FILE]... [-x PROGRAM]... -- COMMAND [ARGUMENT...]]
 --- status 2
 $ aildb index r -i m1 -i m2 -d 3 -- FAKE
 --- stdout
@@ -144,16 +145,16 @@ usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REV
        aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
        aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
        aildb check INDEX
-       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] -- COMMAND [ARGUMENT...]]
+       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] [-f FILE]... [-x PROGRAM]... -- COMMAND [ARGUMENT...]]
 --- status 2
-$ aildb index r -i m1 -d 3 -x 1 -- FAKE
+$ aildb index r -i m1 -d 3 -z 1 -- FAKE
 --- stdout
 --- stderr
 usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REVISION]
        aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
        aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
        aildb check INDEX
-       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] -- COMMAND [ARGUMENT...]]
+       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] [-f FILE]... [-x PROGRAM]... -- COMMAND [ARGUMENT...]]
 --- status 2
 $ aildb index r -i m1 -d 3 -s novalue -- FAKE
 --- stdout
@@ -162,7 +163,7 @@ usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REV
        aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
        aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
        aildb check INDEX
-       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] -- COMMAND [ARGUMENT...]]
+       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] [-f FILE]... [-x PROGRAM]... -- COMMAND [ARGUMENT...]]
 --- status 2
 $ aildb index r -i m1 -d
 --- stdout
@@ -171,7 +172,7 @@ usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REV
        aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
        aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
        aildb check INDEX
-       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] -- COMMAND [ARGUMENT...]]
+       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] [-f FILE]... [-x PROGRAM]... -- COMMAND [ARGUMENT...]]
 --- status 2
 $ aildb index r more
 --- stdout
@@ -180,7 +181,7 @@ usage: aildb build -o INDEX -v VECTORS -m METADATA -d DIMENSION -i MODEL [-r REV
        aildb search INDEX -k LIMIT [-q QUERY] [-p PREFIX] [-l LANGUAGE] [-i MODEL]
        aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
        aildb check INDEX
-       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] -- COMMAND [ARGUMENT...]]
+       aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] [-f FILE]... [-x PROGRAM]... -- COMMAND [ARGUMENT...]]
 --- status 2
 $ aildb index r -i m1 -d 0 -- FAKE
 --- stdout
@@ -233,9 +234,8 @@ aildb: r: the provider ended with the status 3: provider-fake: the model is not 
 $ aildb index r -i m3 -d 3 -- /nonexistent/provider
 --- stdout
 --- stderr
-aildb: passed over, a file that is not text: bin.py
-aildb: r: the provider could not be started
---- status 7
+aildb: /nonexistent/provider: the program of the provider is not a file that can be run
+--- status 2
 $ aildb index r -i m3 -d 3 -- FAKE count
 --- stdout
 --- stderr
@@ -253,3 +253,16 @@ config
 index
 index.lock
 manifest
+# a directory of files that git knows becomes a link to one outside
+$ aildb index r
+--- stdout
+{"records":3,"dimension":2,"model":"m2","source_revision":"c609d70081a49b49e0e145beaa78aaae4ede511d","files":3,"embedded":0,"published":false}
+--- stderr
+--- status 0
+sub/b.py
+sub/b.py
+$ aildb index r
+--- stdout
+{"records":2,"dimension":2,"model":"m2","source_revision":null,"files":2,"embedded":0,"published":true}
+--- stderr
+--- status 0

@@ -39,8 +39,16 @@ by the `aildb index` that indexed the directory first.
 - `-t MS`: the milliseconds a call may take, the refresh of the index
   with it; 600000 if it is not given. The first call after many files
   changed embeds them, which is where the time goes. A call that takes
-  longer is a failure, and the command is killed; the next call goes on
-  from the vectors that were kept.
+  longer is a failure, and the command is killed, and with it the
+  embedding provider it was waiting for
+  ([provider.md](provider.md#how-a-provider-is-run)); the next call goes
+  on from the vectors that were kept.
+
+The server starts no provider that the user did not name for the
+directory: the command checks that
+([provider.md](provider.md#which-commands-are-run)), so a client that
+calls the tool in a checkout with a configuration of its own gets a
+failure that names the command, and nothing has run.
 
 Nothing is checked when the server starts but its arguments, status 2 if
 they are wrong. A directory that has no index, a provider that fails and
@@ -116,6 +124,12 @@ search that takes longer than `MS`, and whatever `aildb search` said when
 it did not end with status 0: a snapshot that is gone or damaged, and a
 vector that is not of the dimension of the snapshot.
 
+The arguments of the command have room for 8192 bytes, a byte after each
+with them. With `-d`, a directory of up to 2000 bytes, a query of up to
+4000, a `path_prefix` of up to 2000 and a `language` of up to 255 are
+each taken and may be more than that together: such a call is a failure
+that says so, and no command is started.
+
 **A call starts the command anew**, so each search opens the snapshot
 that is at the path then: after `aildb build` has published another one,
 the next call searches it, with nothing to reload. The server keeps
@@ -129,7 +143,8 @@ a query, which [performance.md](performance.md) measures.
 
 `mcp/` is a package of AIL of its own. It needs an AIL that has
 `lib/std/json.aiw`, `lib/std/num.aiw` and `lib/net/http.aiw`, which the
-version 0.1.1 of AIL is the first to have and `mcp/Ailfile` asks for, and
+version 0.1.1 of AIL is the first to have (`mcp/Ailfile` asks for 0.1.2,
+as the top package does), and
 the server SDK, the module `mcp` of
 the package [ail-extensions](https://github.com/CristianosLeite/ail-extensions),
 which `mcp/Ailfile` names by its address and the version 0.1.2, with the

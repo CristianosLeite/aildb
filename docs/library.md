@@ -94,7 +94,7 @@ the score printed.
   snapshot is open.
 - **Names.** A file of aildb owns the names that start with its own:
   `search`, `snap`, `topk`, `norm`, `text`, `crc`, `fmt`, `meta`, `pack`,
-  `chunk`, `conf`, `prov`, `run`, `tree`, `cache`, `man`.
+  `chunk`, `conf`, `prov`, `run`, `below`, `tree`, `cache`, `man`, `trust`.
   A program has no `var` and no function of such a name.
 
 ## The chunker

@@ -1,4 +1,11 @@
 result 3, printed 8 bytes, said 22 bytes, the first line of them [the command said this]
+# arguments of 8192 bytes, and of 8193
+result 5, printed 0 bytes, said 0 bytes, the first line of them []
+result -3000, printed 0 bytes, said 0 bytes, the first line of them []
+# thirteen arguments
+result -3000, printed 0 bytes, said 0 bytes, the first line of them []
+# and a command after them
+result 7, printed 0 bytes, said 0 bytes, the first line of them []
 # two descriptors to be had
 result -2000, printed 0 bytes, said 0 bytes, the first line of them []
 files that can be made afterwards: 2

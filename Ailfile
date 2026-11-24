@@ -4,7 +4,7 @@
 # (docs/library.md).
 name aildb
 version 0.1.1
-ail 0.1.1
+ail 0.1.2
 
 # what is shipped: the commands build, search and check
 bin aildb src/aildb.aiw

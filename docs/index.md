@@ -27,6 +27,7 @@ command makes:
 | `index` | the snapshot ([format.md](format.md)): what `aildb search` and `aildb check` are given, and any program that reads a snapshot |
 | `index.lock` | the lock of a run, empty, never removed |
 | `config` | the configuration of the provider ([provider.md](provider.md#the-configuration-of-an-index)) |
+| `config.new` | there only while a change of the configuration is not ended: the configuration that the snapshot being published is of ([below](#runs-that-fail-overlap-or-are-killed)) |
 | `manifest` | of which files the snapshot was made, and the chunks of each ([below](#the-manifest)) |
 | `cache/` | the vectors that are kept, in one file named by the identity of the configuration ([below](#the-vectors-that-are-kept)) |
 | `.gitignore` | one line, `*`, so that git ignores the directory and everything in it: an index does not make a work tree dirty, and is not committed by `git add .` |
@@ -35,6 +36,42 @@ The directory moves with the tree it is in and is removed with it. To
 start over, remove it. `manifest` and `cache/` may be removed alone at any
 time: what they save is work, and a run makes them again. `.gitignore` is written when it is not there and
 left alone when it is, so a line taken out of it stays out.
+
+**The directory is the command's own, and nothing in it is a link.** A
+directory that came from somebody else, a checkout, can have a `.aildb`
+in it, and a symbolic link at that name or at the name of a file in it
+would lead what an index writes to another place, with your rights. So
+`.aildb` is opened from the indexed directory with no link followed at
+its name and kept open, and every file of the index is reached through
+that descriptor (a path in `/proc/self/fd`); before anything is written
+or read, each name in it is looked at. The directory `cache` is opened
+the same way, from `.aildb` with no link followed, when it is looked at
+or made, and kept open until the command ends: the file of kept vectors
+is read, written and removed through that descriptor, so a process that
+puts a link at the name `cache` while a run goes on changes nothing of
+where the run writes. What is there is to be regular
+files, and a directory `cache` with regular files in it. Anything else,
+a symbolic link, a directory at the name of a file, a pipe, ends `aildb
+index` and `aildb search --text` with status 4 and a line that names it,
+with nothing written and the provider not asked:
+
+```
+aildb: d/.aildb/config.new: not a file of an index: a symbolic link, or something else that an index does not make, is at this name, and nothing was written; remove it
+```
+
+The files that take the place of another when they are whole
+(`config.new`, `manifest.new`, the new file of kept vectors, the
+temporary file of the snapshot) are made new, with whatever is at their
+name removed first and never opened, and the lock, `.gitignore` and the
+file of kept vectors are opened with no link followed. The look at the
+names and the writing are two moments, and both go through the two open
+directories: a name that another process changes between them leads to
+no other directory, and a link that it puts at the name of a file is not
+written through, because that file is made new or opened with no link
+followed. The
+indexed directory itself is opened by the name you give it, through
+whatever links that has. A system without `/proc` has no index of a
+directory.
 
 ## Which files are taken
 
@@ -56,6 +93,16 @@ left alone when it is, so a line taken out of it stays out.
   a file that the link leads to is taken where it is, if it is in the
   tree. A pipe, a socket and a device are not taken. A file that git
   knows and that is no longer on disk is not taken.
+- **No link on the way to a file either.** Git names a file it knows by
+  the path it had, and a directory of that path may since have become a
+  symbolic link, to anywhere. So a path is not handed to the kernel
+  whole: each part is opened from the one before it, from the indexed
+  directory on, and a part that is a link ends it
+  (`src/lib/below.aiw`). Such a file is not taken, as one that is gone
+  is not. The file that is read is opened the same way and is the one
+  the kernel then says is a regular file, so a file that is replaced by
+  a link or a pipe between the listing and the reading is not read
+  through. The indexed directory itself may be named through links.
 - **The bytes are those on disk** when the command reads the file: an
   edit that is not committed, and not even saved to git's index, is what
   is indexed.
@@ -95,7 +142,7 @@ made of changed, no snapshot is written.
 1. The directory `.aildb` is made, and the lock of `index.lock` taken; a
    run that finds it held ends with status 5. A temporary file that a
    killed run left is removed.
-2. The configuration is written from the options, or read. Its identity
+2. The configuration is that of the options, or the file is read. Its identity
    ([provider.md](provider.md#the-identity-of-a-configuration)) names the
    file of kept vectors, which is read.
 3. The manifest is read. It counts only if it has the identity of the
@@ -123,7 +170,10 @@ made of changed, no snapshot is written.
    Else a whole snapshot is written to a temporary file beside `index`,
    flushed, read back, renamed to `index`, and the directory flushed, as
    `build` does it ([durability.md](durability.md)); then the manifest is
-   written, to `manifest.new`, which is renamed.
+   written, to `manifest.new`, which is renamed. A configuration of the
+   options is written here, to `config.new`, which is renamed to
+   `config`: after the snapshot has its name and before the manifest, or
+   when the snapshot is left as it is.
 7. The vectors that no chunk of this run used are taken out of the file
    of kept vectors, and the files of other identities are removed.
 
@@ -136,11 +186,12 @@ was written.
   path and the vectors that are kept.
 - **An edit of one file asks for its changed chunks**: the file is cut
   again, and the chunks whose text is the same have their vectors.
-- **Another model, revision, dimension or setting is another identity**:
-  the manifest does not count and no kept vector is used, so every text
-  is asked for again, and the vectors of the old identity are removed
-  when the run has published. The command of the provider, the time and
-  the number of texts of a request are no part of the identity.
+- **Another model, revision, dimension or setting is another identity**,
+  and so is another argument of the command of the provider after its
+  program: the manifest does not count and no kept vector is used, so
+  every text is asked for again, and the vectors of the old identity are
+  removed when the run has published. The program of the command, the
+  time and the number of texts of a request are no part of the identity.
 - **A directory with no file that can be cut** gives a snapshot of no
   records, which is valid; so does the removal of the last file.
 - **A file that is passed over** has its line on standard error when it
@@ -153,6 +204,11 @@ is the search of a directory: it makes the index what the files are now,
 asks the provider of the index for the vector of the query, and ranks.
 Nothing has to be run before it but the first `aildb index`, which names
 the provider.
+
+First, a search that finds what a run left half done, `config.new` or
+`manifest.new`, ends it under the lock
+([below](#runs-that-fail-overlap-or-are-killed)), so that the
+configuration it then reads is the one of the snapshot.
 
 Whether the index is up to date is found without reading a file and
 without the lock: the manifest must be of the configuration and of the
@@ -168,7 +224,11 @@ another run holds the lock, it waits for it, looking every 50 ms, for the
 time `-w` gives or the time of a request of the provider, and then looks
 at the files itself; a run that is still going after that is status 5.
 Waiting is what makes a search after an edit see the edit, and a first
-search has no older snapshot to fall back on.
+search has no older snapshot to fall back on. With the lock it reads the
+configuration again and looks once more whether the index is up to date:
+the run it waited for may have changed the provider, and has usually made
+the snapshot what the files are, so that nothing is left to do but the
+query, which is asked of the provider the configuration names then.
 
 - **The revision is not asked of git for an index that is up to date.**
   A snapshot whose files did not change still has the revision it was
@@ -186,7 +246,7 @@ then each file has a line, followed by a line for each of its chunks:
 
 ```
 aildb-manifest	1
-identity	1c3b0dd7b08a1a4a4daf381efe593a038d007d404de537550c6e023bdf4656ac
+identity	cee84538ae28a1e6746107edc55553f25ad7e03d2792a177ee9e1fdc986f6a35
 snapshot	4156	1653381763	2804466236
 started	1795536000123456789
 state	6a09e667f3bcc908bb67ae8584caa73b3c6ef372fe94f82ba54ff53a5f1d36f1
@@ -208,12 +268,16 @@ The numbers and digits above are an example of the layout, not of a run.
 A path that `build` would not take, with a control byte in it, has no
 line: it is passed over by every run.
 
-The manifest is written after the snapshot it is of, and a run believes it
-only when its line `snapshot` is the snapshot that is there. So whatever
-stopped a run between the two, a kill or a full disk, the next run sees a
-manifest of another snapshot, takes it for none, and looks at every file
-again; it still has the kept vectors, and asks the provider for nothing it
-got before.
+A run believes a manifest only when its line `snapshot` is the snapshot
+that is there. The manifest of a new snapshot is written to
+`manifest.new` when the snapshot is whole in its temporary file, before
+it has its name, and gets the name `manifest` after. So a run that ends
+between the two, killed, has left what says that its snapshot was
+published: the next run that takes the lock gives `manifest.new` its
+name and publishes nothing. A `manifest.new` of a snapshot that never
+got its name is removed. If no manifest is of the snapshot, a file that
+was lost, the next run looks at every file again; it still has the kept
+vectors, and asks the provider for nothing it got before.
 
 ## The vectors that are kept
 
@@ -245,14 +309,54 @@ vectors that no chunk used, when a run ends that had such.
   with status 5 at once, having changed nothing. Runs of two directories
   do not meet.
 - **A run that is killed** leaves, before the rename, the snapshot and
-  the manifest that were there, and a temporary file that the next run
-  removes; after the rename, the new snapshot and the manifest of the old
-  one, which the next run takes for none. In both the next run publishes
-  a snapshot of the files as they are then and writes its manifest.
-- **A configuration is written before the provider is asked**, so after
-  options that name a provider which then fails, `config` is the new one
-  and `index` the old one, of the old model; the next run tries the new
-  provider again.
+  the manifest that were there, with a temporary file and perhaps a
+  `manifest.new` that the next run with the lock removes; that run
+  publishes a snapshot of the files as they are then. After the rename it
+  leaves the new snapshot with its manifest in `manifest.new`, which the
+  next run with the lock gives its name: nothing is published again, and
+  the snapshot stays the file it is.
+- **A configuration and its snapshot change together.** Options that
+  name another provider are a configuration that is not `config` until a
+  snapshot of it has its name. When the provider has answered for every
+  text, the configuration is written whole to `config.new`, and the
+  command is noted as allowed; then the snapshot is written and its
+  manifest, to `manifest.new`; then the snapshot gets its name; then
+  `manifest.new` and `config.new` get theirs, in that order. So:
+  - a provider that fails, and a configuration or a manifest that cannot
+    be written, end the run before anything is published: `config` and
+    `index` are what they were, and a search by text goes on with the
+    old provider. The vectors that the new one gave are kept, and the
+    same options given again ask for the rest;
+  - a run that ends after the snapshot has its name and before the last
+    rename, killed or because a rename failed, leaves the new snapshot,
+    the old `config`, and `config.new` with or without `manifest.new`.
+    The next run that takes the lock, a search by text among them, ends
+    what was begun: a `manifest.new` that is of the snapshot which is
+    there takes the name `manifest`, and `config.new` takes the name
+    `config` because the manifest is then of that snapshot and names
+    its identity. Nothing is embedded and nothing is published for it:
+    the snapshot is the file the killed run published;
+  - a run that ends before the snapshot has its name leaves
+    `config.new`, perhaps `manifest.new` and the temporary file, with
+    the old snapshot. No manifest of the snapshot that is there names
+    the identity of `config.new`, so the next run that takes the lock
+    removes them: the index is what it was before the run, and the
+    options are to be given again.
+
+  A search by text that finds `config.new` or `manifest.new` does this
+  before it looks at the configuration: it takes the lock if no run
+  holds it, ends what was begun, gives the lock back, and only then
+  reads `config`, checks that its command is allowed and runs it. So in
+  the second case the provider that is asked is the one of the snapshot
+  that is there, and a program of the old provider that is gone, or no
+  longer allowed, does not end the search with status 2 while the
+  configuration of the snapshot waits in `config.new`. If a run holds
+  the lock, the two files are its own, and the search goes on with
+  `config` as it is. The temporary file of a killed run stays until a
+  run of index or a search that is not up to date takes the lock.
+
+  `aildb check` of `.aildb/index` in the second case reports the new
+  model while `config` still names the old one, until that next run.
 
 ## What was checked
 
@@ -265,8 +369,25 @@ commit, options that replace the configuration, wrong usage, a
 configuration that cannot be read, and three providers that fail, after
 which `check` prints what it printed before. `tests/cli_index_plain.aiw`
 does it in a directory that is in no work tree, with hidden files, links,
-a pipe and a directory named `.git`. `tests/lib_tree.aiw` is the listing
+a pipe and a directory named `.git`; and `tests/cli_index.aiw` ends with
+a directory of a file git knows that became a link to a directory
+outside, whose file is not taken. `tests/lib_below.aiw` is the opening of
+a path part by part. `tests/lib_tree.aiw` is the listing
 and the revision alone, with line ends on disk that are not those of git.
+
+`tests/cli_index_links.aiw` puts a symbolic link at `.aildb`, at each
+file that is written in it, at `cache` and at a file in it, and a file
+and a directory where the other is expected: each ends with status 4,
+the provider is not asked, and the file and the directory outside that
+the links lead to are as they were (before the fix the configuration
+and the manifest were written into the file outside); a search by text
+of a directory whose `.aildb` is a link to the index of another is
+refused the same way. `tests/cli_index_cache.aiw` has a provider that,
+when it is asked for vectors, moves `.aildb/cache` away and puts a link
+to a directory outside at its name: the vectors of the run are in the
+directory that was moved, the file of the directory outside is as it
+was, and the next run refuses the link (before the fix the vectors were
+written into the directory outside and its file was removed).
 
 `tests/cli_index_refresh.aiw` counts what the provider is asked, from the
 log of `build/provider-fake`: nothing for files that did not change, with
@@ -281,6 +402,9 @@ and the snapshot in turn. `tests/kill_index.aiw` kills a run of
 between the snapshot and its manifest and before the directory is flushed,
 and runs a second `index` of the directory while the first is stopped.
 `tests/lib_cache.aiw` and `tests/lib_manifest.aiw` are the two files alone.
+`tests/cli_search_pending.aiw` kills a change of the provider between its
+snapshot and its configuration, removes the program of the old provider,
+and searches: the search ends the change first and asks the new provider.
 
 `tests/cli_search_text.aiw` searches a directory by text from end to end:
 the first search of a directory with a configuration and no snapshot asks

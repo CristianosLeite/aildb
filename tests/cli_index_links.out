@@ -1,0 +1,74 @@
+# no link: indexed
+{"records":1,"dimension":3,"model":"m1","source_revision":null,"files":1,"embedded":1,"published":true}
+status 0
+mine
+0
+provider.log
+# .aildb is a link to a directory outside
+aildb: d/.aildb: not a file of an index: a symbolic link, or something else that an index does not make, is at this name, and nothing was written; remove it
+status 4
+mine
+0
+ls: No such file or directory
+# .aildb is a link to nothing
+aildb: d/.aildb: not a file of an index: a symbolic link, or something else that an index does not make, is at this name, and nothing was written; remove it
+status 4
+mine
+0
+ls: No such file or directory
+# .aildb is a file
+aildb: d/.aildb: not a file of an index: a symbolic link, or something else that an index does not make, is at this name, and nothing was written; remove it
+status 4
+mine
+0
+ls: No such file or directory
+# the configuration as it is written is a link
+aildb: d/.aildb/config.new: not a file of an index: a symbolic link, or something else that an index does not make, is at this name, and nothing was written; remove it
+status 4
+mine
+0
+ls: No such file or directory
+# the manifest as it is written is a link
+aildb: d/.aildb/manifest.new: not a file of an index: a symbolic link, or something else that an index does not make, is at this name, and nothing was written; remove it
+status 4
+mine
+0
+ls: No such file or directory
+# the lock is a link
+aildb: d/.aildb/index.lock: not a file of an index: a symbolic link, or something else that an index does not make, is at this name, and nothing was written; remove it
+status 4
+mine
+0
+ls: No such file or directory
+# the file for git is a link to a file that is not there
+aildb: d/.aildb/.gitignore: not a file of an index: a symbolic link, or something else that an index does not make, is at this name, and nothing was written; remove it
+status 4
+mine
+0
+ls: No such file or directory
+# the directory of the kept vectors is a link
+aildb: d/.aildb/cache: not a file of an index: a symbolic link, or something else that an index does not make, is at this name, and nothing was written; remove it
+status 4
+mine
+0
+ls: No such file or directory
+# a file of kept vectors is a link
+aildb: d/.aildb/cache/0000: not a file of an index: a symbolic link, or something else that an index does not make, is at this name, and nothing was written; remove it
+status 4
+mine
+0
+ls: No such file or directory
+# a directory where a file is written
+aildb: d/.aildb/config.new: not a file of an index: a symbolic link, or something else that an index does not make, is at this name, and nothing was written; remove it
+status 4
+mine
+0
+ls: No such file or directory
+# a search of a directory whose .aildb is a link to an index
+{"records":1,"dimension":3,"model":"m1","source_revision":null,"files":1,"embedded":1,"published":true}
+status 0
+mine
+0
+provider.log
+aildb: e/.aildb: not a file of an index: a symbolic link, or something else that an index does not make, is at this name, and nothing was written; remove it
+status 4

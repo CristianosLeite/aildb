@@ -11,6 +11,10 @@
 # and what is wrong: options that are no configuration, a configuration
 # that cannot be read, a directory that is none, and a provider that
 # fails, after which the snapshot is the one that was there.
+# Last, a directory of a file that git knows is moved out of the tree
+# and a symbolic link to it put in its place: git still names the file,
+# and the index does not take it, nor ask the provider for what it has
+# now.
 use "lib/std/io.aiw"
 use "lib/std/bytes.aiw"
 use "lib/std/file.aiw"
@@ -22,7 +26,7 @@ call dirsh "git init -q r\nmkdir r/sub\nprintf '# One\\nfirst\\n\\n# Two\\nsecon
 call dirrun "index r"
 call dirrun "index r -i m1 -d 3 -s document_prefix=d: -- FAKE"
 call dirasked
-call dirsh "git -C r rev-parse HEAD\ngit -C r status --porcelain\nls -A r/.aildb\ngrep -v '^arg' r/.aildb/config\ncat r/.aildb/.gitignore\n"
+call dirsh "git -C r rev-parse HEAD\ngit -C r status --porcelain\nls -A r/.aildb\ngrep -v '^arg' r/.aildb/config | sed -e \"s|$FAKE|FAKE|\" -e 's/^fingerprint\t[0-9a-f]*$/fingerprint\tDIGITS/'\ncat r/.aildb/.gitignore\n"
 call dirhits "r"
 
 call print "# a new file, an edited one, an ignored one and a link, none committed\n"
@@ -46,7 +50,7 @@ call dirrun "check r/.aildb/index"
 call print "# other options take the place of the configuration\n"
 call dirrun "index r -d 2 -i m2 -n other -r rev9 -t 5000 -b 1 -- FAKE"
 call dirasked
-call dirsh "grep -v '^arg' r/.aildb/config\n"
+call dirsh "grep -v '^arg' r/.aildb/config | sed 's/^fingerprint\t[0-9a-f]*$/fingerprint\tDIGITS/'\n"
 
 call print "# wrong usage\n"
 call dirrun "index r -i m1 -- FAKE"
@@ -54,7 +58,7 @@ call dirrun "index r -d 3 -- FAKE"
 call dirrun "index r -i m1 -d 3"
 call dirrun "index r -i m1 -d 3 --"
 call dirrun "index r -i m1 -i m2 -d 3 -- FAKE"
-call dirrun "index r -i m1 -d 3 -x 1 -- FAKE"
+call dirrun "index r -i m1 -d 3 -z 1 -- FAKE"
 call dirrun "index r -i m1 -d 3 -s novalue -- FAKE"
 call dirrun "index r -i m1 -d"
 call dirrun "index r more"
@@ -77,3 +81,8 @@ call dirrun "index r -i m3 -d 3 -- /nonexistent/provider"
 call dirrun "index r -i m3 -d 3 -- FAKE count"
 call dirrun "check r/.aildb/index"
 call dirsh "ls -A r/.aildb\n"
+
+call print "# a directory of files that git knows becomes a link to one outside\n"
+call dirrun "index r"
+call dirsh "git -C r ls-files sub\nmkdir away\nmv r/sub away/sub\nprintf 'a secret\\n' > away/sub/b.py\nln -s ../away/sub r/sub\ngit -C r ls-files --cached sub\n"
+call dirrun "index r"

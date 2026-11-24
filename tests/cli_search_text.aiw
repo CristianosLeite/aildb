@@ -10,7 +10,12 @@
 # directory is this one if none is named. Then what is wrong: a
 # directory with no configuration, wrong usage, a provider that fails
 # for the query, a query that is no text, and an index that another run
-# holds for longer than the search waits.
+# holds for longer than the search waits. Last, a change of the
+# provider that does not get to its snapshot, because the provider
+# fails or the run is killed before it publishes: the configuration is
+# the one it was, and the search is of the snapshot that is there; and
+# a search that waits for a run which changes the provider, a slow one,
+# and then asks the new provider for its query and for nothing else.
 use "lib/std/io.aiw"
 use "lib/std/bytes.aiw"
 use "lib/std/file.aiw"
@@ -37,6 +42,13 @@ fn find d dn t tn o on
 	call byadd args "GIT_CEILING_DIRECTORIES="
 	call strlen cmdtmp as l
 	call byadd args cmdtmp l
+	load args as q
+	load args+8 as m
+	call cmdadd q m
+	call bycut args 0
+	call byadd args "XDG_CONFIG_HOME="
+	call byadd args cmdtmp l
+	call byadd args "/xdg"
 	load args as q
 	load args+8 as m
 	call cmdadd q m
@@ -85,8 +97,8 @@ call dirsh "mkdir -p p/sub\nprintf 'alpha beta\\n' > p/a.txt\nprintf 'gamma\\n' 
 call print "# no configuration\n"
 call find "p" "alpha beta" "-k 2"
 call print "# a configuration and no snapshot: the first search makes it\n"
-call dirrun "index p -i m1 -d 8 -- FAKE spread exit3"
-call dirsh "sed -i 's/^arg\\texit3$//;/^$/d' p/.aildb/config\nls p/.aildb\n"
+call dirrun "index p -i m1 -d 8 -- FAKE spread"
+call dirsh "rm -r p/.aildb/index p/.aildb/manifest p/.aildb/cache\nls p/.aildb\n"
 call dirasked
 call find "p" "alpha beta" "-k 2"
 call dirasked
@@ -125,12 +137,12 @@ call find "e" "delta" "-k 1"
 call print "# a query that is no text\n"
 call find "p" "a\xffb" "-k 1"
 call print "# a provider that fails for the query, and one for the documents\n"
-call dirsh "cp p/.aildb/config config.kept\nprintf 'arg\\tafter1\\n' >> p/.aildb/config\nprintf 'more\\n' > p/e.txt\n"
+call dirsh "printf after1 > provider.fault\nprintf 'more\\n' > p/e.txt\n"
 call find "p" "delta" "-k 1"
 call dirasked
 call dirsh "printf 'still more\\n' > p/f.txt\nprintf 'x' > provider.log\n"
 call find "p" "delta" "-k 1"
-call dirsh "rm provider.log\ncp config.kept p/.aildb/config\n"
+call dirsh "rm provider.log provider.fault\n"
 call print "# an index that another run holds\n"
 call dirsh "printf 'last\\n' > p/g.txt\n"
 call filewrite "aildb.hook" "stop 4"
@@ -146,3 +158,80 @@ call fileunlink "aildb.stopped"
 call dirasked
 call find "p" "last" "-k 1"
 call dirasked
+call print "# a change of the provider that fails: the configuration stays\n"
+call dirsh "printf exit3 > provider.fault\ncp p/.aildb/config config.kept\ncp p/.aildb/index index.kept\n"
+call dirrun "index p -i m2 -d 8 -- FAKE spread"
+call dirsh "rm provider.fault\ncmp config.kept p/.aildb/config && cmp index.kept p/.aildb/index && echo the configuration and the snapshot are what they were\nls p/.aildb\n"
+call find "p" "last" "-k 1"
+call dirasked
+call print "# and one that is killed before it publishes\n"
+call filewrite "aildb.hook" "stop 4"
+call dirhooks 1
+call dirspawn "index p -i m2 -d 8 -- FAKE spread" as pid
+call cmdawait "aildb.stopped" 5000 as r
+call fileunlink "aildb.hook"
+call dirhooks 0
+sys kill pid 9
+call procwait pid 0 as x
+call fileunlink "aildb.stopped"
+call dirasked
+call dirsh "cmp config.kept p/.aildb/config && cmp index.kept p/.aildb/index && echo the configuration and the snapshot are what they were\n"
+call find "p" "last" "-k 1"
+call dirasked
+call print "# the change itself\n"
+call dirrun "index p -i m2 -d 8 -- FAKE spread"
+call find "p" "last" "-k 1"
+call dirasked
+call print "# a search that waits for a run which changes the provider asks the new one\n"
+call dirsh "printf slow > provider.fault\nprintf 'queued\\n' > p/h.txt\n"
+call dirspawn "index p -i m3 -d 8 -- FAKE spread" as pid
+call cmdawait "provider.started" 5000 as r
+call find "p" "queued" "-k 1 -w 5000"
+call procwait pid 5000 as x
+call dirasked
+call dirsh "cat bg.out bg.err\ngrep model p/.aildb/config\nrm provider.fault provider.started\n"
+call print "# a change whose configuration cannot be written: nothing is published\n"
+call dirsh "cp p/.aildb/config config.kept\ncp p/.aildb/index index.kept\nchmod 555 p/.aildb\n"
+call dirrun "index p -i m4 -d 8 -- FAKE spread"
+call dirsh "chmod 755 p/.aildb\ncmp config.kept p/.aildb/config && cmp index.kept p/.aildb/index && echo the configuration and the snapshot are what they were\nls p/.aildb\n"
+call dirasked
+call find "p" "last" "-k 1"
+call dirasked
+call print "# a change killed between its snapshot and its configuration: the next run ends it\n"
+call filewrite "aildb.hook" "stop 5"
+call dirhooks 1
+call dirspawn "index p -i m5 -d 8 -- FAKE spread" as pid
+call cmdawait "aildb.stopped" 5000 as r
+call fileunlink "aildb.hook"
+call dirhooks 0
+sys kill pid 9
+call procwait pid 0 as x
+call fileunlink "aildb.stopped"
+call dirasked
+call dirsh "ls p/.aildb\ngrep model p/.aildb/config p/.aildb/config.new\nstat -c %i p/.aildb/index > inode.kept\n"
+call dirrun "check p/.aildb/index"
+call find "p" "last" "-k 1"
+call dirasked
+call dirsh "ls p/.aildb\ngrep model p/.aildb/config\nstat -c %i p/.aildb/index | cmp - inode.kept && echo the snapshot is the file that the run published\n"
+call dirrun "index p"
+call dirasked
+call print "# a change killed when its snapshot is written and has no name yet: the index is what it was\n"
+call dirsh "cp p/.aildb/config config.kept\ncp p/.aildb/index index.kept\ncp p/.aildb/manifest manifest.kept\n"
+call filewrite "aildb.hook" "stop 2"
+call dirhooks 1
+call dirspawn "index p -i m6 -d 8 -- FAKE spread" as pid
+call cmdawait "aildb.stopped" 5000 as r
+call fileunlink "aildb.hook"
+call dirhooks 0
+sys kill pid 9
+call procwait pid 0 as x
+call fileunlink "aildb.stopped"
+call dirasked
+call dirsh "ls p/.aildb | sed 's/index\\.[0-9a-f]*\\.tmp/index.N.tmp/'\n"
+call find "p" "last" "-k 1"
+call dirasked
+call dirsh "cmp config.kept p/.aildb/config && cmp index.kept p/.aildb/index && cmp manifest.kept p/.aildb/manifest && echo the configuration, the snapshot and the manifest are what they were\n"
+call print "# and the next run that takes the lock removes what the killed one left\n"
+call dirrun "index p"
+call dirasked
+call dirsh "ls p/.aildb\ncmp config.kept p/.aildb/config && cmp index.kept p/.aildb/index && cmp manifest.kept p/.aildb/manifest && echo the configuration, the snapshot and the manifest are what they were\n"

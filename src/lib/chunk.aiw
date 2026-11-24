@@ -25,6 +25,7 @@ use "lib/std/bytes.aiw"
 use "lib/std/file.aiw"
 use "src/lib/text.aiw"
 use "src/lib/fmt.aiw"
+use "src/lib/below.aiw"
 use "ail-extensions:pdf/src/pdf.aiw"
 
 # a chunk has at most this many lines and, if it has more than one line,
@@ -434,16 +435,18 @@ fn chunklang chunkp chunkn
 	ret "text" 4 0
 end
 
-# add the bytes of the file at the path chunkp chunkn to the buffer
-# chunkb, which is empty, but no more than chunkmax+1 of them: their
-# number, or the error of the kernel negated. A file that gives
-# chunkmax+1 is longer than chunkmax. The room asked for is what the file
-# says it has and a byte, not chunkmax: a short file is read on a machine
-# that has no memory for the longest. One that gives more than it said is
-# read on in steps.
-fn chunkreadmax chunkp chunkn chunkb chunkmax
+# add the bytes of the file at the path chunkp chunkn below the
+# directory chunkrp chunkrn to the buffer chunkb, which is empty, but no
+# more than chunkmax+1 of them: their number, or the error of the kernel
+# negated. A file that gives chunkmax+1 is longer than chunkmax. The
+# room asked for is what the file says it has and a byte, not chunkmax:
+# a short file is read on a machine that has no memory for the longest.
+# One that gives more than it said is read on in steps. The file is
+# opened with no symbolic link on the way to it, and is a regular file
+# (src/lib/below.aiw).
+fn chunkreadmax chunkrp chunkrn chunkp chunkn chunkb chunkmax
 	local chunkst 144
-	call fileopen chunkp chunkn 0 0 as chunkfd
+	call belowopen chunkrp chunkrn chunkp chunkn belowread as chunkfd
 	ifslt chunkfd 0
 		ret chunkfd
 	end
@@ -577,16 +580,10 @@ fn chunktake chunkrp chunkrn chunkp chunkl
 		ret chunkpath
 	end
 	call chunklang chunkp chunkl as chunklp chunkln chunkknown
-	call chunkbelow chunkrp chunkrn chunkp chunkl as chunka
-	ifz chunka
-		ret chunkmem
-	end
 	call bycut chunksrc 0
-	load chunkfull as chunkq
-	load chunkfull+8 as chunkm
 	call chunkpdfname chunkp chunkl as chunkpdf
 	if chunkpdf
-		call chunkreadmax chunkq chunkm chunksrc chunkmaxpdf as chunkr
+		call chunkreadmax chunkrp chunkrn chunkp chunkl chunksrc chunkmaxpdf as chunkr
 		ifslt chunkr 0
 			ret chunkread
 		end
@@ -600,7 +597,7 @@ fn chunktake chunkrp chunkrn chunkp chunkl
 		end
 		tail chunkpdffile chunkp chunkl chunkq chunkr
 	end
-	call chunkreadmax chunkq chunkm chunksrc chunkmaxfile as chunkr
+	call chunkreadmax chunkrp chunkrn chunkp chunkl chunksrc chunkmaxfile as chunkr
 	ifslt chunkr 0
 		ret chunkread
 	end

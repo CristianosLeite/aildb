@@ -4,7 +4,9 @@
 # them that none of them has, the vectors it prints come back in the
 # answer of the protocol with their indexes, and the arguments after
 # "--" are passed on; a model that is not there, a program that is not
-# there and wrong arguments are a line and a status
+# there and wrong arguments are a line and a status, and so is a
+# program that the request does not name among its files, which is not
+# run
 use "lib/std/io.aiw"
 use "lib/std/bytes.aiw"
 use "lib/std/file.aiw"
@@ -31,7 +33,7 @@ fn run p n q m
 	call cmdadd "-m"
 	call cmdadd q m
 	call cmdadd "-x"
-	call cmdadd "./llama-embedding"
+	call cmdadd "/proc/self/cwd/llama-embedding"
 	call cmdshowvin p n
 end
 # the fake under a name of the directory of the test, so that what is
@@ -39,13 +41,16 @@ end
 call bycopy fake cmdhome cmdhomen
 call bycopy fake+cmdhomen "/build/llama-fake"
 sys symlink fake link
-call filewrite "docs.json" "{\"aildb\":1,\"op\":\"documents\",\"model\":\"m\",\"revision\":\"\",\"dimension\":3,\"settings\":{\"document_prefix\":\"d: \",\"query_prefix\":\"q: \"},\"texts\":[\"a\",\"two\\nlines\",\"c\"]}\n"
-call filewrite "query.json" "{\"aildb\":1,\"op\":\"query\",\"model\":\"m\",\"revision\":\"\",\"dimension\":3,\"settings\":{\"document_prefix\":\"d: \",\"query_prefix\":\"q: \"},\"texts\":[\"a\"]}\n"
+call filewrite "docs.json" "{\"aildb\":1,\"op\":\"documents\",\"model\":\"m\",\"revision\":\"\",\"dimension\":3,\"settings\":{\"document_prefix\":\"d: \",\"query_prefix\":\"q: \"},\"files\":[\"/elsewhere/x\",\"/proc/self/cwd/llama-embedding\"],\"texts\":[\"a\",\"two\\nlines\",\"c\"]}\n"
+call filewrite "query.json" "{\"aildb\":1,\"op\":\"query\",\"model\":\"m\",\"revision\":\"\",\"dimension\":3,\"settings\":{\"document_prefix\":\"d: \",\"query_prefix\":\"q: \"},\"files\":[\"/elsewhere/x\",\"/proc/self/cwd/llama-embedding\"],\"texts\":[\"a\"]}\n"
 # a text that has the first separator in it, and no settings
-call filewrite "sep.json" "{\"aildb\":1,\"op\":\"documents\",\"model\":\"m\",\"revision\":\"\",\"dimension\":3,\"settings\":{},\"texts\":[\"a\",\"x<#aildb-0#>y\"]}\n"
-call filewrite "none.json" "{\"aildb\":1,\"op\":\"documents\",\"model\":\"m\",\"revision\":\"\",\"dimension\":3,\"settings\":{},\"texts\":[]}\n"
+call filewrite "sep.json" "{\"aildb\":1,\"op\":\"documents\",\"model\":\"m\",\"revision\":\"\",\"dimension\":3,\"settings\":{},\"files\":[\"/elsewhere/x\",\"/proc/self/cwd/llama-embedding\"],\"texts\":[\"a\",\"x<#aildb-0#>y\"]}\n"
+call filewrite "none.json" "{\"aildb\":1,\"op\":\"documents\",\"model\":\"m\",\"revision\":\"\",\"dimension\":3,\"settings\":{},\"files\":[\"/elsewhere/x\",\"/proc/self/cwd/llama-embedding\"],\"texts\":[]}\n"
 call filewrite "two.json" "{\"aildb\":2,\"op\":\"documents\",\"texts\":[]}\n"
 call filewrite "bad.json" "not json\n"
+call filewrite "gone.json" "{\"aildb\":1,\"op\":\"documents\",\"model\":\"m\",\"revision\":\"\",\"dimension\":3,\"settings\":{},\"files\":[\"/nonexistent/llama-embedding\"],\"texts\":[\"a\"]}\n"
+call filewrite "undeclared.json" "{\"aildb\":1,\"op\":\"documents\",\"model\":\"m\",\"revision\":\"\",\"dimension\":3,\"settings\":{},\"texts\":[\"a\"]}\n"
+call filewrite "other.json" "{\"aildb\":1,\"op\":\"documents\",\"model\":\"m\",\"revision\":\"\",\"dimension\":3,\"settings\":{},\"files\":[\"/proc/self/cwd/llama-embedding2\",7,\"llama-embedding\"],\"texts\":[\"a\"]}\n"
 call run "docs.json" "model.gguf"
 call log
 call run "query.json" "model.gguf"
@@ -57,7 +62,7 @@ call print "--- arguments passed on\n"
 call cmdbegin
 call cmdadd "aildb-llama"
 call cmdadd "-x"
-call cmdadd "./llama-embedding"
+call cmdadd "/proc/self/cwd/llama-embedding"
 call cmdadd "-m"
 call cmdadd "a model.gguf"
 call cmdadd "--"
@@ -75,9 +80,18 @@ call cmdadd "-m"
 call cmdadd "model.gguf"
 call cmdadd "-x"
 call cmdadd "/nonexistent/llama-embedding"
-call cmdshowvin "docs.json"
+call cmdshowvin "gone.json"
 call cmdshowin "aildb-llama" "docs.json"
-call cmdshowin "aildb-llama -x prog" "docs.json"
+call cmdshowin "aildb-llama -x /proc/self/cwd/llama-embedding" "docs.json"
+call print "--- a program that is no path from the root, and none\n"
+call cmdshowin "aildb-llama -m model.gguf -x ./llama-embedding" "docs.json"
+call cmdshowin "aildb-llama -m model.gguf -x llama-embedding" "docs.json"
+call cmdshowin "aildb-llama -m model.gguf" "docs.json"
 call cmdshowin "aildb-llama -m" "docs.json"
 call cmdshowin "aildb-llama -m a -m b" "docs.json"
 call cmdshowin "aildb-llama -q a" "docs.json"
+call print "--- a program that the request does not name among its files is not run\n"
+call fileunlink "llama.log"
+call run "undeclared.json" "model.gguf"
+call run "other.json" "model.gguf"
+call log

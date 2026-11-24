@@ -64,7 +64,11 @@ buf provav 24
 # the provider of the configuration provc, one line of JSON. For
 # provdocuments the provn bytes at provp are the texts, each a string of
 # JSON on a line of its own, as the chunker writes them; for provquery
-# they are the bytes of the query itself, well-formed UTF-8. 1, or 0
+# they are the bytes of the query itself, well-formed UTF-8. The member
+# "files" has the paths of the lines "file" of the configuration: what
+# the user named as files the command depends on, so that a provider
+# that runs a program of its own can see that the program is one of
+# them. 1, or 0
 # without memory, and then the buffer may have a part of the request.
 fn provrequest provb provc provop provp provn
 	call byadd provb "{\"aildb\":"
@@ -98,7 +102,20 @@ fn provrequest provb provc provop provp provn
 		provk+=1
 		jmp each
 	end
-	call byadd provb "},\"texts\":["
+	# the files the command was allowed with, as the configuration has them
+	call byadd provb "},\"files\":["
+	call conffiles provc as provq provk
+	provi=0
+	while provi<provk
+		call strlen provq as provm
+		if provi
+			call byaddb provb 44
+		end
+		call jsonadds provb provq provm
+		provq+=provm+1
+		provi+=1
+	end
+	call byadd provb "],\"texts\":["
 	if provop==provquery
 		call jsonadds provb provp provn
 	else

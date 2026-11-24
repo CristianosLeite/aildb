@@ -22,7 +22,7 @@ providers `aildb-llama` and `aildb-ollama`, and `aildb-mcp`. They are put
 where `PATH` finds them, or named by their whole paths below.
 
 From the sources, with [AIL](https://github.com/CristianosLeite/ail)
-0.1.1 or later installed: `ail build` in a clone makes `build/aildb`,
+0.1.2 or later installed: `ail build` in a clone makes `build/aildb`,
 `build/aildb-llama` and `build/aildb-ollama`, and `ail build` in `mcp/`
 makes `mcp/build/aildb-mcp`. The first build fetches the package
 ail-extensions from the network.
@@ -58,13 +58,18 @@ Whoever runs Ollama anyway may use `aildb-ollama` in the place of
 ```
 aildb index ~/src/project -i nomic-embed-text -d 768 \
     -s 'document_prefix=search_document: ' -s 'query_prefix=search_query: ' \
-    -- aildb-llama -m ~/models/nomic-embed-text-v1.5.f16.gguf
+    -x llama-embedding \
+    -- aildb-llama -m ~/models/nomic-embed-text-v1.5.f16.gguf -x llama-embedding
 ```
 
 `-i` is the name of the model and `-d` the elements of its vectors; the
 two settings are what nomic-embed-text wants before a document and before
 a query, and another model has others or none; after `--` is the command
-of the provider. This is said once: it is written to
+of the provider. `-x llama-embedding` has aildb find that program now, in
+your `PATH`, and give `aildb-llama` its path from the root in the place
+of the name: the adapter itself looks for no program, so that every later
+search, from whatever directory and with whatever `PATH`, runs the one
+found here ([provider.md](provider.md#which-commands-are-run)). This is said once: it is written to
 `~/src/project/.aildb/config`. The command prints a line when it is done:
 
 ```
@@ -107,16 +112,26 @@ search, and prints what it did.
 Everything of the index is in `~/src/project/.aildb/`
 ([index.md](index.md#what-is-in-aildb)): the snapshot `index`, the
 configuration `config`, the `manifest` and the kept vectors in `cache/`.
-Git ignores the directory by a file in it. Nothing is written anywhere
-else, nothing runs between two commands, and removing the directory
-removes the index.
+Git ignores the directory by a file in it. Nothing runs between two
+commands, and removing the directory removes the index.
+
+One line is written outside it: `~/.config/aildb/trusted` (or under
+`XDG_CONFIG_HOME`) notes that you named this command for this directory.
+The command of a configuration is run only with that line
+([provider.md](provider.md#which-commands-are-run)), so a directory that
+came with a `.aildb/config` of its own, or one that you moved or copied,
+is searched by text after you have given `aildb index` its options there
+once. The line is of the program as it was found then, by its path from
+the root, so a later search runs that program whatever its directory
+and its `PATH` are.
 
 ## Another model
 
 The options given again are the new configuration:
 
 ```
-aildb index ~/src/project -i other-model -d 1024 -- aildb-llama -m ~/models/other.gguf
+aildb index ~/src/project -i other-model -d 1024 -x llama-embedding \
+    -- aildb-llama -m ~/models/other.gguf -x llama-embedding
 ```
 
 The vectors of the old model are not used for the new one: every text is
@@ -134,10 +149,10 @@ since the client starts it from where it likes:
 claude mcp add aildb -- /path/of/aildb-mcp -d /path/of/project -a /path/of/aildb
 ```
 
-The provider is found as the configuration names it, so `aildb-llama`
-and `llama-embedding` are to be on the `PATH` the client gives its
-servers, or named by whole paths in step 3 (`-x` of `aildb-llama` names
-`llama-embedding`).
+The provider needs nothing of the `PATH` the client gives its servers:
+step 3 found `aildb-llama` and, with `-x llama-embedding`,
+`llama-embedding` once, and the configuration has both by their paths
+from the root.
 
 ## What was checked
 
