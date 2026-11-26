@@ -432,8 +432,9 @@ the program wrote their numbers. It is asked not to divide them by
 their norm (`--embd-normalize -1`): it prints seven decimals, which are
 more of a number near 1 than of one near 0.03, and aildb divides by the
 norm itself. The arguments after `--` are passed on, for the threads or
-the layers on a graphics card. Nothing listens anywhere: the model is
-loaded for each request and gone after it.
+the device the model runs on ([below](#on-a-graphics-card-with-cuda)).
+Nothing listens anywhere: the model is loaded for each request and gone
+after it.
 
 - **`llama-embedding` is built from the sources of llama.cpp.** The
   archives of its releases do not have the program: the one of `b12676`
@@ -481,6 +482,55 @@ arg	-x
 arg	/opt/llama.cpp/build/bin/llama-embedding
 file	/opt/llama.cpp/build/bin/llama-embedding
 ```
+
+### On a graphics card, with CUDA
+
+aildb and its adapters have no option for a graphics card and are not
+built in another way for one: they compute no embedding. Whether the
+model runs on the processor or on a card of NVIDIA is decided where
+`llama-embedding` is built, by an option of llama.cpp:
+
+```
+cmake -S llama.cpp -B llama.cpp/build-cuda -DCMAKE_BUILD_TYPE=Release -DGGML_CUDA=ON
+cmake --build llama.cpp/build-cuda --target llama-embedding -j
+```
+
+That needs the CUDA Toolkit of NVIDIA, whose compiler `nvcc` cmake must
+find (`-DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc` names one that
+is not in `PATH`), and the build takes minutes where the one for the
+processor takes less. The program in `build-cuda/bin` is given to
+`aildb index` like the other, with both `-x`:
+
+```
+aildb index DIRECTORY -i MODEL -d DIMENSION -x /path/of/build-cuda/bin/llama-embedding \
+    -- aildb-llama -m FILE -x /path/of/build-cuda/bin/llama-embedding
+```
+
+- **Nothing is to be said for the card to be used.** A program built
+  with CUDA puts all layers of the model on the card by itself (`-ngl`
+  is `auto` without a word), so the command above is that of the
+  processor with another program.
+- **The processor, with that program:** `-- --device none` after the
+  command of the adapter (`... -x PROGRAM -- --device none`). `-ngl 0`
+  is not the way: the program of `b12676` built with CUDA ended with
+  `CUDA error: invalid argument` and the signal 6 when it was given the
+  32 texts of a request with it.
+- **Another program or another argument is another identity**
+  ([above](#the-identity-of-a-configuration)): a directory that was
+  indexed on the processor is embedded again, whole, when it is given
+  the program built with CUDA, and again when `--device none` is added.
+  The vectors of the card are not those of the processor to the last
+  digit, so the scores of the same search differ a little, and two
+  results whose scores are close may change places; with
+  `--device none` the program built with CUDA gave the scores of the
+  one built without.
+- **A search pays for the card each time.** The model is loaded for
+  each request, on a card too, so the gain is in the first index of a
+  directory, which is many requests of many texts, and not in a search,
+  which is one request of one text.
+- A program built with CUDA needs the libraries of CUDA and the driver
+  where it runs. Without a card it can use, llama.cpp says so and runs
+  the model on the processor.
 
 ## `aildb-ollama`: a model that Ollama serves
 
@@ -571,3 +621,26 @@ the adapter of `b4b52aa`, the same day, the program given to the adapter
 alone by its path from the root ended `aildb index` with status 7 and
 the line above, and the command with both `-x` indexed the directory
 and was searched as before.
+
+On 2026-11-26, on the same machine, whose card is an NVIDIA GeForce RTX
+3050 Laptop GPU of 4096 MiB (driver 620.70.06), `llama-embedding` of
+llama.cpp `b12676` was built a second time with `-DGGML_CUDA=ON`, by
+`nvcc` 13.3.73 and linked to the libraries of CUDA 12 that the system
+has, and run by the executables of the archive of
+aildb 0.1.2 (`b012230`, built by AIL at `4c452d1`) with the same model
+file. The directory `docs` of `b012230`, outside a work tree, was
+indexed twice, once with the program built for the processor and once
+with the one built with CUDA and no argument for it: both runs printed
+`"records":234`, `"files":13` and `"embedded":234`, the second in a
+small part of the time of the first. The search of
+[install.md](install.md) for "what happens when a build is interrupted"
+gave the same three records in the same order from both, with the
+scores 0.742577, 0.736989 and 0.701406 from the processor and 0.742519,
+0.737187 and 0.701346 from the card. The options given again with
+`-- -ngl 0` ended `aildb index` with status 7 and `was ended by the
+signal 6`, and the index stayed what it was and was searched; given
+with `-- --device none` they embedded the 234 chunks again, on the
+processor, and the search gave the three scores of the program built
+for the processor. With `CUDA_VISIBLE_DEVICES` empty the program said
+`failed to initialize CUDA: no CUDA-capable device is detected` and
+printed its 32 embeddings with the status 0.

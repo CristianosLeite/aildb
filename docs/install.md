@@ -45,6 +45,12 @@ both got once:
   export PATH=$PWD/llama.cpp/build/bin:$PATH
   ```
 
+  With a card of NVIDIA and its CUDA Toolkit, `-DGGML_CUDA=ON` on the
+  first of the two `cmake` lines builds a program that runs the model
+  on the card, with nothing else to say to aildb
+  ([provider.md](provider.md#on-a-graphics-card-with-cuda)). aildb
+  itself has no such option: it computes no embedding.
+
 - **A model file**, a GGUF of an embedding model, such as
   nomic-embed-text v1.5, of 768 dimensions. Whoever has Ollama has one
   already: the file under `~/.ollama/models/blobs/` that the manifest of
@@ -77,8 +83,8 @@ found here ([provider.md](provider.md#which-commands-are-run)). This is said onc
 ```
 
 The first index embeds every chunk, which with a model on the processor is
-the long part; `-b` gives the texts of one run of the model, 32 without
-it.
+the long part, and the part a graphics card shortens; `-b` gives the texts
+of one run of the model, 32 without it.
 
 ## 4. Search it in words
 
