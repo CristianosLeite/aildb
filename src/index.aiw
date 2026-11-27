@@ -1473,7 +1473,6 @@ end
 # The same, and with soft a run that still holds the lock after ms
 # milliseconds does not end the program: 1 with the lock, 0 without.
 fn ixlock ms soft
-	local ts 16
 	if ixlocked
 		ret 1
 	end

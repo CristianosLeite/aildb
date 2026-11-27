@@ -23,7 +23,6 @@ const pipe2 293
 buf line 24
 buf out 24
 buf pend 8
-buf ts 16
 buf step 24
 buf log 24
 var seen
