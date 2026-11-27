@@ -126,7 +126,7 @@ is asked of it (`BACKLOG.md`). The decisions are in
 `.agents/knowledge/architecture/runtime-and-windows.md`.
 
 What is left needs services that AIL 0.2.1 has not, and so a later
-version of AIL (the user's to give); the 76 statements `sys` that are
+version of AIL (the user's to give); the 74 statements `sys` that are
 left, 40 of them in `src/`, `adapters/` and `mcp/src/`, are the ones
 that wait for them.
 

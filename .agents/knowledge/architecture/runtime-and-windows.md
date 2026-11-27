@@ -7,7 +7,7 @@ status: current
 # The runtime of AIL, and Windows
 
 **Summary.** aildb asks for AIL 0.2.1 and calls its runtime (`rt`) for everything the
-runtime has; 76 statements `sys` are left for what it has not. Windows is not supported
+runtime has; 74 statements `sys` are left for what it has not. Windows is not supported
 yet: a source with `sys` is not compiled for it, and the services aildb needs there are
 not in AIL 0.2.1. They are to be written in AIL, and aildb built for Windows by the
 command `ail`.
