@@ -24,8 +24,8 @@ fn stopped s twice
 	storeb w 48+s
 	call filewrite "aildb.hook" "stop "
 	call fileopen "aildb.hook" 0x401 0 as fd
-	sys write fd w 1
-	sys close fd
+	rt write fd w 1
+	rt close fd
 	call dirhooks 1
 	call dirspawn "index p" as pid
 	call cmdawait "aildb.stopped" 5000 as r

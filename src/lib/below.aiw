@@ -49,14 +49,14 @@ fn belowopen belowdp belowdn belowpp belowpn belowhow
 	end
 	call belowdots belowpp+belowi belowj-belowi as belowup
 	if (belowj==belowi)|belowup
-		sys close belowfd
+		rt close belowfd
 		ret -22
 	end
 	call bycut belowpart 0
 	call byadd belowpart belowpp+belowi belowj-belowi
 	call byaddb belowpart 0 as belowok
 	ifz belowok
-		sys close belowfd
+		rt close belowfd
 		ret -12
 	end
 	load belowpart as belowq
@@ -72,7 +72,7 @@ fn belowopen belowdp belowdn belowpp belowpn belowhow
 		end
 	end
 	sys belowopenat belowfd belowq belowflags 0 as belownext
-	sys close belowfd
+	rt close belowfd
 	ifslt belownext 0
 		ret belownext
 	end
@@ -86,7 +86,7 @@ fn belowopen belowdp belowdn belowpp belowpn belowhow
 		load4 belowst+24 as belowm
 		belowm=belowm&0xf000
 		if (belowr!=0)|(belowm!=0x8000)
-			sys close belowfd
+			rt close belowfd
 			if belowm==0x4000
 				ret -21
 			end

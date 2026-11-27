@@ -19,7 +19,6 @@ buf ends 24
 buf name 24
 buf maps 24
 buf out 24
-buf ts 16
 # 1 once the process pid has a file mapped whose line in /proc has the
 # n bytes at p, within five seconds
 fn mapped pid p n
@@ -51,9 +50,7 @@ fn mapped pid p n
 	if tries>=5000
 		ret 0
 	end
-	store ts 0
-	store ts+8 1000000
-	sys nanosleep ts 0
+	rt sleep 1000000
 	tries+=1
 	jmp look
 end
@@ -82,7 +79,7 @@ while i<3
 	load name as p
 	load name+8 as n
 	call cmdspawnin "aildb search r.idx -k 5" rd p n as pid
-	sys close rd
+	rt close rd
 	store pids+i*8 pid
 	store ends+i*8 wr
 	call mapped pid "r.idx" as r
@@ -99,8 +96,8 @@ call cmdshowin "aildb search r.idx -k 5" "q.bin"
 i=0
 while i<3
 	load ends+i*8 as wr
-	sys write wr v 8
-	sys close wr
+	rt write wr v 8
+	rt close wr
 	load pids+i*8 as pid
 	call procwait pid 5000 as r
 	call print "reader "

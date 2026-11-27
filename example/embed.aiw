@@ -58,8 +58,6 @@ buf resp 24     # and its response
 buf out 24      # the vectors
 buf one 8
 buf line 24
-buf from 4096
-buf to 4096
 data defmodel "nomic-embed-text"
 data defmodelend ""
 var ip port
@@ -80,7 +78,7 @@ fn fail p n q m
 	call eprint p n
 	call eprint q m
 	call eprint "\n"
-	sys exit_group 1
+	rt exit 1
 end
 
 # Add the n bytes at p to text as well-formed UTF-8: a run of bytes that
@@ -376,12 +374,12 @@ call httpis kp kn "document" as isdoc
 call httpis kp kn "query" as isquery
 if ((c!=i+1)|(ismodel==0))&((c!=i+3)|((isdoc|isquery)==0))
 	call eprint "    embed [OPTIONS] document TEXT VECTORS\n    embed [OPTIONS] query QUERIES VECTORS\n    embed [OPTIONS] model\n    OPTIONS: [-m MODEL] [-d DIMENSION] [-D PREFIX] [-Q PREFIX]\n"
-	sys exit_group 2
+	rt exit 2
 end
 call where
 if ismodel
 	call about
-	sys exit_group 0
+	rt exit 0
 end
 call argv i+1 as p n
 call fileread p n raw as r
@@ -485,9 +483,7 @@ call filewrite q m vp vn as r
 ifslt r 0
 	call fail "cannot write " q m
 end
-call filepath q m from
-call filepath p n to
-sys rename from to as r
+rt rename q m p n as r
 if r
 	call fail "cannot write " p n
 end

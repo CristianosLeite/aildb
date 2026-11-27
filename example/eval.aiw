@@ -37,7 +37,7 @@ fn fail p n q m
 	call eprint p n
 	call eprint q m
 	call eprint "\n"
-	sys exit_group 4
+	rt exit 4
 end
 
 # add the n bytes at p to args as an argument, number k
@@ -79,8 +79,8 @@ fn search xp xn ip in r
 		call fail "cannot write " p n
 	end
 	call procstart av nul fd 2 as pid
-	sys close fd
-	sys close nul
+	rt close fd
+	rt close nul
 	st=-1
 	ifsge pid 0
 		call procwait pid 0 as st
@@ -157,7 +157,7 @@ end
 call argc as c
 if c!=5
 	call eprint "usage: eval AILDB INDEX QUERIES VECTORS\n"
-	sys exit_group 2
+	rt exit 2
 end
 call argv 1 as xp xn
 call argv 2 as ip in

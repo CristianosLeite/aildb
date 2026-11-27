@@ -465,14 +465,14 @@ fn chunkreadmax chunkrp chunkrn chunkp chunkn chunkb chunkmax
 		store chunkb+8 chunksum
 		call byneed chunkb chunkwant as chunkok
 		ifz chunkok
-			sys close chunkfd
+			rt close chunkfd
 			ret -12
 		end
 		load chunkb as chunkq
-		sys read chunkfd chunkq+chunksum chunkwant as chunkr
+		rt read chunkfd chunkq+chunksum chunkwant as chunkr
 		jeq chunkr -4 more
 		ifslt chunkr 0
-			sys close chunkfd
+			rt close chunkfd
 			ret chunkr
 		end
 		if chunkr
@@ -487,7 +487,7 @@ fn chunkreadmax chunkrp chunkrn chunkp chunkn chunkb chunkmax
 			jmp more
 		end
 	end
-	sys close chunkfd
+	rt close chunkfd
 	store chunkb+8 chunksum
 	ret chunksum
 end

@@ -47,7 +47,7 @@ fn memfile p n
 	if n
 		call fdwrite fd p n as ok
 		ifz ok
-			sys close fd
+			rt close fd
 			ret 0-5
 		end
 		sys lseek fd 0 0
@@ -73,13 +73,13 @@ fn run p n
 	ifslt in|out|err 0
 		# the ones that were made are closed: the server goes on
 		ifsge in 0
-			sys close in
+			rt close in
 		end
 		ifsge out 0
-			sys close out
+			rt close out
 		end
 		ifsge err 0
-			sys close err
+			rt close err
 		end
 		ret 0-2000
 	end
@@ -92,9 +92,9 @@ fn run p n
 	sys lseek err 0 0
 	call filereadfd out so
 	call filereadfd err se
-	sys close in
-	sys close out
-	sys close err
+	rt close in
+	rt close out
+	rt close err
 	ret st
 end
 

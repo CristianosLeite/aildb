@@ -854,3 +854,18 @@ A fifth review, of the fixes above at `acb1a70` (user, 2026-11-24,
   `mcp/Ailfile` and the version in `docs/install.md` and `README.md`
   name it. The archive of its release was checked against its
   `.sha256` and `make test` passes with the command of that archive.
+
+## 18. The runtime of AIL, and Windows
+
+- [x] aildb on AIL 0.2.1 (user, 2026-11-26): `Ailfile`, `mcp/Ailfile`
+  and `example/consumer/Ailfile` ask for it, and what its runtime has
+  is asked with `rt` in place of `sys`: a descriptor closed, the end of
+  a command, a read and a write, a file renamed, a sleep, the number of
+  the process, the directory of the process, and a write to a closed
+  pipe as an error (`rt pipeerr` in place of a signal ignored). Of 259
+  statements `sys` 76 are left, for what the runtime has not
+  (`TODO.md`). A given path now goes to `rename` with its length, and
+  the directory of the process comes without a NUL byte counted.
+  Nothing a command prints changed: `make test` passes as it was, with
+  the command of a checkout at `v0.2.1` (`074ca4d`) and with the one of
+  the archive of that release, checked against its `.sha256`.

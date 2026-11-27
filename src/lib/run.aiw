@@ -31,7 +31,7 @@ fn runfile runp runn
 	if runn
 		call fdwrite runfd runp runn as runok
 		ifz runok
-			sys close runfd
+			rt close runfd
 			ret 0-5
 		end
 		sys runlseek runfd 0 0
@@ -69,13 +69,13 @@ fn runcmd runav runp runn runout runerr runms
 		call filereadfd rune runerr
 	end
 	ifsge runin 0
-		sys close runin
+		rt close runin
 	end
 	ifsge runo 0
-		sys close runo
+		rt close runo
 	end
 	ifsge rune 0
-		sys close rune
+		rt close rune
 	end
 	ret runst
 end

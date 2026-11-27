@@ -54,7 +54,7 @@ fn start p n
 	load line as q
 	load line+8 as m
 	call cmdspawnin q m rd "mcp.out" as pid
-	sys close rd
+	rt close rd
 	seen=0
 	ret pid
 end
@@ -63,8 +63,8 @@ fn say p n
 	call print p n
 	call print "\n"
 	load4 pend+4 as wr
-	sys write wr p n
-	sys write wr "\n"
+	rt write wr p n
+	rt write wr "\n"
 end
 # print the next line of mcp.out, waiting five seconds for it at most
 fn hear
@@ -91,9 +91,7 @@ fn hear
 		call print "< nothing\n"
 		ret 0
 	end
-	store ts 0
-	store ts+8 1000000
-	sys nanosleep ts 0
+	rt sleep 1000000
 	tries+=1
 	jmp look
 end
@@ -103,7 +101,7 @@ fn ask p n
 end
 fn finish pid
 	load4 pend+4 as wr
-	sys close wr
+	rt close wr
 	call procwait pid 5000 as st
 	call print "the server ended with status "
 	call putn st

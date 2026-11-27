@@ -23,9 +23,6 @@ buf wide 16
 buf line 24
 buf out 24
 buf pend 8
-buf ts 16
-buf old 4096
-buf new 4096
 var port fake seen
 
 # the command line of the server with the options p n after what every
@@ -47,7 +44,7 @@ fn start p n
 	load line as q
 	load line+8 as m
 	call cmdspawnin q m rd "mcp.out" as pid
-	sys close rd
+	rt close rd
 	seen=0
 	ret pid
 end
@@ -57,8 +54,8 @@ fn say p n
 	call print p n
 	call print "\n"
 	load4 pend+4 as wr
-	sys write wr p n
-	sys write wr "\n"
+	rt write wr p n
+	rt write wr "\n"
 end
 # print the next line of mcp.out, waiting five seconds for it at most
 fn hear
@@ -85,9 +82,7 @@ fn hear
 		call print "< nothing\n"
 		ret 0
 	end
-	store ts 0
-	store ts+8 1000000
-	sys nanosleep ts 0
+	rt sleep 1000000
 	tries+=1
 	jmp look
 end
@@ -98,7 +93,7 @@ end
 # close the input and print how the server ended
 fn finish pid
 	load4 pend+4 as wr
-	sys close wr
+	rt close wr
 	call procwait pid 5000 as st
 	call print "the server ended with status "
 	call putn st
@@ -164,9 +159,7 @@ end
 call snapshot "rev1" 1 "s.idx"
 call cmdspawn "embed-fake port.txt" as fake
 call cmdawait "port.txt" 5000 as r
-store ts 0
-store ts+8 20000000
-sys nanosleep ts 0
+rt sleep 20000000
 call fileread "port.txt" out
 load out as p
 load out+8 as n
@@ -208,9 +201,7 @@ call ask "{\"jsonrpc\":\"2.0\",\"id\":15,\"method\":\"tools/call\",\"params\":{\
 call ask "{\"jsonrpc\":\"2.0\",\"id\":16,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"three\"}}}"
 call print "\n# the snapshot is replaced: another revision, two records\n"
 call snapshot "rev2" 0 "s.idx.new"
-call filepath "s.idx.new" old
-call filepath "s.idx" new
-sys rename old new as r
+rt rename "s.idx.new" "s.idx" as r
 call ask "{\"jsonrpc\":\"2.0\",\"id\":17,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"both\"}}}"
 call print "\n# replaced again, by one of three dimensions and the same model\n"
 call mknew 3 "m" "rev3"
@@ -224,7 +215,7 @@ store4 wide+8 0
 call mkrec "x.aiw" "ail" 3 4 wide
 call mkdone b
 call mksave b -1 "s.idx.new"
-sys rename old new as r
+rt rename "s.idx.new" "s.idx" as r
 call ask "{\"jsonrpc\":\"2.0\",\"id\":19,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"three\"}}}"
 call ask "{\"jsonrpc\":\"2.0\",\"id\":20,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"alpha\"}}}"
 call print "\n# the snapshot is gone\n"
@@ -265,7 +256,7 @@ load4 pend as rd
 load line as q
 load line+8 as m
 call cmdspawnin q m rd "mcp.out" as pid
-sys close rd
+rt close rd
 seen=0
 call ask "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"alpha\"}}}"
 call ask "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"name\":\"search\",\"arguments\":{\"query\":\"alpha\"}}}"

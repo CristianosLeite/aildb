@@ -43,7 +43,6 @@ buf sel 24              # the best records so far
 const pwrite 18
 const flock 73
 const getrandom 318
-buf sigact 32           # how a signal is to be taken: ignored
 # the command index, which names the constants and the buffers above
 use "src/index.aiw"
 
@@ -55,7 +54,7 @@ fn usage
        aildb check INDEX
        aildb index [DIRECTORY] [-i MODEL -d DIMENSION [-n PROVIDER] [-r REVISION] [-s NAME=VALUE]... [-t MILLISECONDS] [-b TEXTS] [-f FILE]... [-x PROGRAM]... -- COMMAND [ARGUMENT...]]
 "
-	sys exit_group stusage
+	rt exit stusage
 end
 
 # end the program with the status st after the line of msg on stderr,
@@ -65,7 +64,7 @@ fn fail st
 	load msg as p
 	load msg+8 as n
 	call eprint p n
-	sys exit_group st
+	rt exit st
 end
 
 # start the line of an error about the file at the path p n, which
@@ -211,7 +210,7 @@ end
 # 0, or the error of the kernel
 fn writeall fd p n
 	while n
-		sys write fd p n as r
+		rt write fd p n as r
 		ifz r
 			r=-5
 		end
@@ -260,14 +259,14 @@ fn mapfile p n
 	end
 	sys fstat fd st as r
 	ifslt r 0
-		sys close fd
+		rt close fd
 		ret 0 0 r
 	end
 	# a regular file only, as the reader of a snapshot has it
 	load4 st+24 as z
 	z=z&0xf000
 	if z!=0x8000
-		sys close fd
+		rt close fd
 		if z==0x4000
 			ret 0 0 -21
 		end
@@ -278,11 +277,11 @@ fn mapfile p n
 	if z
 		sys mmap 0 z 1 2 fd 0 as a
 		if a>-4096
-			sys close fd
+			rt close fd
 			ret 0 0 a
 		end
 	end
-	sys close fd
+	rt close fd
 	ret a z 0
 end
 
@@ -383,7 +382,7 @@ fn syncdir p n
 		ret fd
 	end
 	call hooksync fd 2 as r
-	sys close fd
+	rt close fd
 	ret r
 end
 
@@ -492,10 +491,10 @@ fn publish vec count dim vp vn
 	# on the device before it is looked at and before it gets its name
 	call hooksync fd 1 as r
 	if r
-		sys close fd
+		rt close fd
 		call tmperr "cannot sync the temporary file: " r
 	end
-	sys close fd as r
+	rt close fd as r
 	if r
 		call tmperr "cannot write the temporary file: " r
 	end
@@ -518,7 +517,7 @@ fn publish vec count dim vp vn
 	# what an index of a directory writes before its snapshot has its name
 	call ixbefore
 	call hookstop 2
-	sys rename tp dp as r
+	rt rename tp tn dp dn-1 as r
 	if r
 		call tmperr "cannot rename the temporary file to it: " r
 	end
@@ -644,7 +643,7 @@ fn build
 		call byadd msg "published and synced, but the line about it could not be written to the output"
 		call fail stio
 	end
-	sys exit_group 0
+	rt exit 0
 end
 
 # read from the file fd to the n bytes at p until they are full or the
@@ -652,7 +651,7 @@ end
 fn readupto fd p n
 	got=0
 	while got<n
-		sys read fd p+got n-got as r
+		rt read fd p+got n-got as r
 		ifz r
 			ret got
 		end
@@ -853,7 +852,7 @@ fn search
 	call hookmark 3
 	call results
 	call hookmark 4
-	sys exit_group 0
+	rt exit 0
 end
 
 # aildb check INDEX
@@ -872,15 +871,14 @@ fn check
 	end
 	call summary
 	call say
-	sys exit_group 0
+	rt exit 0
 end
 
 call hookmark 1
 # A pipe that nobody reads is to be an error of the write, which has a
 # line and the status of an I/O failure, and not the signal SIGPIPE,
 # which would end the program without either.
-store sigact 1
-sys rt_sigaction 13 sigact 0 8
+rt pipeerr
 call argv 1 as cp cn
 call texteq cp cn "build" as is
 if is

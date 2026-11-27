@@ -18,7 +18,6 @@ buf w 8
 buf so 24
 buf se 24
 buf line 24
-buf ts 16
 var seed
 fn rnd
 	seed=seed*6364136223846793005+1442695040888963407
@@ -31,7 +30,7 @@ fn state p n
 	ifslt fd 0
 		ret -1
 	end
-	sys close fd
+	rt close fd
 	call bycut line 0
 	call byadd line "aildb check "
 	call byadd line p n
@@ -75,8 +74,8 @@ fn stopped p n s
 	storeb w 48+s
 	call filewrite "aildb.hook" "stop "
 	call fileopen "aildb.hook" 0x401 0 as fd
-	sys write fd w 1
-	sys close fd
+	rt write fd w 1
+	rt close fd
 	call bycut line 0
 	call byadd line "aildb-stops build -v two.bin -m two.tsv -d 2 -i m -o "
 	call byadd line p n
@@ -166,9 +165,7 @@ while i<48
 		call cmdspawn "aildb build -o k.idx -v a.bin -m a.tsv -d 256 -i m" as pid
 	end
 	d=span*i/32
-	store ts d/1000000000
-	store ts+8 d%1000000000
-	sys nanosleep ts 0
+	rt sleep d
 	sys kill pid 9
 	call procwait pid 0 as r
 	if r==-9

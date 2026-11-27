@@ -43,15 +43,15 @@ fn free
 	call memfile 0 0 as c
 	n=0
 	ifsge a 0
-		sys close a
+		rt close a
 		n+=1
 	end
 	ifsge b 0
-		sys close b
+		rt close b
 		n+=1
 	end
 	ifsge c 0
-		sys close c
+		rt close c
 		n+=1
 	end
 	ret n
@@ -59,7 +59,7 @@ end
 # the lowest descriptor that is free, which is how many this process
 # may have when it is to get no more
 call fileopen "/dev/null" 0 0 as first
-sys close first
+rt close first
 zn=0
 call arg 0 "/bin/sh"
 call arg 1 "-c"

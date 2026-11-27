@@ -25,7 +25,7 @@ tar -xzf aildb-0.1.2-x86_64-linux.tar.gz
 aildb-0.1.2-x86_64-linux/aildb check an.idx
 ```
 
-Or build it from the sources, with [AIL](https://github.com/CristianosLeite/ail) 0.1.2 or later installed:
+Or build it from the sources, with [AIL](https://github.com/CristianosLeite/ail) 0.2.1 or later installed:
 
 ```
 ail build       # build/aildb, one static executable

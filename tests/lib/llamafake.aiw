@@ -68,7 +68,7 @@ ifsge fd 0
 	load log as p
 	load log+8 as n
 	call fdwrite fd p n
-	sys close fd
+	rt close fd
 end
 call after "-m" as p n
 if n>=7
@@ -76,14 +76,14 @@ if n>=7
 	if r
 		call eprint "0.00.003.970 E llama_model_load_from_file_impl: failed to load model\n"
 		call eprint "0.00.003.972 E main: unable to load model\n\n"
-		sys exit_group 1
+		rt exit 1
 	end
 end
 call after "-f" as p n
 call fileread p n in as r
 ifslt r 0
 	call eprint "llama-fake: cannot read the file of the texts\n"
-	sys exit_group 1
+	rt exit 1
 end
 call after "--embd-separator" as sp sl
 load in as p

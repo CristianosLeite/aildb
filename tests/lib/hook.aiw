@@ -27,8 +27,8 @@ fn hookasks hookp hookn hookd
 	ifslt hookfd 0
 		ret 0
 	end
-	sys read hookfd hookb 16 as hookr
-	sys close hookfd
+	rt read hookfd hookb 16 as hookr
+	rt close hookfd
 	ifslt hookr hookn+1
 		ret 0
 	end
@@ -49,7 +49,7 @@ fn hookstop hookn
 	call hookasks "stop " hookn as hooka
 	if hooka
 		sys open hookmark 0x41 420 as hookfd
-		sys close hookfd
+		rt close hookfd
 		while 1
 			sys hookpause
 		end
