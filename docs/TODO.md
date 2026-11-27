@@ -133,14 +133,22 @@ that wait for them.
 In the AIL repository:
 
 - [ ] Services of the runtime, each in both runtimes with a test that
-  runs under Wine: a file mapped to be read; a file and a directory
-  flushed; the kind, size and times of a file, by a descriptor and by
-  a path that is not followed; a position in a file, a write at a
-  position, a file cut to a length; a lock that does not wait; the
-  time of day; random bytes; a file with no name for the input and the
-  outputs of a child; a process ended; a file opened below an open
-  directory with no link followed, and the path of an open descriptor;
-  which platform the program runs on.
+  runs under Wine: a file mapped to be read; a lock that does not
+  wait; the time of day; random bytes; a file with no name for the
+  input and the outputs of a child; a process ended; a file opened
+  below an open directory with no link followed, and the path of an
+  open descriptor; which platform the program runs on. Six are
+  written, in the pull request 40 of AIL, which is in no version yet,
+  so the AIL of `Ailfile` and of the tests on GitHub has them not:
+  `seek`, `pwrite`, `truncate`, `sync` of a file, and `stat` and
+  `fstat`, whose kinds and times on Linux are those `treestat` reads.
+- [ ] What makes a published snapshot durable on Windows, decided
+  before `publish` asks the runtime: `rt sync` of a directory gives 0
+  there and flushes nothing, and `rt rename` is `MoveFileExA` with
+  `MOVEFILE_REPLACE_EXISTING` alone. `publish` takes a sync of the
+  directory that succeeds after the rename as the confirmation and
+  ends with 6 without it, so `rt sync` in the place of `hooksync`
+  would say 0 on Windows with nothing confirmed.
 - [ ] A target for `ail build` and `ail test`, the tests of a target
   for Windows run under Wine on Linux, with a list of the tests that
   are not for it; the compiler for Windows in the archive of a release.
@@ -160,7 +168,11 @@ Here, on that version of AIL, one commit each:
 - [ ] No link on the way, without `/proc`: `src/lib/below.aiw`,
   `src/index.aiw` and `src/lib/trust.aiw` on the two services for it.
 - [ ] The files of an index looked at with the runtime
-  (`src/lib/tree.aiw`), and the time a run starts.
+  (`src/lib/tree.aiw`), and the time a run starts. `belowopen` and
+  `treestat` keep their walk from one open directory to the next:
+  `rt stat` of a path put together leaves the links on the way
+  unlooked at, and `rt names` of Windows reads a directory by its
+  path.
 - [ ] A child with files that have no name in place of files in memory
   (`src/lib/run.aiw`, `mcp/src/run.aiw`, `adapters/llama.aiw`), and a
   program found as Windows finds one.
