@@ -81,6 +81,39 @@ wait for the user's review
 Nothing of them is open: the AIL that `Ailfile` asks for is 0.1.2
 since 2026-11-24 (`BACKLOG.md`).
 
+## 18. A provider for searches
+
+A provider is a process a request, so a search by text loads the model
+before it embeds the one text of its query, and on a graphics card that
+load is most of the search
+([provider.md](provider.md#on-a-graphics-card-with-cuda)). The user asked
+for a provider that serves searches (2026-11-26): the model stays
+loaded between two of them. Step 17 has no daemon and no watcher of
+files, and that stays so for the index: this is of the provider alone,
+and whoever wants nothing running keeps `aildb-llama` as it is.
+
+- [ ] Decide what it is, with the user, before it is written: who
+  starts the process that holds the model and who ends it (the user, the
+  first search, `aildb-mcp -d` for the time of its session), how a
+  request reaches it (a socket of the user under `XDG_RUNTIME_DIR`, or
+  `llama-server` of llama.cpp over HTTP as `aildb-ollama` asks Ollama),
+  and what the rule of which commands are run and the identity of a
+  configuration mean for a process that was started before the search.
+  The decision goes into `.agents/knowledge/architecture/`.
+- [ ] The provider, as an adapter in `adapters/` that speaks the
+  protocol of `docs/provider.md` unchanged, so `aildb` needs no word of
+  it: a query is answered by the model that is loaded, and a search with
+  no such process running fails with a line that says how it is
+  started, or falls back to a process a request, as decided. Its tests
+  run against a program in the place of the model, as
+  `tests/adapter_llama.aiw` does, and one kills the process between two
+  searches.
+- [ ] `docs/provider.md` and `docs/install.md` say how it is set up, on
+  the processor and on a card, and what was checked: the same vectors
+  as `aildb-llama` gives for the same program and model, and the time
+  of a search with and without it, by a command of this repository or
+  of aildb-bench.
+
 ## 18. The runtime of AIL, and Windows
 
 The user wants aildb on the version 0.2.1 of AIL and on Windows (user,
