@@ -1,7 +1,7 @@
 ---
 title: The runtime of AIL, and Windows
 last-verified: 2026-11-26
-sources: [conversation 2026-11-26, docs/runtime.md and docs/language.md of AIL at v0.2.1 (074ca4d), Ailfile, docs/TODO.md step 18]
+sources: [conversation 2026-11-26, docs/runtime.md and docs/language.md of AIL at v0.2.1 (074ca4d), Ailfile, docs/TODO.md step 19]
 status: current
 ---
 # The runtime of AIL, and Windows
@@ -54,4 +54,4 @@ command `ail`.
   `src/lib/os.aiw` for what differs by platform, decided when the program runs; the
   paths of a snapshot with `/` on every platform, so the format does not change;
   `%APPDATA%\aildb\trusted`; a reader that reads the snapshot into memory if Windows
-  does not let a mapped file be replaced. `docs/TODO.md`, step 18, has the items.
+  does not let a mapped file be replaced. `docs/TODO.md`, step 19, has the items.

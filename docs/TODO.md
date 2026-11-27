@@ -114,7 +114,7 @@ and whoever wants nothing running keeps `aildb-llama` as it is.
   of a search with and without it, by a command of this repository or
   of aildb-bench.
 
-## 18. The runtime of AIL, and Windows
+## 19. The runtime of AIL, and Windows
 
 The user wants aildb on the version 0.2.1 of AIL and on Windows (user,
 2026-11-26). AIL 0.2 has a runtime, the statement `rt`, whose services
