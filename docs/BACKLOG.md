@@ -967,3 +967,15 @@ chosen.
   archive for Linux; the notes say that `lock` refuses a named pipe
   and a device. `Ailfile` here asks for it with the first source
   that calls one of the six.
+- [x] The services that step 19 still named are written, the pull
+  request 42 of AIL (agent, 2026-11-28, at the user's word to go on
+  with `TODO.md`): `anon`, `kill`, `openat`, `fdpath` and `lockfd`,
+  the services 59 to 63, each in both runtimes with a test that both
+  platforms run, and `rt sync` of a directory, which the runtime of
+  Windows now asks Windows for. At its `63bec88`, on 2026-11-28:
+  `make test` of AIL on Ubuntu under WSL 2 ended with 0 and 3156
+  lines of ok; `tests/win.sh all` with the tree on NTFS, the
+  programs started on Windows 11 (build 26300) itself, passed 614
+  tests and thirteen named checks and failed one, whose program
+  Microsoft Defender took for malware and Windows did not start.
+  They are in no version of AIL yet.
