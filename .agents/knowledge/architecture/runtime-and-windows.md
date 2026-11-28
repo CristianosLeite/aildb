@@ -1,7 +1,7 @@
 ---
 title: The runtime of AIL, and Windows
-last-verified: 2026-11-26
-sources: [conversation 2026-11-26, docs/runtime.md and docs/language.md of AIL at v0.2.1 (074ca4d), Ailfile, docs/TODO.md step 19]
+last-verified: 2026-11-27
+sources: [conversation 2026-11-26, conversation 2026-11-27, docs/runtime.md and docs/language.md of AIL at v0.2.1 (074ca4d), Ailfile, docs/TODO.md step 19]
 status: current
 ---
 # The runtime of AIL, and Windows
@@ -50,6 +50,12 @@ command `ail`.
   branch `ail-0.2.1`, Linux only, which leaves `sys` where the runtime has nothing.
   The tests that are about Linux alone (a named pipe, a limit of a process, a signal)
   keep `sys` and are to be listed as not for Windows.
+- **aildb is 0.2.0 when it has an executable for Windows** (user, 2026-11-27), and not
+  before: the branch `ail-0.2.1` is merged with the version as it was, 0.1.2. The same
+  day the user had the pull request 40 of AIL merged and AIL made 0.2.2, the first
+  version with its six services for a file; `Ailfile` here asks for 0.2.2 with the
+  first source that calls one of them (agent), since 0.2.1 builds everything until
+  then.
 - **Proposed, not decided** (agent): the names of the services; one file
   `src/lib/os.aiw` for what differs by platform, decided when the program runs; the
   paths of a snapshot with `/` on every platform, so the format does not change;

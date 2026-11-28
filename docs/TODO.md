@@ -138,10 +138,11 @@ In the AIL repository:
   input and the outputs of a child; a process ended; a file opened
   below an open directory with no link followed, and the path of an
   open descriptor; which platform the program runs on. Six are
-  written, in the pull request 40 of AIL, which is in no version yet,
-  so the AIL of `Ailfile` and of the tests on GitHub has them not:
-  `seek`, `pwrite`, `truncate`, `sync` of a file, and `stat` and
-  `fstat`, whose kinds and times on Linux are those `treestat` reads.
+  written and in AIL since its version 0.2.2 (user, 2026-11-27; the
+  pull request 40 of AIL), which `Ailfile` asks for with the first
+  source that calls one: `seek`, `pwrite`, `truncate`, `sync` of a
+  file, and `stat` and `fstat`, whose kinds and times on Linux are
+  those `treestat` reads.
 - [ ] What makes a published snapshot durable on Windows, decided
   before `publish` asks the runtime: `rt sync` of a directory gives 0
   there and flushes nothing, and `rt rename` is `MoveFileExA` with
@@ -189,3 +190,6 @@ Here, on that version of AIL, one commit each:
   bytes, names that are not UTF-8) and the installation on Windows.
 - [ ] A run of the archive on Windows itself, noted with its day and
   machine, before a version says it supports Windows.
+- [ ] The version 0.2.0 of aildb, once it has an executable for
+  Windows (user, 2026-11-27): `Ailfile` and `mcp/Ailfile` say it, and
+  the tag `v0.2.0` is the first whose release has that archive.
