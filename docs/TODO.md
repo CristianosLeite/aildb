@@ -126,7 +126,8 @@ is asked of it (`BACKLOG.md`). The decisions are in
 `.agents/knowledge/architecture/runtime-and-windows.md`.
 
 What is left needs services that AIL 0.2.3 has not, and so a later
-version of AIL (the user's to give); the tests of AIL for Windows
+version of AIL (the user's to give): they are written and wait in the
+pull request 42 of AIL (2026-11-28). The tests of AIL for Windows
 run on Windows itself since 2026-11-27, from WSL 2 (`BACKLOG.md`).
 The 74 statements `sys` that are
 left, 40 of them in `src/`, `adapters/` and `mcp/src/`, are the ones
@@ -135,11 +136,18 @@ that wait for them.
 In the AIL repository:
 
 - [ ] Services of the runtime, each in both runtimes with a test that
-  runs under Wine or on Windows itself. Left: a file with no name for
-  the input and the outputs of a child; a process ended; a file
-  opened below an open directory with no link followed, the path
-  of an open descriptor, and the lock of an open descriptor, not
-  waited for, which the lock of an index needs (below). Six are in AIL since its version 0.2.2
+  runs under Wine or on Windows itself. Left: the merge of the pull
+  request 42 of AIL and the version that has it, both the user's.
+  It has the five that were left (2026-11-28; the names, flags and
+  errors are the agent's, for the user to review): `anon`, a file
+  with no name for the input and the outputs of a child; `kill`,
+  which ends a child, for which `reap` then gives -9; `openat`, one
+  name below an open directory with no link followed, the error -40
+  for a link, a directory made by 64 with 0x10000, and 0x200000 to
+  open a thing only to be asked what it is; `fdpath`, the path of
+  an open descriptor; and `lockfd`, the lock of `lock` for an open
+  file, not waited for, which the lock of an index needs (below).
+  Six are in AIL since its version 0.2.2
   (user, 2026-11-27; the pull request 40 of AIL), which `Ailfile`
   asks for with the first source that calls one: `seek`, `pwrite`,
   `truncate`, `sync` of a file, and `stat` and `fstat`, whose kinds
@@ -155,12 +163,22 @@ In the AIL repository:
   AIL 0.2.2 took a named pipe and a device, which the notes of the
   release of 0.2.3 say.
 - [ ] What makes a published snapshot durable on Windows, decided
-  before `publish` asks the runtime: `rt sync` of a directory gives 0
-  there and flushes nothing, and `rt rename` is `MoveFileExA` with
+  before `publish` asks the runtime: `rt sync` of a directory gave 0
+  there and flushed nothing, and `rt rename` is `MoveFileExA` with
   `MOVEFILE_REPLACE_EXISTING` alone. `publish` takes a sync of the
   directory that succeeds after the rename as the confirmation and
   ends with 6 without it, so `rt sync` in the place of `hooksync`
-  would say 0 on Windows with nothing confirmed.
+  would have said 0 on Windows with nothing confirmed. Decided
+  (agent, 2026-11-28, for the user to review) and written in the
+  pull request 42 of AIL: `rt sync` of a directory opens a handle
+  that may write to it and asks Windows to flush it
+  (`FlushFileBuffers`), 0 only if Windows said yes and its error
+  otherwise, so `publish` ends with 6 where Windows refuses, as on
+  the share that the file system of WSL is. Windows 11 (build 26300)
+  said yes on NTFS. Left, with the merge: Windows documents the call
+  for a file and a volume and not for a directory, and no loss of
+  power was tried, which `docs/durability.md` is to say with the
+  documents of a version for Windows.
 - [ ] A target for `ail build` and `ail test`, the tests of a target
   for Windows run under Wine on Linux, with a list of the tests that
   are not for it; the compiler for Windows in the archive of a release.
@@ -191,7 +209,8 @@ Here, on that version of AIL, one commit each:
 - [ ] The snapshot on the runtime: `src/lib/snap.aiw`, `src/main.aiw`,
   `src/lib/cache.aiw` and `src/hook.aiw` with no `sys`.
 - [ ] No link on the way, without `/proc`: `src/lib/below.aiw`,
-  `src/index.aiw` and `src/lib/trust.aiw` on the two services for it.
+  `src/index.aiw` and `src/lib/trust.aiw` on the services for it,
+  `openat` and `fdpath`, and `lockfd` for the lock.
   The lock of an index is of this item: `ixlock` opens `.aildb/lock`
   with no link followed and locks that descriptor, and `rt trylock`
   opens a path, a link at its end followed on Linux. So the lock

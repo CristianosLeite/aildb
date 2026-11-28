@@ -1,6 +1,6 @@
 ---
 title: The runtime of AIL, and Windows
-last-verified: 2026-11-27
+last-verified: 2026-11-28
 sources: [conversation 2026-11-26, conversation 2026-11-27, docs/runtime.md and docs/language.md of AIL at v0.2.1 (074ca4d), Ailfile, docs/TODO.md step 19, runs of 2026-11-27 on Windows 11 Pro build 26300 with the branch more-services of AIL (21f9b19, 1a6f5f4), review-f8c9c2a.md]
 status: current
 ---
@@ -94,6 +94,31 @@ command `ail`.
   `time`, `random`, `platform` (1 Linux, 2 Windows), `trylock`, `map`
   and `unmap`. The names are the agent's. Which version of AIL has
   them is the user's to say.
+- **The five services that were left are written, the pull request 42
+  of AIL** (agent, 2026-11-28, at the user's word to go on with step
+  19): `anon`, `kill`, `openat`, `fdpath` and `lockfd`. What was
+  chosen for each, and what was rejected, is in the knowledge base
+  of AIL (`.agents/knowledge/architecture/directory-services.md`
+  there). What it means here: `belowopen`, `treestat` and `ixstate`
+  keep their walk, one `openat` a part, with 0x200000 where they
+  opened with `O_PATH`, and a link is -40 where they looked for -40
+  or -20; a directory opened so on Windows is not removed or renamed
+  while it is open, which is what `.aildb` held open wants; the lock
+  of an index is `lockfd` of the descriptor that `openat` gave, with
+  no path looked up twice; the tests end a build with `kill` and get
+  -9 from `reap`. Which version of AIL has them is the user's to
+  say.
+- **`rt sync` of a directory is the confirmation on Windows too**
+  (agent, 2026-11-28, for the user to review; the same pull request).
+  The runtime of Windows gave 0 for a directory unasked. It now
+  flushes a handle of the directory that may write to it, which
+  Windows 11 (build 26300) answered with success on NTFS and refused
+  on the share of WSL, so `publish` ends with 6 there. Rejected: a
+  rename that is written through (`MOVEFILE_WRITE_THROUGH`), which
+  Windows documents for a move that copies and which would slow
+  every rename of every program. Not known: what is on the device
+  after the flush, which Windows documents for a file and a volume
+  alone; no loss of power was tried.
 - **Proposed, not decided** (agent): one file
   `src/lib/os.aiw` for what differs by platform, decided when the program runs; the
   paths of a snapshot with `/` on every platform, so the format does not change;
