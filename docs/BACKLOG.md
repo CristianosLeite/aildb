@@ -961,3 +961,9 @@ chosen.
   that `TODO.md` now names among those left; `ixbegin` looks at the
   time it gets before it is the time of a run; a reader on Windows
   chooses by the file system of the snapshot.
+- [x] AIL 0.2.3 has the six services of its pull request 41 (user,
+  2026-11-28: both pull requests merged, AIL to 0.2.3). Its tag
+  `v0.2.3` names the merge, `b9d172c`, and its release has the
+  archive for Linux; the notes say that `lock` refuses a named pipe
+  and a device. `Ailfile` here asks for it with the first source
+  that calls one of the six.

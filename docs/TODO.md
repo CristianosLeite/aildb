@@ -125,7 +125,7 @@ first part is done: `Ailfile` asks for 0.2.1 and what the runtime has
 is asked of it (`BACKLOG.md`). The decisions are in
 `.agents/knowledge/architecture/runtime-and-windows.md`.
 
-What is left needs services that AIL 0.2.1 has not, and so a later
+What is left needs services that AIL 0.2.3 has not, and so a later
 version of AIL (the user's to give); the tests of AIL for Windows
 run on Windows itself since 2026-11-27, from WSL 2 (`BACKLOG.md`).
 The 74 statements `sys` that are
@@ -143,16 +143,17 @@ In the AIL repository:
   (user, 2026-11-27; the pull request 40 of AIL), which `Ailfile`
   asks for with the first source that calls one: `seek`, `pwrite`,
   `truncate`, `sync` of a file, and `stat` and `fstat`, whose kinds
-  and times on Linux are those `treestat` reads. Six more are written
-  and wait in the pull request 41 of AIL (2026-11-27), in no version
-  yet, which is the user's to give: `time`, `random`, `platform`,
-  `trylock`, and `map` and `unmap` (`BACKLOG.md`). `map` promises
+  and times on Linux are those `treestat` reads. Six more are in AIL
+  since its version 0.2.3 (user, 2026-11-28; the pull request 41 of
+  AIL), which `Ailfile` asks for in the same way: `time`, `random`,
+  `platform`, `trylock`, and `map` and `unmap` (`BACKLOG.md`). `map`
+  promises
   what is written to a file afterwards of Linux alone, which a
   snapshot never needs: it is not written once it has its name.
   `lock` and `trylock` give -22 for what is neither a directory nor
   a plain file, on Windows too (the review of `721ed45`); `lock` of
-  AIL 0.2.2 took a named pipe and a device, so the notes of the
-  version with that pull request are to say it.
+  AIL 0.2.2 took a named pipe and a device, which the notes of the
+  release of 0.2.3 say.
 - [ ] What makes a published snapshot durable on Windows, decided
   before `publish` asks the runtime: `rt sync` of a directory gives 0
   there and flushes nothing, and `rt rename` is `MoveFileExA` with

@@ -80,7 +80,11 @@ command `ail`.
   day the user had the pull request 40 of AIL merged and AIL made 0.2.2, the first
   version with its six services for a file; `Ailfile` here asks for 0.2.2 with the
   first source that calls one of them (agent), since 0.2.1 builds everything until
-  then.
+  then. **AIL 0.2.3** (user, 2026-11-28, with the word to merge the pull request 41 of
+  AIL and the pull request 30 here) is the first with the six services more, `time`,
+  `random`, `platform`, `trylock`, `map` and `unmap`; its tag `v0.2.3` names the merge
+  `b9d172c`, and the notes of its release say that `lock` refuses a named pipe and a
+  device, which 0.2.2 took. `Ailfile` asks for it in the same way (agent).
 - **A reader maps the snapshot on Windows too** (agent, 2026-11-27,
   from what Windows 11 did, above), with `rt map`. The reader that
   reads the file into memory stays a way out for a platform that
