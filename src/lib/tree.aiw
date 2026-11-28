@@ -89,7 +89,7 @@ fn treestat treedp treedn treepp treepn treest
 			ret treefd
 		end
 		sys fstat treefd trees as treer
-		sys close treefd
+		rt close treefd
 	else
 		call bycut treefull 0
 		call byadd treefull treedp treedn

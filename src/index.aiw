@@ -246,7 +246,7 @@ fn ixstate make
 	end
 	# O_PATH, O_NOFOLLOW, O_DIRECTORY and O_CLOEXEC
 	sys ixopenat d ixname 0x2b0000 0 as f
-	sys close d
+	rt close d
 	if (make==0)&(f==-2)
 		ret 0
 	end
@@ -350,7 +350,7 @@ fn ixsave p n a an
 		ret fd
 	end
 	call writeall fd a an as r
-	sys close fd as e
+	rt close fd as e
 	if r
 		ret r
 	end
@@ -754,7 +754,7 @@ fn ixconfig given
 		call ixin ixother "config.new" as q m
 		call fileopen q m 0x20000 0 as fd
 		ifsge fd 0
-			sys close fd
+			rt close fd
 			call ixlockwait 0
 			call ixin ixpath "config" as p n
 			call bycut ixcfg 0
@@ -841,7 +841,7 @@ fn ixstage
 	load ixcfg+8 as an
 	call ixsave q m a an as r
 	ifz r
-		sys rename q p as r
+		rt rename q m p n as r
 	end
 	if r
 		call about p n
@@ -861,7 +861,7 @@ fn ixcommit
 	end
 	call ixin ixpath "config" as p n
 	call ixin ixother "config.new" as q m
-	sys rename q p as r
+	rt rename q m p n as r
 	if r
 		call about p n
 		call byadd msg "cannot write: "
@@ -923,7 +923,7 @@ fn ixrecover
 	# O_NOFOLLOW
 	call fileopen q m 0x20000 0 as fd
 	ifsge fd 0
-		sys close fd
+		rt close fd
 		call manfree ixman
 		call manopen ixman q m as r
 		take=0
@@ -934,7 +934,7 @@ fn ixrecover
 		call ixin ixother "manifest.new" as q m
 		if take
 			call ixin ixpath "manifest" as p n
-			sys rename q p as r
+			rt rename q m p n as r
 			if r
 				call about p n
 				call byadd msg "cannot write: "
@@ -979,7 +979,7 @@ fn ixrecover
 	call ixin ixother "config.new" as q m
 	if take
 		call ixin ixpath "config" as p n
-		sys rename q p as r
+		rt rename q m p n as r
 		if r
 			call about p n
 			call byadd msg "cannot write: "
@@ -1018,7 +1018,7 @@ fn ixplace
 	# O_NOFOLLOW
 	call fileopen p n 0x20000 0 as fd
 	ifsge fd 0
-		sys close fd
+		rt close fd
 	else
 		call ixsave p n "*\n" as r
 		ifslt r 0
@@ -1206,7 +1206,7 @@ fn ixlook p l
 			r=fd
 			ifsge fd 0
 				call filereadfd fd ixbody as r
-				sys close fd
+				rt close fd
 			end
 			ifsge r 0
 				load ixbody as q
@@ -1473,7 +1473,6 @@ end
 # The same, and with soft a run that still holds the lock after ms
 # milliseconds does not end the program: 1 with the lock, 0 without.
 fn ixlock ms soft
-	local ts 16
 	if ixlocked
 		ret 1
 	end
@@ -1493,9 +1492,7 @@ fn ixlock ms soft
 	sys flock fd 6 as r
 	if r==-11
 		if ms
-			store ts 0
-			store ts+8 50000000
-			sys nanosleep ts 0
+			rt sleep 50000000
 			if ms>50
 				ms-=50
 			else
@@ -1504,7 +1501,7 @@ fn ixlock ms soft
 			jmp again
 		end
 		if soft
-			sys close fd
+			rt close fd
 			ret 0
 		end
 		load dst as p
@@ -1530,7 +1527,7 @@ end
 # what ixlock does.
 fn ixunlock
 	if ixlocked
-		sys close ixlockfd
+		rt close ixlockfd
 		ixlocked=0
 	end
 end
@@ -1549,7 +1546,7 @@ fn ixpending
 	ifslt fd 0
 		ret 0
 	end
-	sys close fd
+	rt close fd
 	ret 1
 end
 
@@ -1710,7 +1707,7 @@ end
 fn ixmancommit
 	call ixin ixpath "manifest" as p n
 	call ixin ixother "manifest.new" as q m
-	sys rename q p as r
+	rt rename q m p n as r
 	ret r
 end
 
@@ -1965,7 +1962,7 @@ fn index
 		call byadd msg "indexed, but the line about it could not be written to the output"
 		call fail stio
 	end
-	sys exit_group 0
+	rt exit 0
 end
 
 # aildb search [DIRECTORY] --text QUERY -k LIMIT [-p PREFIX] [-l LANGUAGE] [-w MILLISECONDS]
@@ -2111,5 +2108,5 @@ fn textsearch
 	call hookmark 3
 	call results
 	call hookmark 4
-	sys exit_group 0
+	rt exit 0
 end

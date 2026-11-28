@@ -17,13 +17,11 @@ buf snap 104
 buf sel 24
 buf query 24
 buf line 24
-buf sigact 32
 
 # A pipe that nobody reads is to be an error of the write, which has a
 # line and the status 1, and not the signal SIGPIPE, which would end
 # the program without either.
-store sigact 1
-sys rt_sigaction 13 sigact 0 8
+rt pipeerr
 call argc as c
 if c!=4
 	call die "usage: consumer INDEX QUERY LIMIT\n"

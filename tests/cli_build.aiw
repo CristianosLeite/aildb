@@ -44,7 +44,7 @@ fn there p n
 	ifslt fd 0
 		ret 0
 	end
-	sys close fd
+	rt close fd
 	ret 1
 end
 # the vectors 3 4 0 and 1 1 1, and two records that share no string

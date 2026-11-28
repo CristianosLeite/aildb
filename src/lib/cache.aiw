@@ -263,7 +263,7 @@ fn cacheflush cachec
 		load cachework+8 as cachen
 		call cachewrite cachefd cachep cachen cacheo as cacher
 	end
-	sys close cachefd
+	rt close cachefd
 	if cacher
 		ret cacher
 	end
@@ -285,7 +285,7 @@ fn cachesave cachep cachen cacheq cachem
 		ret cachefd
 	end
 	call cachewrite cachefd cacheq cachem 0 as cacher
-	sys close cachefd as cachee
+	rt close cachefd as cachee
 	if cacher
 		ret cacher
 	end
@@ -322,7 +322,7 @@ fn cacheclose cachec
 			load cachework+8 as cachem
 			call cachesave cachez cachen+3 cacheq cachem as cacher
 			ifsge cacher 0
-				sys rename cachez cachep as cacher
+				rt rename cachez cachen+3 cachep cachen-1 as cacher
 			end
 		end
 	end

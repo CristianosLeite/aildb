@@ -854,3 +854,39 @@ A fifth review, of the fixes above at `acb1a70` (user, 2026-11-24,
   `mcp/Ailfile` and the version in `docs/install.md` and `README.md`
   name it. The archive of its release was checked against its
   `.sha256` and `make test` passes with the command of that archive.
+
+## 19. The runtime of AIL, and Windows
+
+- [x] aildb on AIL 0.2.1 (user, 2026-11-26): `Ailfile`, `mcp/Ailfile`
+  and `example/consumer/Ailfile` ask for it, and what its runtime has
+  is asked with `rt` in place of `sys`: a descriptor closed, the end of
+  a command, a read and a write, a file renamed, a sleep, the number of
+  the process, the directory of the process, and a write to a closed
+  pipe as an error (`rt pipeerr` in place of a signal ignored). Of 259
+  statements `sys` 74 are left, for what the runtime has not
+  (`TODO.md`). A given path now goes to `rename` with its length, and
+  the directory of the process comes without a NUL byte counted.
+  Nothing a command prints changed: `make test` passes as it was, with
+  the command of a checkout at `v0.2.1` (`074ca4d`) and with the one of
+  the archive of that release, checked against its `.sha256`.
+
+A review of the pull request 29 at `cd0ee0f` and of the pull request
+40 of AIL at `ab402b5` (user, 2026-11-27, a file `REVIEW.md` that is
+no part of the repository) had three findings here and one in AIL,
+one commit each. `.agents/knowledge/architecture/review-cd0ee0f.md`
+has what was chosen.
+
+- [x] The step has a number of its own (P1): `main` had given 18 to
+  the provider for searches, and `docs/TODO.md` and two files of the
+  knowledge base met when the two were merged. `main` is merged into
+  the branch with both entries kept, and this step is 19.
+- [x] The build hooks open their files with the runtime (P3):
+  `tests/lib/hook.aiw` has `rt open` for `aildb.hook` and
+  `aildb.stopped`, each path once in `build/aildb-stops` as before,
+  and 74 statements `sys` are left.
+- [x] No buffer for a sleep that takes a number (P3): `ts` of `ixlock`
+  and of `mcp/tests/directory.aiw` are gone.
+- [x] In AIL, `fstat` of a pipe on Windows (P2): it was the kind 1, a
+  plain file, and is 4 as on Linux, `2a65981` of the branch
+  `file-services`. The program of its test, run on Windows 11 with a
+  pipe at each end, ended with 31 before and with 127 after.

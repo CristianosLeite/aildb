@@ -16,8 +16,6 @@
 # Every name of this file starts with "cmd"; a test has no var of such a
 # name (see lib/std/io.aiw).
 
-const cmdgetcwd 79
-const cmdchdir 80
 buf cmdhome 4096        # the directory the test was started in
 buf cmdexe 8192         # the path of the program of the last cmdargs
 buf cmdtmp 4096         # AIL_TMP with a NUL byte
@@ -28,17 +26,17 @@ buf cmdargv 520         # their addresses, 64 at most, and a 0
 buf cmdnames 24         # the names of cmdstaged
 var cmdhomen cmdused cmdcount
 
-sys cmdgetcwd cmdhome 4096 as cmdr
+rt cwd cmdhome 4096 as cmdr
 ifsle cmdr 0
 	call die "cmd: no current directory\n"
 end
-cmdhomen=cmdr-1
+cmdhomen=cmdr
 call procvar "AIL_TMP" as cmdp cmdn
 if (cmdp==0)|(cmdn>4095)
 	call die "cmd: AIL_TMP is not set\n"
 end
 call bycopy cmdtmp cmdp cmdn
-sys cmdchdir cmdtmp as cmdr
+rt chdir cmdp cmdn as cmdr
 if cmdr
 	call die "cmd: cannot enter AIL_TMP\n"
 end
@@ -61,10 +59,10 @@ fn cmdrun cmdav cmdin cmdout cmderr
 		ret -2000
 	end
 	call procstart cmdav cmdi cmdo cmde as cmdpid
-	sys close cmdo
-	sys close cmde
+	rt close cmdo
+	rt close cmde
 	if cmdin==-1
-		sys close cmdi
+		rt close cmdi
 	end
 	ifslt cmdpid 0
 		ret -2000
@@ -221,7 +219,7 @@ fn cmdshowvin cmdq cmdm
 		call cmdrun cmdav cmdin cmdso cmdse as cmds
 	end
 	if cmdin!=-1
-		sys close cmdin
+		rt close cmdin
 	end
 	tail cmdtold cmds
 end
@@ -255,7 +253,7 @@ fn cmdshowin cmdp cmdn cmdq cmdm
 		call cmdrun cmdav cmdin cmdso cmdse as cmds
 	end
 	if cmdin!=-1
-		sys close cmdin
+		rt close cmdin
 	end
 	tail cmdtold cmds
 end
@@ -297,28 +295,25 @@ fn cmdspawn cmdp cmdn
 		ret -2000
 	end
 	call procstart cmdav cmdi cmdo cmde as cmdpid
-	sys close cmdo
-	sys close cmde
-	sys close cmdi
+	rt close cmdo
+	rt close cmde
+	rt close cmdi
 	ret cmdpid
 end
 
 # wait until there is a file at the path of the cmdn bytes at cmdp, for
 # cmdms milliseconds at most: 1 if there is one, 0 if the time ran out
 fn cmdawait cmdp cmdn cmdms
-	local cmdts 16
 	label look
 	call fileopen cmdp cmdn 0 0 as cmdfd
 	ifsge cmdfd 0
-		sys close cmdfd
+		rt close cmdfd
 		ret 1
 	end
 	ifz cmdms
 		ret 0
 	end
-	store cmdts 0
-	store cmdts+8 1000000
-	sys nanosleep cmdts 0
+	rt sleep 1000000
 	cmdms-=1
 	jmp look
 end
@@ -338,8 +333,8 @@ fn cmdspawnin cmdp cmdn cmdin cmdq cmdm
 		ret -2000
 	end
 	call procstart cmdav cmdin cmdo cmde as cmdpid
-	sys close cmdo
-	sys close cmde
+	rt close cmdo
+	rt close cmde
 	ret cmdpid
 end
 

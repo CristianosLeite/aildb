@@ -113,3 +113,83 @@ and whoever wants nothing running keeps `aildb-llama` as it is.
   as `aildb-llama` gives for the same program and model, and the time
   of a search with and without it, by a command of this repository or
   of aildb-bench.
+
+## 19. The runtime of AIL, and Windows
+
+The user wants aildb on the version 0.2.1 of AIL and on Windows (user,
+2026-11-26). AIL 0.2 has a runtime, the statement `rt`, whose services
+have the same names on x86-64 Linux and on x86-64 Windows, and a
+compiler that writes executables of Windows; the statement `sys` is no
+statement there, so a source with one is not compiled for Windows. The
+first part is done: `Ailfile` asks for 0.2.1 and what the runtime has
+is asked of it (`BACKLOG.md`). The decisions are in
+`.agents/knowledge/architecture/runtime-and-windows.md`.
+
+What is left needs services that AIL 0.2.1 has not, and so a later
+version of AIL (the user's to give); the 74 statements `sys` that are
+left, 40 of them in `src/`, `adapters/` and `mcp/src/`, are the ones
+that wait for them.
+
+In the AIL repository:
+
+- [ ] Services of the runtime, each in both runtimes with a test that
+  runs under Wine: a file mapped to be read; a lock that does not
+  wait; the time of day; random bytes; a file with no name for the
+  input and the outputs of a child; a process ended; a file opened
+  below an open directory with no link followed, and the path of an
+  open descriptor; which platform the program runs on. Six are
+  written and in AIL since its version 0.2.2 (user, 2026-11-27; the
+  pull request 40 of AIL), which `Ailfile` asks for with the first
+  source that calls one: `seek`, `pwrite`, `truncate`, `sync` of a
+  file, and `stat` and `fstat`, whose kinds and times on Linux are
+  those `treestat` reads.
+- [ ] What makes a published snapshot durable on Windows, decided
+  before `publish` asks the runtime: `rt sync` of a directory gives 0
+  there and flushes nothing, and `rt rename` is `MoveFileExA` with
+  `MOVEFILE_REPLACE_EXISTING` alone. `publish` takes a sync of the
+  directory that succeeds after the rename as the confirmation and
+  ends with 6 without it, so `rt sync` in the place of `hooksync`
+  would say 0 on Windows with nothing confirmed.
+- [ ] A target for `ail build` and `ail test`, the tests of a target
+  for Windows run under Wine on Linux, with a list of the tests that
+  are not for it; the compiler for Windows in the archive of a release.
+- [ ] Before either: whether Windows lets a snapshot be replaced while
+  another process has it mapped, under Wine and on Windows itself. If
+  it does not, a reader there reads the file into memory, and
+  `docs/performance.md` says what that costs.
+
+Here, on that version of AIL, one commit each:
+
+- [ ] `src/lib/os.aiw`: what differs by platform, in one file: the
+  separator and a path from the root, the paths of a snapshot kept with
+  `/`, the directory of the user's configuration, the directories of
+  `PATH` and the endings of a program's name, the device that is empty.
+- [ ] The snapshot on the runtime: `src/lib/snap.aiw`, `src/main.aiw`,
+  `src/lib/cache.aiw` and `src/hook.aiw` with no `sys`.
+- [ ] No link on the way, without `/proc`: `src/lib/below.aiw`,
+  `src/index.aiw` and `src/lib/trust.aiw` on the two services for it.
+- [ ] The files of an index looked at with the runtime
+  (`src/lib/tree.aiw`), and the time a run starts. `belowopen` and
+  `treestat` keep their walk from one open directory to the next:
+  `rt stat` of a path put together leaves the links on the way
+  unlooked at, and `rt names` of Windows reads a directory by its
+  path.
+- [ ] A child with files that have no name in place of files in memory
+  (`src/lib/run.aiw`, `mcp/src/run.aiw`, `adapters/llama.aiw`), and a
+  program found as Windows finds one.
+- [ ] A line that ends with CR and LF in a configuration and in the
+  metadata of `build`.
+- [ ] The tests without a shell: the steps of `tests/lib/dir.aiw` and
+  of the tests that run `/bin/sh` written in AIL, a process ended by
+  the runtime, and the list of the tests that only Linux has (named
+  pipes, limits of a process, links a test makes, `/dev/full`).
+- [ ] The archive for Windows (`tools/dist.sh`), its check under Wine,
+  and the tests of the target for Windows on GitHub.
+- [ ] The documents: what a build assumes of NTFS in
+  `docs/durability.md`, and the paths, the limits (a path of 260
+  bytes, names that are not UTF-8) and the installation on Windows.
+- [ ] A run of the archive on Windows itself, noted with its day and
+  machine, before a version says it supports Windows.
+- [ ] The version 0.2.0 of aildb, once it has an executable for
+  Windows (user, 2026-11-27): `Ailfile` and `mcp/Ailfile` say it, and
+  the tag `v0.2.0` is the first whose release has that archive.

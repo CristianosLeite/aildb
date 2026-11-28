@@ -39,7 +39,7 @@ fn fail p n q m
 	call eprint p n
 	call eprint q m
 	call eprint "\n"
-	sys exit_group 1
+	rt exit 1
 end
 
 call argc as c
@@ -55,7 +55,7 @@ if c==3
 end
 if (c!=1)&(c!=3)
 	call eprint "usage: aildb-ollama [-e ENDPOINT]\n"
-	sys exit_group 2
+	rt exit 2
 end
 call ollwhere ep en as ip port ok p n
 ifz ok
@@ -199,4 +199,4 @@ call fdwrite 1 p n as ok
 ifz ok
 	call fail "cannot write the answer" ""
 end
-sys exit_group 0
+rt exit 0

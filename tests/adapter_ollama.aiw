@@ -14,7 +14,6 @@ use "lib/std/proc.aiw"
 use "tests/lib/cmd.aiw"
 buf b 24
 buf line 24
-buf ts 16
 var port
 # print the answer of cmdso with each run of ",0.1" as the number of them
 fn answer
@@ -66,7 +65,7 @@ fn run env p n
 	call cmdargs q m as av
 	call fileopen p n 0 0 as fd
 	call cmdrun av fd cmdso cmdse as st
-	sys close fd
+	rt close fd
 	call answer
 	load cmdse as q
 	load cmdse+8 as m
@@ -77,9 +76,7 @@ fn run env p n
 end
 call cmdspawn "embed-fake port.txt" as fake
 call cmdawait "port.txt" 5000 as r
-store ts 0
-store ts+8 20000000
-sys nanosleep ts 0
+rt sleep 20000000
 call fileread "port.txt" b
 load b as p
 load b+8 as n

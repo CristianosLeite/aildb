@@ -232,7 +232,7 @@ load f+8 as m
 call cmdargs q m as av
 call fileopen "list.txt" 0 0 as fd
 call cmdrun av fd cmdso cmdse as st
-sys close fd
+rt close fd
 call bycut f 0
 call print "$ chunk . meta.tsv text.jsonl < list.txt, with 32 MiB of memory\n"
 load cmdso as q

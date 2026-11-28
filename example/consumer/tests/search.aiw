@@ -77,12 +77,12 @@ call print q m
 sys pipe fds
 load4 fds as r
 load4 fds+4 as w
-sys close r
+rt close r
 call cmdargs "consumer s.idx q.bin 2" as av
 call fileopen "/dev/null" 0 0 as in
 call fileopen "pipe.err" 0x241 420 as err
 call procstart av in w err as pid
-sys close w
+rt close w
 call procwait pid 0 as st
 call print "to a closed pipe: status "
 call putn st

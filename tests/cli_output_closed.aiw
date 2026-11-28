@@ -20,8 +20,8 @@ fn ends p n out
 	call fileopen "/dev/null" 0 0 as in
 	call fileopen "cmd.err" 0x241 420 as err
 	call procstart av in out err as pid
-	sys close in
-	sys close err
+	rt close in
+	rt close err
 	call procwait pid 0 as st
 	ifslt st 0
 		call print "signal "
@@ -42,15 +42,15 @@ fn closed p n
 	sys pipe fds
 	load4 fds as r
 	load4 fds+4 as w
-	sys close r
+	rt close r
 	call ends p n w
-	sys close w
+	rt close w
 end
 # and into /dev/full, where every write fails for want of room
 fn full p n
 	call fileopen "/dev/full" 1 0 as w
 	call ends p n w
-	sys close w
+	rt close w
 end
 store4 v 0x3f800000
 store4 v+4 0

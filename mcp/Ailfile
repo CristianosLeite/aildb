@@ -5,7 +5,7 @@
 # version; Ailfile.lock has the revision of that version.
 name aildb-mcp
 version 0.1.2
-ail 0.1.2
+ail 0.2.1
 
 bin aildb-mcp src/main.aiw
 # built for the tests: an embedding service that answers from a table

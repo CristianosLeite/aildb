@@ -14,7 +14,6 @@ use "lib/std/proc.aiw"
 use "tests/lib/cmd.aiw"
 buf b 24
 buf line 24
-buf ts 16
 buf big 24
 var port
 # run embed with the arguments p n and show what it did
@@ -82,9 +81,7 @@ fn vectors p n
 end
 call cmdspawn "embed-fake port.txt" as fake
 call cmdawait "port.txt" 5000 as r
-store ts 0
-store ts+8 20000000
-sys nanosleep ts 0
+rt sleep 20000000
 call fileread "port.txt" b
 load b as p
 load b+8 as n

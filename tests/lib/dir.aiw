@@ -180,9 +180,9 @@ fn dirspawn dirp dirn
 		ret -2000
 	end
 	call procstart dirav diri diro dire as dirpid
-	sys close diro
-	sys close dire
-	sys close diri
+	rt close diro
+	rt close dire
+	rt close diri
 	ret dirpid
 end
 

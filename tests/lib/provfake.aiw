@@ -44,7 +44,6 @@ buf in 24
 buf out 24
 buf log 24
 buf txt 24
-buf ts 16
 buf flt 24
 
 # 1 if the n bytes at p are the m bytes at q
@@ -111,34 +110,30 @@ fn bad p n
 	call eprint "provider-fake: "
 	call eprint p n
 	call eprint "\n"
-	sys exit_group 1
+	rt exit 1
 end
 
 call fileread "provider.fault" flt
 call is "hang" as r
 if r
-	sys getpid as pid
+	rt pid as pid
 	call byaddn log pid
 	call byaddb log 10
 	load log as p
 	load log+8 as n
 	call filewrite "provider.pid" p n
 	label sleep
-	store ts 3600
-	store ts+8 0
-	sys nanosleep ts 0
+	rt sleep 3600000000000
 	jmp sleep
 end
 call is "slow" as r
 if r
 	call fileopen "provider.started" 0 0 as fd
 	ifsge fd 0
-		sys close fd
+		rt close fd
 	else
 		call filewrite "provider.started" ""
-		store ts 1
-		store ts+8 0
-		sys nanosleep ts 0
+		rt sleep 1000000000
 	end
 end
 call is "exit3" as r
@@ -146,13 +141,13 @@ call is "after1" as late
 if late
 	call fileopen "provider.log" 0 0 as fd
 	ifsge fd 0
-		sys close fd
+		rt close fd
 		r=1
 	end
 end
 if r
 	call eprint "provider-fake: the model is not there\nand a second line\n"
-	sys exit_group 3
+	rt exit 3
 end
 call filereadfd 0 in as r
 ifslt r 0
@@ -187,7 +182,7 @@ end
 call is "garbage" as r
 if r
 	call print "this is no JSON\n"
-	sys exit_group 0
+	rt exit 0
 end
 call is "count" as fcount
 call is "order" as forder
@@ -300,11 +295,11 @@ ifsge fd 0
 	load log as p
 	load log+8 as n
 	call fdwrite fd p n
-	sys close fd
+	rt close fd
 end
 load out as p
 load out+8 as n
 call fdwrite 1 p n as ok
 ifz ok
-	sys exit_group 1
+	rt exit 1
 end

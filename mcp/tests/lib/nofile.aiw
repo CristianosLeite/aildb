@@ -9,7 +9,7 @@ buf lim 16
 args as a
 load a as c
 if c<3
-	sys exit_group 2
+	rt exit 2
 end
 load a+16 as p
 n=0
@@ -25,4 +25,4 @@ store lim+8 n
 sys setrlimit 7 lim
 load a+24 as prog
 sys execve prog a+24 a+16+c*8
-sys exit_group 127
+rt exit 127

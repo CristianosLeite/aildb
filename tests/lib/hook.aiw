@@ -14,21 +14,22 @@
 
 const hookfsync 74
 const hookpause 34
-# the two paths as the kernel takes them; a string after sys would be
-# two values, its address and its length
-data hookfile "aildb.hook" 0
-data hookmark "aildb.stopped" 0
+# the two paths, each once in the executable, where
+# tests/cli_build_publish.aiw counts them: a string written in hookstop
+# was there six times
+data hookfile "aildb.hook"
+data hookmark "aildb.stopped"
 
 # 1 if aildb.hook asks for the hookn bytes at hookp followed by the
 # digit hookd
 fn hookasks hookp hookn hookd
 	local hookb 16
-	sys open hookfile 0 0 as hookfd
+	rt open hookfile 10 0 0 as hookfd
 	ifslt hookfd 0
 		ret 0
 	end
-	sys read hookfd hookb 16 as hookr
-	sys close hookfd
+	rt read hookfd hookb 16 as hookr
+	rt close hookfd
 	ifslt hookr hookn+1
 		ret 0
 	end
@@ -48,8 +49,8 @@ end
 fn hookstop hookn
 	call hookasks "stop " hookn as hooka
 	if hooka
-		sys open hookmark 0x41 420 as hookfd
-		sys close hookfd
+		rt open hookmark 13 0x41 420 as hookfd
+		rt close hookfd
 		while 1
 			sys hookpause
 		end

@@ -26,7 +26,6 @@ use "src/lib/text.aiw"
 use "src/lib/config.aiw"
 
 const trustreadlink 89
-const trustgetcwd 79
 const trustaccess 21
 const truststat 4
 buf trusttext 24        # what a key is the sum of, and the file as it is read
@@ -97,7 +96,7 @@ fn trustdir trustdp trustdn trustb
 		ret 0
 	end
 	call trustfdname trustfd trustb as trustok
-	sys close trustfd
+	rt close trustfd
 	ret trustok
 end
 
@@ -127,7 +126,7 @@ fn trustwithin trustp trustn trustdp trustdn
 		# (O_NOFOLLOW)
 		call fileopen trustp trustn 0x220000 0 as trustfd
 		ifsge trustfd 0
-			sys close trustfd
+			rt close trustfd
 			ret 2
 		end
 		# the part before the last slash
@@ -147,7 +146,7 @@ fn trustwithin trustp trustn trustdp trustdn
 	end
 	call bycut trustreal 0
 	call trustfdname trustfd trustreal as trustok
-	sys close trustfd
+	rt close trustfd
 	ifz trustok
 		ret 2
 	end
@@ -184,19 +183,19 @@ fn trustabs trustb trustp trustn
 		loadb trustp as trustc
 	end
 	if trustc!=47
-		sys trustgetcwd trustcw 4096 as trustr
-		ifslt trustr 2
+		rt cwd trustcw 4096 as trustr
+		ifslt trustr 1
 			ret 0
 		end
 		loadb trustcw as trustc
 		if trustc!=47
 			ret 0
 		end
-		call byadd trustb trustcw trustr-1 as trustok
+		call byadd trustb trustcw trustr as trustok
 		ifz trustn
 			ret trustok
 		end
-		if trustr>2
+		if trustr>1
 			call byaddb trustb 47
 		end
 	end
@@ -269,12 +268,12 @@ fn trustbytes trustfd trustout
 	end
 	call shainit trusts
 	label more
-	sys read trustrd trustblock 65536 as trustr
+	rt read trustrd trustblock 65536 as trustr
 	ifsgt trustr 0
 		call shaadd trusts trustblock trustr
 		jmp more
 	end
-	sys close trustrd
+	rt close trustrd
 	ifslt trustr 0
 		ret 0
 	end
@@ -303,7 +302,7 @@ fn trustof trustz
 	call bycut trustreal 0
 	call trustfdname trustfd trustreal as trustok
 	ifz trustok
-		sys close trustfd
+		rt close trustfd
 		ret 0
 	end
 	load trustreal as trustp
@@ -320,7 +319,7 @@ fn trustof trustz
 	if trustin
 		call trustbytes trustfd trustsum as trustok
 		ifz trustok
-			sys close trustfd
+			rt close trustfd
 			ret 0
 		end
 		call byadd trusttext "file "
@@ -329,7 +328,7 @@ fn trustof trustz
 	else
 		call byadd trusttext "-\n" as trustok
 	end
-	sys close trustfd
+	rt close trustfd
 	ret trustok
 end
 
@@ -433,7 +432,7 @@ fn trustprint trustc trustout
 			ret 0
 		end
 		call trustbytes trustfd trustsum as trustok
-		sys close trustfd
+		rt close trustfd
 		ifz trustok
 			ret 0
 		end
@@ -604,8 +603,8 @@ fn trustadd trustp trustn trustkp trustnp trustnn
 	end
 	load trusthex as trustq
 	load trusthex+8 as trustm
-	sys write trustfd trustq trustm as trustr
-	sys close trustfd
+	rt write trustfd trustq trustm as trustr
+	rt close trustfd
 	ifslt trustr 0
 		ret trustr
 	end

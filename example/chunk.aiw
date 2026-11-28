@@ -69,7 +69,7 @@ fn fail st p n q m
 	call eprint p n
 	call eprint q m
 	call eprint "\n"
-	sys exit_group st
+	rt exit st
 end
 
 # say that the file at the path p l is passed over, for the reason q m
@@ -130,7 +130,7 @@ end
 
 fn usage
 	call eprint "usage: chunk [-c] [-n LINES] [-b BYTES] [-o LINES] [-p] ROOT META TEXT < LIST\n"
-	sys exit_group 2
+	rt exit 2
 end
 
 # the options, each before the three paths

@@ -90,14 +90,14 @@ data aboutend ""
 
 fn usage
 	call eprint "usage: aildb-mcp -d DIRECTORY [-a AILDB] [-t MS]\n       aildb-mcp -s SNAPSHOT -i MODEL -e ENDPOINT [-a AILDB] [-p PREFIX] [-t MS]\n"
-	sys exit_group 2
+	rt exit 2
 end
 fn fail st p n q m
 	call eprint "aildb-mcp: "
 	call eprint p n
 	call eprint q m
 	call eprint "\n"
-	sys exit_group st
+	rt exit st
 end
 
 # 1 if one of the n bytes at p is 0: an argument of a command ends at

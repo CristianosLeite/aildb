@@ -34,7 +34,7 @@ fn try p n q m
 		load4 st+24 as mode
 		call print ", mode "
 		call putn mode>>12
-		sys close fd
+		rt close fd
 	end
 	call print "; read: "
 	call belowopen p n q m belowread as fd
@@ -42,7 +42,7 @@ fn try p n q m
 	ifsge fd 0
 		call bycut b 0
 		call filereadfd fd b
-		sys close fd
+		rt close fd
 		load b as x
 		load b+8 as k
 		call print " ["

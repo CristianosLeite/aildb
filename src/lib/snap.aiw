@@ -226,7 +226,7 @@ fn snapopen snaps snapp snapn
 	end
 	sys fstat snapfd snapst as snapr
 	ifslt snapr 0
-		sys close snapfd
+		rt close snapfd
 		ret snapr
 	end
 	# A regular file only: the size the kernel gives for a directory or a
@@ -235,7 +235,7 @@ fn snapopen snaps snapp snapn
 	load4 snapst+24 as snapz
 	snapz=snapz&0xf000
 	if snapz!=0x8000
-		sys close snapfd
+		rt close snapfd
 		if snapz==0x4000
 			ret -21
 		end
@@ -244,12 +244,12 @@ fn snapopen snaps snapp snapn
 	# the size of the file, which the header must repeat
 	load snapst+48 as snapz
 	if snapz<128
-		sys close snapfd
+		rt close snapfd
 		ret snapshort
 	end
 	# readable, private: PROT_READ and MAP_PRIVATE
 	sys mmap 0 snapz 1 2 snapfd 0 as snapb
-	sys close snapfd
+	rt close snapfd
 	if snapb>-4096
 		ret snapb
 	end
