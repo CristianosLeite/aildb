@@ -915,3 +915,28 @@ In the AIL repository, after its version 0.2.2 (2026-11-27):
   on NTFS, ended with 0 at its `1a6f5f4` on 2026-11-27, with 607
   tests (`.agents/knowledge/testing/windows-itself.md` of AIL). The
   tests of a target for Windows here can be run the same way.
+
+A review of the pull request 30 at `f8c9c2a` and of the pull request
+41 of AIL at `0723385` (user, 2026-11-27, `REVIEW.md` again) had
+three findings in AIL and one here, one commit each.
+`.agents/knowledge/architecture/review-f8c9c2a.md` has what was
+chosen.
+
+- [x] In AIL, no lock of a named pipe (P2): `trylock` of Linux waited
+  in the open of one. The open does not wait, for `lock` too, and
+  anything but a directory and a plain file is the error -22
+  (`b89bcc9` of the branch `more-services`; the test `rt_lock_fifo`
+  did not end before, status 124 after five seconds).
+- [x] In AIL, `map` promises a write after it of Linux alone (P2):
+  Windows does not say that a view has what `WriteFile` writes. The
+  documents say so and the check has a test of its own that Windows
+  does not run (`9400a97`). A snapshot is not written once it has its
+  name, so a reader needs nothing of it.
+- [x] In AIL, `time` gives the error of a clock that does not answer
+  (P3), where it gave 0, the start of 1970 (`209c686`; the status of
+  the test `rt_time_refused` was 3 before and is 7). `index` is to
+  end a run that gets an error for the time its manifest records.
+- [x] Where a mapped snapshot may be replaced is asked of the file
+  system too (P3): the item of `TODO.md` names what is known, NTFS at
+  build 26300 and the share of WSL, where the rename fails, and what
+  was not asked.

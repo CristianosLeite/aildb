@@ -1,7 +1,7 @@
 ---
 title: The runtime of AIL, and Windows
 last-verified: 2026-11-27
-sources: [conversation 2026-11-26, conversation 2026-11-27, docs/runtime.md and docs/language.md of AIL at v0.2.1 (074ca4d), Ailfile, docs/TODO.md step 19, runs of 2026-11-27 on Windows 11 Pro build 26300 with the branch more-services of AIL (21f9b19, 1a6f5f4)]
+sources: [conversation 2026-11-26, conversation 2026-11-27, docs/runtime.md and docs/language.md of AIL at v0.2.1 (074ca4d), Ailfile, docs/TODO.md step 19, runs of 2026-11-27 on Windows 11 Pro build 26300 with the branch more-services of AIL (21f9b19, 1a6f5f4), review-f8c9c2a.md]
 status: current
 ---
 # The runtime of AIL, and Windows
@@ -44,7 +44,14 @@ command `ail`.
   such a program the bare name of its file as its first argument.
 - **`rt trylock` takes a path**, where `flock` took a descriptor that
   `build` and `index` had opened: the lock of a directory on Windows
-  is the file `.ail-lock` in it, which stays.
+  is the file `.ail-lock` in it, which stays. On Linux it follows a
+  link at the end of the path, which `ixlock` does not
+  (`review-f8c9c2a.md`), and it is -22 for what is neither a
+  directory nor a plain file.
+- **`rt map` promises a write after it of Linux alone**, and
+  `rt time` may be an error (the review of `f8c9c2a`): a reader
+  needs neither a later write nor more than the old file kept, and
+  `index` is to look at the time it gets.
 - `rt rename` takes each path with its length and `rt cwd` gives a length without the
   NUL byte, where the system calls took a NUL and counted it: `publish` of
   `src/main.aiw`, `trustabs` of `src/lib/trust.aiw` and `tests/lib/cmd.aiw` changed for

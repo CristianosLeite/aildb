@@ -145,7 +145,9 @@ In the AIL repository:
   and times on Linux are those `treestat` reads. Six more are written
   and wait in the pull request 41 of AIL (2026-11-27), in no version
   yet, which is the user's to give: `time`, `random`, `platform`,
-  `trylock`, and `map` and `unmap` (`BACKLOG.md`).
+  `trylock`, and `map` and `unmap` (`BACKLOG.md`). `map` promises
+  what is written to a file afterwards of Linux alone, which a
+  snapshot never needs: it is not written once it has its name.
 - [ ] What makes a published snapshot durable on Windows, decided
   before `publish` asks the runtime: `rt sync` of a directory gives 0
   there and flushes nothing, and `rt rename` is `MoveFileExA` with
@@ -156,11 +158,17 @@ In the AIL repository:
 - [ ] A target for `ail build` and `ail test`, the tests of a target
   for Windows run under Wine on Linux, with a list of the tests that
   are not for it; the compiler for Windows in the archive of a release.
-- [ ] Whether Wine and a Windows older than build 26300 let a
-  snapshot be replaced while another process has it mapped. Windows
-  11 at that build does (`BACKLOG.md`), so a reader maps the snapshot
-  there as on Linux; where a platform does not, a reader reads the
-  file into memory, and `docs/performance.md` says what that costs.
+- [ ] Where a snapshot may be replaced while another process has it
+  mapped, by the Windows and by the file system both. Known: Windows
+  11 at build 26300 on NTFS lets it be (`BACKLOG.md`), so a reader
+  maps the snapshot there as on Linux; on the share that the file
+  system of WSL is to a program of Windows the same rename fails.
+  Not asked: Wine, a Windows older than that build, and the other
+  file systems (FAT and exFAT, ReFS, a share of another machine).
+  Where it is refused, a reader reads the file into memory, and
+  `docs/performance.md` says what that costs; the documents of a
+  version for Windows say on which of them a snapshot is mapped and
+  on which it is read.
 
 Here, on that version of AIL, one commit each:
 
@@ -172,6 +180,11 @@ Here, on that version of AIL, one commit each:
   `src/lib/cache.aiw` and `src/hook.aiw` with no `sys`.
 - [ ] No link on the way, without `/proc`: `src/lib/below.aiw`,
   `src/index.aiw` and `src/lib/trust.aiw` on the two services for it.
+  The lock of an index is of this item: `ixlock` opens `.aildb/lock`
+  with no link followed and locks that descriptor, and `rt trylock`
+  opens a path, a link at its end followed on Linux. The lock stays
+  on a descriptor opened so, or the service follows no link, before
+  it takes the place of `flock` there.
 - [ ] The files of an index looked at with the runtime
   (`src/lib/tree.aiw`), and the time a run starts. `belowopen` and
   `treestat` keep their walk from one open directory to the next:
