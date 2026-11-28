@@ -890,3 +890,28 @@ has what was chosen.
   plain file, and is 4 as on Linux, `2a65981` of the branch
   `file-services`. The program of its test, run on Windows 11 with a
   pipe at each end, ended with 31 before and with 127 after.
+
+In the AIL repository, after its version 0.2.2 (2026-11-27):
+
+- [x] Six services more, the pull request 41 of AIL (its branch
+  `more-services`, `21f9b19`), each in both runtimes with a test:
+  `time`, the time of day, for the start of a run of `index`;
+  `random`, for the name a snapshot is written under; `platform`, 1
+  for Linux and 2 for Windows; `trylock`, the lock that is not waited
+  for, of a build and of an index, which takes a path where `flock`
+  took a descriptor; and `map` and `unmap`, a file as memory to be
+  read, for the reader of a snapshot. They are in no version of AIL
+  until the user gives one.
+- [x] Windows lets a snapshot be replaced while it is mapped: on
+  Windows 11 Pro, build 26300, on NTFS, a process mapped a file with
+  `rt map`, another gave a new file its name with `rt rename`, which
+  answered 0, and the memory was still the old file while the name
+  led to the new one (the test `rt_map_replace` of AIL, run on
+  2026-11-27). A mapped file may be removed there too; to cut it is
+  refused, -5. So a reader maps the snapshot on Windows as on Linux.
+  Wine and an older Windows were not asked (`TODO.md`).
+- [x] The tests of AIL for Windows run on Windows itself, with no
+  Wine: `tests/win.sh all` of AIL, started from WSL 2 with the tree
+  on NTFS, ended with 0 at its `1a6f5f4` on 2026-11-27, with 607
+  tests (`.agents/knowledge/testing/windows-itself.md` of AIL). The
+  tests of a target for Windows here can be run the same way.

@@ -126,23 +126,26 @@ is asked of it (`BACKLOG.md`). The decisions are in
 `.agents/knowledge/architecture/runtime-and-windows.md`.
 
 What is left needs services that AIL 0.2.1 has not, and so a later
-version of AIL (the user's to give); the 74 statements `sys` that are
+version of AIL (the user's to give); the tests of AIL for Windows
+run on Windows itself since 2026-11-27, from WSL 2 (`BACKLOG.md`).
+The 74 statements `sys` that are
 left, 40 of them in `src/`, `adapters/` and `mcp/src/`, are the ones
 that wait for them.
 
 In the AIL repository:
 
 - [ ] Services of the runtime, each in both runtimes with a test that
-  runs under Wine: a file mapped to be read; a lock that does not
-  wait; the time of day; random bytes; a file with no name for the
-  input and the outputs of a child; a process ended; a file opened
-  below an open directory with no link followed, and the path of an
-  open descriptor; which platform the program runs on. Six are
-  written and in AIL since its version 0.2.2 (user, 2026-11-27; the
-  pull request 40 of AIL), which `Ailfile` asks for with the first
-  source that calls one: `seek`, `pwrite`, `truncate`, `sync` of a
-  file, and `stat` and `fstat`, whose kinds and times on Linux are
-  those `treestat` reads.
+  runs under Wine or on Windows itself. Left: a file with no name for
+  the input and the outputs of a child; a process ended; a file
+  opened below an open directory with no link followed, and the path
+  of an open descriptor. Six are in AIL since its version 0.2.2
+  (user, 2026-11-27; the pull request 40 of AIL), which `Ailfile`
+  asks for with the first source that calls one: `seek`, `pwrite`,
+  `truncate`, `sync` of a file, and `stat` and `fstat`, whose kinds
+  and times on Linux are those `treestat` reads. Six more are written
+  and wait in the pull request 41 of AIL (2026-11-27), in no version
+  yet, which is the user's to give: `time`, `random`, `platform`,
+  `trylock`, and `map` and `unmap` (`BACKLOG.md`).
 - [ ] What makes a published snapshot durable on Windows, decided
   before `publish` asks the runtime: `rt sync` of a directory gives 0
   there and flushes nothing, and `rt rename` is `MoveFileExA` with
@@ -153,10 +156,11 @@ In the AIL repository:
 - [ ] A target for `ail build` and `ail test`, the tests of a target
   for Windows run under Wine on Linux, with a list of the tests that
   are not for it; the compiler for Windows in the archive of a release.
-- [ ] Before either: whether Windows lets a snapshot be replaced while
-  another process has it mapped, under Wine and on Windows itself. If
-  it does not, a reader there reads the file into memory, and
-  `docs/performance.md` says what that costs.
+- [ ] Whether Wine and a Windows older than build 26300 let a
+  snapshot be replaced while another process has it mapped. Windows
+  11 at that build does (`BACKLOG.md`), so a reader maps the snapshot
+  there as on Linux; where a platform does not, a reader reads the
+  file into memory, and `docs/performance.md` says what that costs.
 
 Here, on that version of AIL, one commit each:
 

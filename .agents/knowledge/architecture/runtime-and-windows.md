@@ -1,7 +1,7 @@
 ---
 title: The runtime of AIL, and Windows
 last-verified: 2026-11-27
-sources: [conversation 2026-11-26, conversation 2026-11-27, docs/runtime.md and docs/language.md of AIL at v0.2.1 (074ca4d), Ailfile, docs/TODO.md step 19]
+sources: [conversation 2026-11-26, conversation 2026-11-27, docs/runtime.md and docs/language.md of AIL at v0.2.1 (074ca4d), Ailfile, docs/TODO.md step 19, runs of 2026-11-27 on Windows 11 Pro build 26300 with the branch more-services of AIL (21f9b19, 1a6f5f4)]
 status: current
 ---
 # The runtime of AIL, and Windows
@@ -29,6 +29,22 @@ command `ail`.
 - **Nothing tells a program its platform**, and the command `ail` has no target: an
   executable of Windows comes from `build/ailc-windows-x86_64` of a checkout, which the
   archive of a release has not, and is tested under Wine.
+- **Windows 11 lets a mapped file be replaced** (2026-11-27, build
+  26300, NTFS): a rename onto a file that another process has mapped
+  answers 0, the memory stays the old file, and the name leads to the
+  new one; to remove a mapped file is allowed, to cut it is not (-5).
+  It is the test `rt_map_replace` of AIL (its pull request 41). On
+  the share that the file system of WSL is to Windows the same rename
+  fails, so a snapshot there is no case to rely on. Wine and an older
+  Windows were not asked.
+- **A program of Windows runs from WSL 2**, so the tests for Windows
+  need no Wine on the machine with Windows: a script named `wine`
+  that starts its first argument, and the tree on NTFS
+  (`.agents/knowledge/testing/windows-itself.md` of AIL). WSL gives
+  such a program the bare name of its file as its first argument.
+- **`rt trylock` takes a path**, where `flock` took a descriptor that
+  `build` and `index` had opened: the lock of a directory on Windows
+  is the file `.ail-lock` in it, which stays.
 - `rt rename` takes each path with its length and `rt cwd` gives a length without the
   NUL byte, where the system calls took a NUL and counted it: `publish` of
   `src/main.aiw`, `trustabs` of `src/lib/trust.aiw` and `tests/lib/cmd.aiw` changed for
@@ -56,7 +72,16 @@ command `ail`.
   version with its six services for a file; `Ailfile` here asks for 0.2.2 with the
   first source that calls one of them (agent), since 0.2.1 builds everything until
   then.
-- **Proposed, not decided** (agent): the names of the services; one file
+- **A reader maps the snapshot on Windows too** (agent, 2026-11-27,
+  from what Windows 11 did, above), with `rt map`. The reader that
+  reads the file into memory stays a way out for a platform that
+  refuses the rename, and is not written until one is found.
+- **Six services more are written, the pull request 41 of AIL**
+  (agent, 2026-11-27, at the user's word to go on with step 19):
+  `time`, `random`, `platform` (1 Linux, 2 Windows), `trylock`, `map`
+  and `unmap`. The names are the agent's. Which version of AIL has
+  them is the user's to say.
+- **Proposed, not decided** (agent): one file
   `src/lib/os.aiw` for what differs by platform, decided when the program runs; the
   paths of a snapshot with `/` on every platform, so the format does not change;
   `%APPDATA%\aildb\trusted`; a reader that reads the snapshot into memory if Windows
