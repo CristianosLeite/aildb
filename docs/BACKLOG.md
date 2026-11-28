@@ -890,3 +890,80 @@ has what was chosen.
   plain file, and is 4 as on Linux, `2a65981` of the branch
   `file-services`. The program of its test, run on Windows 11 with a
   pipe at each end, ended with 31 before and with 127 after.
+
+In the AIL repository, after its version 0.2.2 (2026-11-27):
+
+- [x] Six services more, the pull request 41 of AIL (its branch
+  `more-services`, `21f9b19`), each in both runtimes with a test:
+  `time`, the time of day, for the start of a run of `index`;
+  `random`, for the name a snapshot is written under; `platform`, 1
+  for Linux and 2 for Windows; `trylock`, the lock that is not waited
+  for, of a build and of an index, which takes a path where `flock`
+  took a descriptor; and `map` and `unmap`, a file as memory to be
+  read, for the reader of a snapshot. They are in no version of AIL
+  until the user gives one.
+- [x] Windows lets a snapshot be replaced while it is mapped: on
+  Windows 11 Pro, build 26300, on NTFS, a process mapped a file with
+  `rt map`, another gave a new file its name with `rt rename`, which
+  answered 0, and the memory was still the old file while the name
+  led to the new one (the test `rt_map_replace` of AIL, run on
+  2026-11-27). A mapped file may be removed there too; to cut it is
+  refused, -5. So a reader maps the snapshot on Windows as on Linux.
+  Wine and an older Windows were not asked (`TODO.md`).
+- [x] The tests of AIL for Windows run on Windows itself, with no
+  Wine: `tests/win.sh all` of AIL, started from WSL 2 with the tree
+  on NTFS, ended with 0 at its `1a6f5f4` on 2026-11-27, with 607
+  tests (`.agents/knowledge/testing/windows-itself.md` of AIL). The
+  tests of a target for Windows here can be run the same way.
+
+A review of the pull request 30 at `f8c9c2a` and of the pull request
+41 of AIL at `0723385` (user, 2026-11-27, `REVIEW.md` again) had
+three findings in AIL and one here, one commit each.
+`.agents/knowledge/architecture/review-f8c9c2a.md` has what was
+chosen.
+
+- [x] In AIL, no lock of a named pipe (P2): `trylock` of Linux waited
+  in the open of one. The open does not wait, for `lock` too, and
+  anything but a directory and a plain file is the error -22
+  (`b89bcc9` of the branch `more-services`; the test `rt_lock_fifo`
+  did not end before, status 124 after five seconds).
+- [x] In AIL, `map` promises a write after it of Linux alone (P2):
+  Windows does not say that a view has what `WriteFile` writes. The
+  documents say so and the check has a test of its own that Windows
+  does not run (`9400a97`). A snapshot is not written once it has its
+  name, so a reader needs nothing of it.
+- [x] In AIL, `time` gives the error of a clock that does not answer
+  (P3), where it gave 0, the start of 1970 (`209c686`; the status of
+  the test `rt_time_refused` was 3 before and is 7). `index` is to
+  end a run that gets an error for the time its manifest records.
+- [x] Where a mapped snapshot may be replaced is asked of the file
+  system too (P3): the item of `TODO.md` names what is known, NTFS at
+  build 26300 and the share of WSL, where the rename fails, and what
+  was not asked.
+
+A review of those fixes, the pull request 30 at `721ed45` and the
+pull request 41 of AIL at `9400a97` (user, 2026-11-28, `REVIEW.md`
+again), found the four answered and one thing more in AIL, and
+suggested how three items of step 19 are to be done.
+`.agents/knowledge/architecture/review-721ed45.md` has what was
+chosen.
+
+- [x] In AIL, no lock of a device on Windows (P2): the table gives
+  -22 for what is neither a directory nor a plain file, and `lock`
+  and `trylock` of `NUL` gave a descriptor there. The runtime of
+  Windows asks what it opened its kind before the lock (`c286a5b` of
+  the branch `more-services`; the test `rt_lock_device`, which both
+  platforms run, ended with 24 before on Windows 11, build 26300,
+  on NTFS, and with 31 after).
+- [x] The items of step 19 say what the review suggested: the lock
+  of an index stays `flock` of a descriptor opened with no link
+  followed until the runtime locks an open descriptor, a service
+  that `TODO.md` now names among those left; `ixbegin` looks at the
+  time it gets before it is the time of a run; a reader on Windows
+  chooses by the file system of the snapshot.
+- [x] AIL 0.2.3 has the six services of its pull request 41 (user,
+  2026-11-28: both pull requests merged, AIL to 0.2.3). Its tag
+  `v0.2.3` names the merge, `b9d172c`, and its release has the
+  archive for Linux; the notes say that `lock` refuses a named pipe
+  and a device. `Ailfile` here asks for it with the first source
+  that calls one of the six.

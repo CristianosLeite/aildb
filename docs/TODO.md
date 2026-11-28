@@ -125,24 +125,35 @@ first part is done: `Ailfile` asks for 0.2.1 and what the runtime has
 is asked of it (`BACKLOG.md`). The decisions are in
 `.agents/knowledge/architecture/runtime-and-windows.md`.
 
-What is left needs services that AIL 0.2.1 has not, and so a later
-version of AIL (the user's to give); the 74 statements `sys` that are
+What is left needs services that AIL 0.2.3 has not, and so a later
+version of AIL (the user's to give); the tests of AIL for Windows
+run on Windows itself since 2026-11-27, from WSL 2 (`BACKLOG.md`).
+The 74 statements `sys` that are
 left, 40 of them in `src/`, `adapters/` and `mcp/src/`, are the ones
 that wait for them.
 
 In the AIL repository:
 
 - [ ] Services of the runtime, each in both runtimes with a test that
-  runs under Wine: a file mapped to be read; a lock that does not
-  wait; the time of day; random bytes; a file with no name for the
-  input and the outputs of a child; a process ended; a file opened
-  below an open directory with no link followed, and the path of an
-  open descriptor; which platform the program runs on. Six are
-  written and in AIL since its version 0.2.2 (user, 2026-11-27; the
-  pull request 40 of AIL), which `Ailfile` asks for with the first
-  source that calls one: `seek`, `pwrite`, `truncate`, `sync` of a
-  file, and `stat` and `fstat`, whose kinds and times on Linux are
-  those `treestat` reads.
+  runs under Wine or on Windows itself. Left: a file with no name for
+  the input and the outputs of a child; a process ended; a file
+  opened below an open directory with no link followed, the path
+  of an open descriptor, and the lock of an open descriptor, not
+  waited for, which the lock of an index needs (below). Six are in AIL since its version 0.2.2
+  (user, 2026-11-27; the pull request 40 of AIL), which `Ailfile`
+  asks for with the first source that calls one: `seek`, `pwrite`,
+  `truncate`, `sync` of a file, and `stat` and `fstat`, whose kinds
+  and times on Linux are those `treestat` reads. Six more are in AIL
+  since its version 0.2.3 (user, 2026-11-28; the pull request 41 of
+  AIL), which `Ailfile` asks for in the same way: `time`, `random`,
+  `platform`, `trylock`, and `map` and `unmap` (`BACKLOG.md`). `map`
+  promises
+  what is written to a file afterwards of Linux alone, which a
+  snapshot never needs: it is not written once it has its name.
+  `lock` and `trylock` give -22 for what is neither a directory nor
+  a plain file, on Windows too (the review of `721ed45`); `lock` of
+  AIL 0.2.2 took a named pipe and a device, which the notes of the
+  release of 0.2.3 say.
 - [ ] What makes a published snapshot durable on Windows, decided
   before `publish` asks the runtime: `rt sync` of a directory gives 0
   there and flushes nothing, and `rt rename` is `MoveFileExA` with
@@ -153,10 +164,23 @@ In the AIL repository:
 - [ ] A target for `ail build` and `ail test`, the tests of a target
   for Windows run under Wine on Linux, with a list of the tests that
   are not for it; the compiler for Windows in the archive of a release.
-- [ ] Before either: whether Windows lets a snapshot be replaced while
-  another process has it mapped, under Wine and on Windows itself. If
-  it does not, a reader there reads the file into memory, and
-  `docs/performance.md` says what that costs.
+- [ ] Where a snapshot may be replaced while another process has it
+  mapped, by the Windows and by the file system both. Known: Windows
+  11 at build 26300 on NTFS lets it be (`BACKLOG.md`), so a reader
+  maps the snapshot there as on Linux; on the share that the file
+  system of WSL is to a program of Windows the same rename fails.
+  Not asked: Wine, a Windows older than that build, and the other
+  file systems (FAT and exFAT, ReFS, a share of another machine).
+  Where it is refused, a reader reads the file into memory, and
+  `docs/performance.md` says what that costs; the documents of a
+  version for Windows say on which of them a snapshot is mapped and
+  on which it is read. A reader on Windows so chooses by the file
+  system the snapshot is on, not by the platform alone: it maps on
+  one where a replacement with a reader open was shown, and reads
+  into memory on the share of WSL and on one that was not asked;
+  what it validates of a snapshot is the same either way. Whether a
+  published snapshot outlasts a loss of power is the item above, and
+  is not answered by this one.
 
 Here, on that version of AIL, one commit each:
 
@@ -168,12 +192,27 @@ Here, on that version of AIL, one commit each:
   `src/lib/cache.aiw` and `src/hook.aiw` with no `sys`.
 - [ ] No link on the way, without `/proc`: `src/lib/below.aiw`,
   `src/index.aiw` and `src/lib/trust.aiw` on the two services for it.
+  The lock of an index is of this item: `ixlock` opens `.aildb/lock`
+  with no link followed and locks that descriptor, and `rt trylock`
+  opens a path, a link at its end followed on Linux. So the lock
+  stays `flock` of that descriptor until the runtime locks an open
+  descriptor without waiting (the review of `721ed45`; the agent
+  took its suggestion, for the user to review): `ixlock` then asks
+  again for the same file while it waits, and a path is not looked
+  up twice. On Windows the open of the file of the lock is to refuse
+  a reparse point and to let no process remove the file while the
+  lock is held. Its tests: two runs that want the lock, and a link
+  at `.aildb/lock`, which is refused with what it leads to left as
+  it was.
 - [ ] The files of an index looked at with the runtime
   (`src/lib/tree.aiw`), and the time a run starts. `belowopen` and
   `treestat` keep their walk from one open directory to the next:
   `rt stat` of a path put together leaves the links on the way
   unlooked at, and `rt names` of Windows reads a directory by its
-  path.
+  path. `rt time` may be an error: `ixbegin` looks at what it gets
+  before it is the time of the run (`ixstarted`), and a run with
+  none ends with 4 and a line that says so, the published snapshot
+  and its manifest as they were, which a test shows.
 - [ ] A child with files that have no name in place of files in memory
   (`src/lib/run.aiw`, `mcp/src/run.aiw`, `adapters/llama.aiw`), and a
   program found as Windows finds one.
