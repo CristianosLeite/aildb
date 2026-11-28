@@ -940,3 +940,24 @@ chosen.
   system too (P3): the item of `TODO.md` names what is known, NTFS at
   build 26300 and the share of WSL, where the rename fails, and what
   was not asked.
+
+A review of those fixes, the pull request 30 at `721ed45` and the
+pull request 41 of AIL at `9400a97` (user, 2026-11-28, `REVIEW.md`
+again), found the four answered and one thing more in AIL, and
+suggested how three items of step 19 are to be done.
+`.agents/knowledge/architecture/review-721ed45.md` has what was
+chosen.
+
+- [x] In AIL, no lock of a device on Windows (P2): the table gives
+  -22 for what is neither a directory nor a plain file, and `lock`
+  and `trylock` of `NUL` gave a descriptor there. The runtime of
+  Windows asks what it opened its kind before the lock (`c286a5b` of
+  the branch `more-services`; the test `rt_lock_device`, which both
+  platforms run, ended with 24 before on Windows 11, build 26300,
+  on NTFS, and with 31 after).
+- [x] The items of step 19 say what the review suggested: the lock
+  of an index stays `flock` of a descriptor opened with no link
+  followed until the runtime locks an open descriptor, a service
+  that `TODO.md` now names among those left; `ixbegin` looks at the
+  time it gets before it is the time of a run; a reader on Windows
+  chooses by the file system of the snapshot.

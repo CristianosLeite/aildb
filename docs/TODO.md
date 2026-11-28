@@ -137,8 +137,9 @@ In the AIL repository:
 - [ ] Services of the runtime, each in both runtimes with a test that
   runs under Wine or on Windows itself. Left: a file with no name for
   the input and the outputs of a child; a process ended; a file
-  opened below an open directory with no link followed, and the path
-  of an open descriptor. Six are in AIL since its version 0.2.2
+  opened below an open directory with no link followed, the path
+  of an open descriptor, and the lock of an open descriptor, not
+  waited for, which the lock of an index needs (below). Six are in AIL since its version 0.2.2
   (user, 2026-11-27; the pull request 40 of AIL), which `Ailfile`
   asks for with the first source that calls one: `seek`, `pwrite`,
   `truncate`, `sync` of a file, and `stat` and `fstat`, whose kinds
@@ -148,6 +149,10 @@ In the AIL repository:
   `trylock`, and `map` and `unmap` (`BACKLOG.md`). `map` promises
   what is written to a file afterwards of Linux alone, which a
   snapshot never needs: it is not written once it has its name.
+  `lock` and `trylock` give -22 for what is neither a directory nor
+  a plain file, on Windows too (the review of `721ed45`); `lock` of
+  AIL 0.2.2 took a named pipe and a device, so the notes of the
+  version with that pull request are to say it.
 - [ ] What makes a published snapshot durable on Windows, decided
   before `publish` asks the runtime: `rt sync` of a directory gives 0
   there and flushes nothing, and `rt rename` is `MoveFileExA` with
@@ -168,7 +173,13 @@ In the AIL repository:
   Where it is refused, a reader reads the file into memory, and
   `docs/performance.md` says what that costs; the documents of a
   version for Windows say on which of them a snapshot is mapped and
-  on which it is read.
+  on which it is read. A reader on Windows so chooses by the file
+  system the snapshot is on, not by the platform alone: it maps on
+  one where a replacement with a reader open was shown, and reads
+  into memory on the share of WSL and on one that was not asked;
+  what it validates of a snapshot is the same either way. Whether a
+  published snapshot outlasts a loss of power is the item above, and
+  is not answered by this one.
 
 Here, on that version of AIL, one commit each:
 
@@ -182,15 +193,25 @@ Here, on that version of AIL, one commit each:
   `src/index.aiw` and `src/lib/trust.aiw` on the two services for it.
   The lock of an index is of this item: `ixlock` opens `.aildb/lock`
   with no link followed and locks that descriptor, and `rt trylock`
-  opens a path, a link at its end followed on Linux. The lock stays
-  on a descriptor opened so, or the service follows no link, before
-  it takes the place of `flock` there.
+  opens a path, a link at its end followed on Linux. So the lock
+  stays `flock` of that descriptor until the runtime locks an open
+  descriptor without waiting (the review of `721ed45`; the agent
+  took its suggestion, for the user to review): `ixlock` then asks
+  again for the same file while it waits, and a path is not looked
+  up twice. On Windows the open of the file of the lock is to refuse
+  a reparse point and to let no process remove the file while the
+  lock is held. Its tests: two runs that want the lock, and a link
+  at `.aildb/lock`, which is refused with what it leads to left as
+  it was.
 - [ ] The files of an index looked at with the runtime
   (`src/lib/tree.aiw`), and the time a run starts. `belowopen` and
   `treestat` keep their walk from one open directory to the next:
   `rt stat` of a path put together leaves the links on the way
   unlooked at, and `rt names` of Windows reads a directory by its
-  path.
+  path. `rt time` may be an error: `ixbegin` looks at what it gets
+  before it is the time of the run (`ixstarted`), and a run with
+  none ends with 4 and a line that says so, the published snapshot
+  and its manifest as they were, which a test shows.
 - [ ] A child with files that have no name in place of files in memory
   (`src/lib/run.aiw`, `mcp/src/run.aiw`, `adapters/llama.aiw`), and a
   program found as Windows finds one.

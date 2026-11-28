@@ -47,7 +47,9 @@ command `ail`.
   is the file `.ail-lock` in it, which stays. On Linux it follows a
   link at the end of the path, which `ixlock` does not
   (`review-f8c9c2a.md`), and it is -22 for what is neither a
-  directory nor a plain file.
+  directory nor a plain file, on Windows too since `c286a5b` of AIL.
+  So `ixlock` keeps `flock` until the runtime locks an open
+  descriptor (`review-721ed45.md`).
 - **`rt map` promises a write after it of Linux alone**, and
   `rt time` may be an error (the review of `f8c9c2a`): a reader
   needs neither a later write nor more than the old file kept, and
